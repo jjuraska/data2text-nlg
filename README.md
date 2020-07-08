@@ -1,2 +1,2 @@
-# viggo
+# ViGGO
 A video game chatbot.
