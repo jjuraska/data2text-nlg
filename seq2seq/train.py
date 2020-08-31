@@ -1,0 +1,396 @@
+import numpy as np
+import os
+import pandas as pd
+# from rouge_score import rouge_scorer, scoring
+from sacrebleu import corpus_bleu
+import torch
+from torch.utils.data import DataLoader
+from tqdm import trange, tqdm
+from transformers import AdamW, get_linear_schedule_with_warmup
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+
+from seq2seq.data_loader import E2EDataset
+
+
+def load_pretrained_gpt2_model_and_tokenizer(model_name, special_tokens=None):
+    # Load pretrained tokenizer
+    tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+    special_tokens = {
+        'bos_token': '<|begoftext|>',
+        'pad_token': '<PAD>',
+        'additional_special_tokens': special_tokens
+    }
+    tokenizer.add_special_tokens(special_tokens)
+
+    # Load pretrained model
+    model = GPT2LMHeadModel.from_pretrained(model_name)
+    model.resize_token_embeddings(len(tokenizer))
+
+    return model, tokenizer
+
+
+def load_model_checkpoint(model, model_name, epoch, step):
+    model_dir = os.path.join('seq2seq', 'model')
+    if not os.path.exists(model_dir):
+        raise NotADirectoryError('No saved checkpoint found')
+
+    file_name = '{}_epoch_{}_step_{}.pt'.format(model_name, epoch, step)
+    checkpoint_path = os.path.join(model_dir, file_name)
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError('Checkpoint "{}" not found'.format(file_name))
+
+    model.load_state_dict(torch.load(checkpoint_path))
+
+
+def save_model(model, model_name, epoch, step):
+    model_dir = os.path.join('seq2seq', 'model')
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+
+    file_name = '{}_epoch_{}_step_{}.pt'.format(model_name, epoch, step)
+    torch.save(model.state_dict(), os.path.join(model_dir, file_name))
+
+
+def create_label_mask(input_ids, input_mask, label_mask):
+    label_offsets = input_mask.sum(dim=1) - label_mask.sum(dim=1)
+
+    # DEBUG
+    # print('>> label offsets:', label_offsets)
+
+    mask = torch.zeros_like(input_ids)
+    mask[torch.arange(input_ids.shape[0]), label_offsets] = 1
+    mask = 1 - mask.cumsum(dim=1)
+
+    # DEBUG
+    # print('>> label mask:', mask)
+
+    return mask
+
+
+def train(device='cpu'):
+    pretrained_model = 'gpt2'
+    num_epochs = 2
+    batch_size = 12
+    max_seq_len = 512
+    num_warmup_steps = 500
+    lr = 5e-5
+    max_grad_norm = 10
+    eval_interval_in_steps = 500
+    convert_slot_names = True
+
+    # Load model and corresponding tokenizer
+    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+        pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    model = model.to(device)
+
+    # Load training and validation data
+    train_set = E2EDataset(tokenizer, 'train', lowercase_data=True, convert_slot_names=convert_slot_names)
+    train_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=0)
+
+    valid_set = E2EDataset(tokenizer, 'valid', lowercase_data=True, convert_slot_names=convert_slot_names)
+    valid_data_loader = DataLoader(valid_set, batch_size=batch_size, shuffle=False, num_workers=0)
+
+    # Set up the optimizer and learning rate scheduler
+    num_training_steps = len(train_data_loader) * num_epochs
+    optimizer = AdamW(model.parameters(), lr=lr, eps=1e-6, correct_bias=False)
+    scheduler = get_linear_schedule_with_warmup(optimizer,
+                                                num_warmup_steps=num_warmup_steps,
+                                                num_training_steps=num_training_steps)
+
+    global_step = 0
+
+    for epoch in trange(num_epochs, desc='Epoch'):
+        train_loss_sum = 0
+
+        for step, batch in enumerate(tqdm(train_data_loader, desc='Step')):
+            # tokenizer.padding_side = 'left'
+
+            inputs = tokenizer(batch[0], add_special_tokens=False, padding=True, truncation=True, max_length=max_seq_len, return_tensors='pt')
+            mrs_only = tokenizer(batch[1], add_special_tokens=False, padding=True, truncation=True, max_length=max_seq_len, return_tensors='pt')
+
+            input_ids = inputs['input_ids']
+            input_mask = inputs['attention_mask']
+            mr_mask = mrs_only['attention_mask']
+
+            label_mask = torch.zeros_like(input_ids)
+            label_mask[:, :mr_mask.shape[1]] = mr_mask
+            label_mask[input_ids == tokenizer.pad_token_id] = 1
+
+            label_ids = input_ids.masked_fill(label_mask, -100)
+            # label_ids = input_ids.clone()
+
+            input_tensor = input_ids.to(device)
+            mask_tensor = input_mask.to(device)
+            label_tensor = label_ids.to(device)
+
+            # DEBUG
+            # print('>> ENCODED inputs:', input_ids)
+            # print('>> ENCODED labels:', label_ids)
+            # print('>> DECODED inputs:', tokenizer.decode(input_ids[0]))
+            # print('>> DECODED labels:', tokenizer.decode(label_ids[0]))
+
+            model.train()
+
+            # Clear previously calculated gradients (must perform before a backward pass, unless using RNNs)
+            model.zero_grad()
+
+            # Forward pass
+            loss = model(input_tensor,
+                           attention_mask=mask_tensor,
+                           labels=label_tensor)[0]
+
+            # Accumulate the training loss
+            train_loss_sum += loss.item()
+
+            # Backward pass
+            loss.backward()
+
+            # Clip the norm of the gradients (in order to prevent the gradients from exploding)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+
+            optimizer.step()
+
+            # Update the learning rate according to the defined schedule
+            scheduler.step()
+
+            global_step += 1
+
+            if global_step % eval_interval_in_steps == 0:
+                # Print stats
+                avg_train_loss = train_loss_sum / eval_interval_in_steps
+                print()
+                print('>> Training loss:  \t{0:.4f}'.format(avg_train_loss))
+                train_loss_sum = 0
+
+                # Validation
+                metrics = evaluate(valid_set, valid_data_loader, model, tokenizer, device=device)
+                print('>> Validation loss:\t{0:.4f}'.format(metrics.get('loss').item()))
+                print('>> Validation PPL: \t{0:.4f}'.format(metrics.get('perplexity').item()))
+                print('>> Validation BLEU: \t{0:.4f}'.format(metrics.get('bleu')))
+
+                save_model(model, pretrained_model, epoch + 1, step + 1)
+
+        save_model(model, pretrained_model, epoch + 1, len(train_data_loader))
+
+    model_dir = os.path.join('seq2seq', 'model', 'final')
+    model.save_pretrained(model_dir)
+    tokenizer.save_pretrained(model_dir)
+
+
+def evaluate(dataset, data_loader, model, tokenizer, device='cpu'):
+    eval_loss_sum = 0.0
+    num_steps = 0
+    predictions = []
+    model.eval()
+
+    for batch in tqdm(data_loader, desc='Evaluating'):
+        inputs = tokenizer(batch[0], add_special_tokens=False, padding=True, truncation=True, return_tensors='pt')
+        mrs_only = tokenizer(batch[1], add_special_tokens=False, padding=True, truncation=True, return_tensors='pt')
+
+        input_ids = inputs['input_ids']
+        input_mask = inputs['attention_mask']
+        mr_mask = mrs_only['attention_mask']
+
+        label_mask = torch.zeros_like(input_ids)
+        label_mask[:, :mr_mask.shape[1]] = mr_mask
+        label_mask[input_ids == tokenizer.pad_token_id] = 1
+
+        label_ids = input_ids.masked_fill(label_mask, -100)
+        # label_ids = input_ids.clone()
+
+        input_tensor = input_ids.to(device)
+        mask_tensor = input_mask.to(device)
+        label_tensor = label_ids.to(device)
+
+        # input_ids, attention_mask, label_ids, label_mask = batch
+
+        with torch.no_grad():
+            model_outputs = model(input_tensor,
+                                  attention_mask=mask_tensor,
+                                  labels=label_tensor)
+            loss, logits = model_outputs[:2]
+
+            # Accumulate the evaluation loss
+            eval_loss_sum += loss.item()
+
+            logits = logits.detach().cpu().numpy()
+
+            # DEBUG
+            # print('>> logits.shape:', logits.shape)
+            # print('>> logits:', logits)
+            # print('>> type(label_mask):', type(label_mask))
+
+            # Shift label mask one position to the left, ignoring thus the last position of the logits
+            logits = logits[:, :-1, :]
+            logit_masks = label_mask.numpy()[:, 1:]
+
+            for logit_array, logit_mask in zip(logits, logit_masks):
+                # print('>> SHAPE logits (before mask):', logit_array.shape)
+                # print('>> SHAPE mask:', logit_mask.shape)
+                # print('>> MASK:', mask_array)
+                logit_array = logit_array[logit_mask == 0]
+                # print('>> SHAPE logits (after mask):', logit_array.shape)
+                # print('>> LOGITS (after mask):', logit_array)
+                output_ids = np.argmax(logit_array, axis=1)
+                # print('>> LOGITS (after argmax):', logit_array)
+                prediction = tokenizer.decode(output_ids, skip_special_tokens=True)
+                # print('>> PREDICTION:', prediction)
+                predictions.append(prediction)
+
+        num_steps += 1
+
+    # DEBUG
+    # print('>> PREDICTIONS:\n', predictions[:20])
+
+    eval_loss = torch.tensor(eval_loss_sum / num_steps)
+    perplexity = torch.exp(eval_loss)
+    bleu = corpus_bleu(predictions, [dataset.get_utterances(lowercased=True)]).score
+
+    result = {
+        'loss': eval_loss,
+        'perplexity': perplexity,
+        'bleu': bleu
+    }
+
+    return result
+
+
+def test(device='cpu'):
+    pretrained_model = 'gpt2'
+    checkpoint_epoch = 2
+    checkpoint_step = 3506
+    batch_size = 1
+    convert_slot_names = True
+    predictions = []
+
+    # Load model and corresponding tokenizer
+    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+        pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    load_model_checkpoint(model, pretrained_model, checkpoint_epoch, checkpoint_step)
+    model = model.to(device)
+    model.eval()
+
+    # Load test data
+    test_set = E2EDataset(tokenizer, 'test', lowercase_data=True, convert_slot_names=convert_slot_names)
+    test_data_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=0)
+
+    for batch in tqdm(test_data_loader, desc='Evaluating'):
+        inputs = tokenizer(batch[0], add_special_tokens=False, padding=True, truncation=True, return_tensors='pt')
+
+        # DEBUG
+        # print('>> ENCODED inputs:', inputs['input_ids'])
+        # print('>> ENCODED mask:', inputs['attention_mask'])
+
+        input_tensor = inputs['input_ids'].to(device)
+        mask_tensor = inputs['attention_mask'].to(device)
+
+        outputs = model.generate(input_tensor,
+                                 attention_mask=mask_tensor,
+                                 max_length=512,
+                                 num_beams=10,
+                                 early_stopping=True,
+                                 # no_repeat_ngram_size=3,
+                                 # do_sample=True,
+                                 # top_p=0.5,
+                                 # top_k=0,
+                                 # temperature=0.7,
+                                 # repetition_penalty=1.0,
+                                 # length_penalty=1.5,    # Set to > 1.0 in order to encourage longer sequences
+                                 num_return_sequences=1,
+                                 bos_token_id=tokenizer.bos_token_id,
+                                 pad_token_id=tokenizer.pad_token_id)
+
+        # DEBUG
+        # print('>> OUTPUTS', outputs)
+
+        # TODO: decode all outputs at the same time (for when num_return_sequences > 1)
+        # TODO: generalize to batch_size > 1
+        for i, output_seq in enumerate(outputs):
+            utt_beg_pos = np.where(output_seq.cpu().numpy() == tokenizer.bos_token_id)[0][0] + 1
+            utt_decoded = tokenizer.decode(output_seq[utt_beg_pos:], skip_special_tokens=True)
+            predictions.append(utt_decoded)
+            # print('>> Sample #{}: {}'.format(i, utt_decoded))
+
+    predictions_dir = os.path.join('seq2seq', 'predictions', test_set.name)
+    if not os.path.exists(predictions_dir):
+        os.makedirs(predictions_dir)
+
+    # Save generated utterances along with their corresponding MRs into a CSV file
+    file_name = '{}_epoch_{}_step_{}.csv'.format(pretrained_model, checkpoint_epoch, checkpoint_step)
+    df_predictions = pd.DataFrame({'mr': test_set.get_mrs(), 'utt': predictions})
+    df_predictions.to_csv(os.path.join(predictions_dir, file_name), index=False)
+
+    # Save generated utterances in a text file (for reference-based metric evaluation)
+    file_name = '{}_epoch_{}_step_{}_utt_only.txt'.format(pretrained_model, checkpoint_epoch, checkpoint_step)
+    predictions_file = os.path.join(predictions_dir, file_name)
+    with open(predictions_file, 'w') as f_out:
+        for prediction in predictions:
+            f_out.write(prediction + '\n')
+
+    eval_dir = os.path.join('seq2seq', 'eval')
+    metrics_script = 'python ' + os.path.join(eval_dir, 'E2E', 'measure_scores.py')
+    # TODO: generalize for any dataset
+    reference_file = os.path.join(eval_dir, 'test_references_e2e_testset.txt')
+
+    # Run the metrics script provided by the E2E NLG Challenge
+    os.system(metrics_script + ' ' + reference_file + ' ' + predictions_file)
+
+
+def generate_from_input(input_list, device='cpu'):
+    pretrained_model = 'gpt2'
+    checkpoint_epoch = 1
+    checkpoint_step = 3506
+
+    # Load model and corresponding tokenizer
+    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+        pretrained_model, special_tokens=E2EDataset.get_special_tokens())
+    load_model_checkpoint(model, pretrained_model, checkpoint_epoch, checkpoint_step)
+    model = model.to(device)
+    model.eval()
+
+    for input_str in input_list:
+        input_ids = tokenizer(input_str)['input_ids']
+        input_tensor = torch.tensor(input_ids).unsqueeze(0).to(device)
+
+        outputs = model.generate(input_tensor,
+                                 max_length=512,
+                                 num_beams=10,
+                                 early_stopping=True,
+                                 # no_repeat_ngram_size=3,
+                                 # do_sample=True,
+                                 # top_p=0.8,
+                                 # top_k=0,
+                                 # temperature=0.7,
+                                 # repetition_penalty=1.0,
+                                 # length_penalty=1.0,    # Set to > 1.0 in order to encourage longer sequences
+                                 num_return_sequences=3,
+                                 pad_token_id=tokenizer.pad_token_id)
+
+        # DEBUG
+        # print('>> outputs', outputs)
+        # print('>> BOS token ID (tokenizer)', tokenizer.bos_token_id)
+        # print('>> BOS token ID (model)', model.config.bos_token_id)
+        # print('>> BOS index', input_ids.index(tokenizer.bos_token_id))
+
+        for i, output_seq in enumerate(outputs):
+            utt_beg_pos = np.where(output_seq.cpu().numpy() == tokenizer.bos_token_id)[0][0] + 1
+            utt_decoded = tokenizer.decode(output_seq[utt_beg_pos:], skip_special_tokens=True)
+            print('>> Sample #{}: {}'.format(i, utt_decoded))
+
+
+def main():
+    if torch.cuda.is_available():
+        device = 'cuda'
+        print('GPUs available:', torch.cuda.device_count())
+        print('CUDA version:', torch.version.cuda)
+    else:
+        device = 'cpu'
+
+    train(device=device)
+    # test(device=device)
+    # generate_from_input(['<|name|> alimentum <|area|> city centre <|familyfriendly|> no <|begoftext|>'], device=device)
+
+
+if __name__ == '__main__':
+    torch.cuda.empty_cache()
+    main()
