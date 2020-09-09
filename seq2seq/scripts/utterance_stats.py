@@ -23,13 +23,16 @@ def extract_utterances_from_file(input_file_path):
     return utterances
 
 
-def vocab_size(input_file_path, export_vocab):
+def utterance_stats(input_file_path, export_vocab):
     utterances = extract_utterances_from_file(input_file_path)
 
     vocab_ctr = Counter(chain.from_iterable(map(word_tokenize, utterances)))
     vocab_dict = OrderedDict(vocab_ctr.most_common())
 
-    print('>> Vocab size:', len(vocab_dict))
+    utt_lengths = [len(utt_tokens) for utt_tokens in map(word_tokenize, utterances)]
+
+    print('>> Vocabulary size:', len(vocab_dict))
+    print('>> Avg. utt. length:', round(sum(utt_lengths) / len(utt_lengths), 2))
 
     if export_vocab:
         output_file_path = os.path.splitext(input_file_path)[0] + '_vocab.json'
@@ -39,7 +42,7 @@ def vocab_size(input_file_path, export_vocab):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Counts the number of unique words in utterances.')
+        description='Counts the number of unique words in utterances, and calculates the average number of tokens.')
     parser.add_argument('-i', '--input_file', type=str, required=True,
                         help='file containing utterances (either a text file, or a CSV file with a column "utt"')
     parser.add_argument('-e', '--export_vocab', action='store_true',
@@ -50,6 +53,6 @@ if __name__ == '__main__':
         print('Error: invalid file path.')
         print('------')
         print('Usage:')
-        print('measure_vocab_size.py -i <file_path> [-e]')
+        print('utterance_stats.py -i <file_path> [-e]')
     else:
-        vocab_size(args.input_file, args.export_vocab)
+        utterance_stats(args.input_file, args.export_vocab)
