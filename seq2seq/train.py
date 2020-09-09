@@ -9,7 +9,7 @@ from tqdm import trange, tqdm
 from transformers import AdamW, get_linear_schedule_with_warmup
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
-from seq2seq.data_loader import E2EDataset
+from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, ViggoDataset
 
 
 def load_pretrained_gpt2_model_and_tokenizer(model_name, special_tokens=None):
@@ -69,25 +69,33 @@ def create_label_mask(input_ids, input_mask, label_mask):
 
 def train(device='cpu'):
     pretrained_model = 'gpt2'
-    num_epochs = 2
+    num_epochs = 10
     batch_size = 12
     max_seq_len = 512
-    num_warmup_steps = 500
-    lr = 5e-5
+    num_warmup_steps = 100
+    lr = 2e-5
     max_grad_norm = 10
-    eval_interval_in_steps = 500
+    eval_interval_in_steps = 200
     convert_slot_names = True
 
     # Load model and corresponding tokenizer
+    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+    #     pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+    #     pretrained_model, special_tokens=E2ECleanedDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-        pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+        pretrained_model, special_tokens=ViggoDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     model = model.to(device)
 
     # Load training and validation data
-    train_set = E2EDataset(tokenizer, 'train', lowercase_data=True, convert_slot_names=convert_slot_names)
+    # train_set = E2EDataset(tokenizer, 'train', lowercase=True, convert_slot_names=convert_slot_names)
+    # train_set = E2ECleanedDataset(tokenizer, 'train', lowercase=True, convert_slot_names=convert_slot_names)
+    train_set = ViggoDataset(tokenizer, 'train', lowercase=True, convert_slot_names=convert_slot_names)
     train_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=0)
 
-    valid_set = E2EDataset(tokenizer, 'valid', lowercase_data=True, convert_slot_names=convert_slot_names)
+    # valid_set = E2EDataset(tokenizer, 'valid', lowercase=True, convert_slot_names=convert_slot_names)
+    # valid_set = E2ECleanedDataset(tokenizer, 'valid', lowercase=True, convert_slot_names=convert_slot_names)
+    valid_set = ViggoDataset(tokenizer, 'valid', lowercase=True, convert_slot_names=convert_slot_names)
     valid_data_loader = DataLoader(valid_set, batch_size=batch_size, shuffle=False, num_workers=0)
 
     # Set up the optimizer and learning rate scheduler
@@ -257,21 +265,27 @@ def evaluate(dataset, data_loader, model, tokenizer, device='cpu'):
 
 def test(device='cpu'):
     pretrained_model = 'gpt2'
-    checkpoint_epoch = 2
-    checkpoint_step = 3506
+    checkpoint_epoch = 5
+    checkpoint_step = 426
     batch_size = 1
     convert_slot_names = True
     predictions = []
 
     # Load model and corresponding tokenizer
+    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+    #     pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+    #     pretrained_model, special_tokens=E2ECleanedDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-        pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+        pretrained_model, special_tokens=ViggoDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     load_model_checkpoint(model, pretrained_model, checkpoint_epoch, checkpoint_step)
     model = model.to(device)
     model.eval()
 
     # Load test data
-    test_set = E2EDataset(tokenizer, 'test', lowercase_data=True, convert_slot_names=convert_slot_names)
+    # test_set = E2EDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
+    # test_set = E2ECleanedDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
+    test_set = ViggoDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
     test_data_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=0)
 
     for batch in tqdm(test_data_loader, desc='Evaluating'):
@@ -291,11 +305,11 @@ def test(device='cpu'):
                                  early_stopping=True,
                                  # no_repeat_ngram_size=3,
                                  # do_sample=True,
-                                 # top_p=0.5,
+                                 # top_p=0.8,
                                  # top_k=0,
                                  # temperature=0.7,
                                  # repetition_penalty=1.0,
-                                 # length_penalty=1.5,    # Set to > 1.0 in order to encourage longer sequences
+                                 length_penalty=2.0,    # Set to > 1.0 in order to encourage longer sequences
                                  num_return_sequences=1,
                                  bos_token_id=tokenizer.bos_token_id,
                                  pad_token_id=tokenizer.pad_token_id)
@@ -317,8 +331,8 @@ def test(device='cpu'):
 
     # Save generated utterances along with their corresponding MRs into a CSV file
     file_name = '{}_epoch_{}_step_{}.csv'.format(pretrained_model, checkpoint_epoch, checkpoint_step)
-    df_predictions = pd.DataFrame({'mr': test_set.get_mrs(), 'utt': predictions})
-    df_predictions.to_csv(os.path.join(predictions_dir, file_name), index=False)
+    df_predictions = pd.DataFrame({'mr': test_set.get_mrs(raw=True), 'utt': predictions})
+    df_predictions.to_csv(os.path.join(predictions_dir, file_name), index=False, encoding='utf-8-sig')
 
     # Save generated utterances in a text file (for reference-based metric evaluation)
     file_name = '{}_epoch_{}_step_{}_utt_only.txt'.format(pretrained_model, checkpoint_epoch, checkpoint_step)
@@ -330,7 +344,10 @@ def test(device='cpu'):
     eval_dir = os.path.join('seq2seq', 'eval')
     metrics_script = 'python ' + os.path.join(eval_dir, 'E2E', 'measure_scores.py')
     # TODO: generalize for any dataset
-    reference_file = os.path.join(eval_dir, 'test_references_e2e_testset.txt')
+    reference_file = os.path.join(eval_dir, 'test_references_{}.txt'.format(test_set.name))
+    if not os.path.exists(reference_file):
+        print('>> Generating a reference file for the "{}" test set.'.format(test_set.name))
+        test_set.create_reference_file_for_testing()
 
     # Run the metrics script provided by the E2E NLG Challenge
     os.system(metrics_script + ' ' + reference_file + ' ' + predictions_file)
@@ -342,8 +359,10 @@ def generate_from_input(input_list, device='cpu'):
     checkpoint_step = 3506
 
     # Load model and corresponding tokenizer
+    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+    #     pretrained_model, special_tokens=E2EDataset.get_special_tokens())
     model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-        pretrained_model, special_tokens=E2EDataset.get_special_tokens())
+        pretrained_model, special_tokens=E2ECleanedDataset.get_special_tokens())
     load_model_checkpoint(model, pretrained_model, checkpoint_epoch, checkpoint_step)
     model = model.to(device)
     model.eval()
@@ -386,8 +405,8 @@ def main():
     else:
         device = 'cpu'
 
-    train(device=device)
-    # test(device=device)
+    # train(device=device)
+    test(device=device)
     # generate_from_input(['<|name|> alimentum <|area|> city centre <|familyfriendly|> no <|begoftext|>'], device=device)
 
 
