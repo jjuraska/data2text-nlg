@@ -69,33 +69,36 @@ def create_label_mask(input_ids, input_mask, label_mask):
 
 def train(device='cpu'):
     pretrained_model = 'gpt2'
-    num_epochs = 10
-    batch_size = 12
+    num_epochs = 2
+    batch_size = 20
     max_seq_len = 512
-    num_warmup_steps = 100
-    lr = 2e-5
+    num_warmup_steps = 300
+    lr = 5e-5
     max_grad_norm = 10
-    eval_interval_in_steps = 200
+    eval_interval_in_steps = 300
     convert_slot_names = True
+    fp16 = True
+
+    global_step = 0
 
     # Load model and corresponding tokenizer
-    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-    #     pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+        pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
     #     pretrained_model, special_tokens=E2ECleanedDataset.get_special_tokens(convert_slot_names=convert_slot_names))
-    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-        pretrained_model, special_tokens=ViggoDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+    #     pretrained_model, special_tokens=ViggoDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     model = model.to(device)
 
     # Load training and validation data
-    # train_set = E2EDataset(tokenizer, 'train', lowercase=True, convert_slot_names=convert_slot_names)
+    train_set = E2EDataset(tokenizer, 'train', lowercase=True, convert_slot_names=convert_slot_names)
     # train_set = E2ECleanedDataset(tokenizer, 'train', lowercase=True, convert_slot_names=convert_slot_names)
-    train_set = ViggoDataset(tokenizer, 'train', lowercase=True, convert_slot_names=convert_slot_names)
+    # train_set = ViggoDataset(tokenizer, 'train', lowercase=True, convert_slot_names=convert_slot_names)
     train_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=0)
 
-    # valid_set = E2EDataset(tokenizer, 'valid', lowercase=True, convert_slot_names=convert_slot_names)
+    valid_set = E2EDataset(tokenizer, 'valid', lowercase=True, convert_slot_names=convert_slot_names)
     # valid_set = E2ECleanedDataset(tokenizer, 'valid', lowercase=True, convert_slot_names=convert_slot_names)
-    valid_set = ViggoDataset(tokenizer, 'valid', lowercase=True, convert_slot_names=convert_slot_names)
+    # valid_set = ViggoDataset(tokenizer, 'valid', lowercase=True, convert_slot_names=convert_slot_names)
     valid_data_loader = DataLoader(valid_set, batch_size=batch_size, shuffle=False, num_workers=0)
 
     # Set up the optimizer and learning rate scheduler
@@ -105,7 +108,8 @@ def train(device='cpu'):
                                                 num_warmup_steps=num_warmup_steps,
                                                 num_training_steps=num_training_steps)
 
-    global_step = 0
+    if fp16:
+        scaler = torch.cuda.amp.GradScaler()
 
     for epoch in trange(num_epochs, desc='Epoch'):
         train_loss_sum = 0
@@ -142,21 +146,39 @@ def train(device='cpu'):
             # Clear previously calculated gradients (must perform before a backward pass, unless using RNNs)
             model.zero_grad()
 
-            # Forward pass
-            loss = model(input_tensor,
-                           attention_mask=mask_tensor,
-                           labels=label_tensor)[0]
+            if fp16:
+                # Forward pass
+                with torch.cuda.amp.autocast():
+                    loss = model(input_tensor, attention_mask=mask_tensor, labels=label_tensor)[0]
 
-            # Accumulate the training loss
-            train_loss_sum += loss.item()
+                # Accumulate the training loss
+                train_loss_sum += loss.item()
 
-            # Backward pass
-            loss.backward()
+                # Backward pass
+                scaler.scale(loss).backward()
 
-            # Clip the norm of the gradients (in order to prevent the gradients from exploding)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+                # Unscale the gradients before clipping
+                scaler.unscale_(optimizer)
 
-            optimizer.step()
+                # Clip the norm of the gradients (in order to prevent the gradients from exploding)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                # Forward pass
+                loss = model(input_tensor, attention_mask=mask_tensor, labels=label_tensor)[0]
+
+                # Accumulate the training loss
+                train_loss_sum += loss.item()
+
+                # Backward pass
+                loss.backward()
+
+                # Clip the norm of the gradients (in order to prevent the gradients from exploding)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
+
+                optimizer.step()
 
             # Update the learning rate according to the defined schedule
             scheduler.step()
@@ -265,27 +287,27 @@ def evaluate(dataset, data_loader, model, tokenizer, device='cpu'):
 
 def test(device='cpu'):
     pretrained_model = 'gpt2'
-    checkpoint_epoch = 5
-    checkpoint_step = 426
+    checkpoint_epoch = 2
+    checkpoint_step = 2104
     batch_size = 1
     convert_slot_names = True
     predictions = []
 
     # Load model and corresponding tokenizer
-    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-    #     pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+        pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
     #     pretrained_model, special_tokens=E2ECleanedDataset.get_special_tokens(convert_slot_names=convert_slot_names))
-    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-        pretrained_model, special_tokens=ViggoDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+    #     pretrained_model, special_tokens=ViggoDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     load_model_checkpoint(model, pretrained_model, checkpoint_epoch, checkpoint_step)
     model = model.to(device)
     model.eval()
 
     # Load test data
-    # test_set = E2EDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
+    test_set = E2EDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
     # test_set = E2ECleanedDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
-    test_set = ViggoDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
+    # test_set = ViggoDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
     test_data_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=0)
 
     for batch in tqdm(test_data_loader, desc='Evaluating'):
@@ -305,7 +327,7 @@ def test(device='cpu'):
                                  early_stopping=True,
                                  # no_repeat_ngram_size=3,
                                  # do_sample=True,
-                                 # top_p=0.8,
+                                 # top_p=0.3,
                                  # top_k=0,
                                  # temperature=0.7,
                                  # repetition_penalty=1.0,
