@@ -11,7 +11,7 @@ class MRToTextDataset(Dataset):
     name = 'mr_to_text'
     delimiters = {}
 
-    def __init__(self, tokenizer, partition='train', lowercase=False, convert_slot_names=False):
+    def __init__(self, tokenizer, partition='train', lowercase=False, convert_slot_names=False, group_by_mr=False):
         super().__init__()
 
         self.tokenizer = tokenizer
@@ -21,6 +21,7 @@ class MRToTextDataset(Dataset):
 
         self.convert_to_lowercase = lowercase
         self.convert_slot_names = convert_slot_names
+        self.group_by_mr = group_by_mr
 
         self.mrs_raw = []
         self.mrs = []
@@ -79,7 +80,7 @@ class MRToTextDataset(Dataset):
         utt_col_name = df_data.columns[1] if df_data.shape[1] > 1 else None
 
         # Save the MRs and the utterances as lists (repeated MRs are collapsed for test data)
-        if self.partition == 'test':
+        if self.group_by_mr:
             # If utterances are present in the data
             if df_data.shape[1] > 1:
                 # Group by MR, and aggregate utterances into lists

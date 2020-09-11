@@ -69,11 +69,11 @@ def create_label_mask(input_ids, input_mask, label_mask):
 
 def train(device='cpu'):
     pretrained_model = 'gpt2'
-    num_epochs = 2
-    batch_size = 20
+    num_epochs = 20
+    batch_size = 12
     max_seq_len = 512
-    num_warmup_steps = 300
-    lr = 5e-5
+    num_warmup_steps = 1200
+    lr = 2e-5
     max_grad_norm = 10
     eval_interval_in_steps = 300
     convert_slot_names = True
@@ -82,23 +82,23 @@ def train(device='cpu'):
     global_step = 0
 
     # Load model and corresponding tokenizer
-    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-        pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+    #     pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
     #     pretrained_model, special_tokens=E2ECleanedDataset.get_special_tokens(convert_slot_names=convert_slot_names))
-    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-    #     pretrained_model, special_tokens=ViggoDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+        pretrained_model, special_tokens=ViggoDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     model = model.to(device)
 
     # Load training and validation data
-    train_set = E2EDataset(tokenizer, 'train', lowercase=True, convert_slot_names=convert_slot_names)
+    # train_set = E2EDataset(tokenizer, 'train', lowercase=True, convert_slot_names=convert_slot_names)
     # train_set = E2ECleanedDataset(tokenizer, 'train', lowercase=True, convert_slot_names=convert_slot_names)
-    # train_set = ViggoDataset(tokenizer, 'train', lowercase=True, convert_slot_names=convert_slot_names)
+    train_set = ViggoDataset(tokenizer, 'train', lowercase=True, convert_slot_names=convert_slot_names)
     train_data_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=0)
 
-    valid_set = E2EDataset(tokenizer, 'valid', lowercase=True, convert_slot_names=convert_slot_names)
+    # valid_set = E2EDataset(tokenizer, 'valid', lowercase=True, convert_slot_names=convert_slot_names)
     # valid_set = E2ECleanedDataset(tokenizer, 'valid', lowercase=True, convert_slot_names=convert_slot_names)
-    # valid_set = ViggoDataset(tokenizer, 'valid', lowercase=True, convert_slot_names=convert_slot_names)
+    valid_set = ViggoDataset(tokenizer, 'valid', lowercase=True, convert_slot_names=convert_slot_names)
     valid_data_loader = DataLoader(valid_set, batch_size=batch_size, shuffle=False, num_workers=0)
 
     # Set up the optimizer and learning rate scheduler
@@ -111,7 +111,13 @@ def train(device='cpu'):
     if fp16:
         scaler = torch.cuda.amp.GradScaler()
 
-    for epoch in trange(num_epochs, desc='Epoch'):
+    for epoch in range(1, num_epochs + 1):
+        print()
+        print(' *************** ')
+        print('**   EPOCH {:<2}  **'.format(epoch))
+        print(' *************** ')
+        print()
+
         train_loss_sum = 0
 
         for step, batch in enumerate(tqdm(train_data_loader, desc='Step')):
@@ -190,17 +196,21 @@ def train(device='cpu'):
                 avg_train_loss = train_loss_sum / eval_interval_in_steps
                 print()
                 print('>> Training loss:  \t{0:.4f}'.format(avg_train_loss))
+                print()
                 train_loss_sum = 0
 
                 # Validation
                 metrics = evaluate(valid_set, valid_data_loader, model, tokenizer, device=device)
-                print('>> Validation loss:\t{0:.4f}'.format(metrics.get('loss').item()))
-                print('>> Validation PPL: \t{0:.4f}'.format(metrics.get('perplexity').item()))
-                print('>> Validation BLEU: \t{0:.4f}'.format(metrics.get('bleu')))
+                print()
+                print('>> Validation loss: {0:.4f}'.format(metrics.get('loss').item()))
+                print('>> Validation PPL: {0:.4f}'.format(metrics.get('perplexity').item()))
+                print('>> Validation BLEU: {0:.4f}'.format(metrics.get('bleu')))
+                print('>> Validation BLEU (multi-ref): {0:.4f}'.format(metrics.get('bleu_multiref')))
+                print()
 
-                save_model(model, pretrained_model, epoch + 1, step + 1)
+                save_model(model, pretrained_model, epoch, step + 1)
 
-        save_model(model, pretrained_model, epoch + 1, len(train_data_loader))
+        save_model(model, pretrained_model, epoch, len(train_data_loader))
 
     model_dir = os.path.join('seq2seq', 'model', 'final')
     model.save_pretrained(model_dir)
@@ -275,39 +285,71 @@ def evaluate(dataset, data_loader, model, tokenizer, device='cpu'):
     eval_loss = torch.tensor(eval_loss_sum / num_steps)
     perplexity = torch.exp(eval_loss)
     bleu = corpus_bleu(predictions, [dataset.get_utterances(lowercased=True)]).score
+    bleu_multiref = calculate_multiref_bleu(dataset, predictions)
 
     result = {
         'loss': eval_loss,
         'perplexity': perplexity,
-        'bleu': bleu
+        'bleu': bleu,
+        'bleu_multiref': bleu_multiref
     }
 
     return result
 
 
+def calculate_multiref_bleu(dataset, predictions):
+    # Group references and generated utterances by MR -- in order to perform multi-reference BLEU evaluation
+    df_data = pd.DataFrame(zip(dataset.get_mrs(lowercased=True), dataset.get_utterances(lowercased=True), predictions),
+                           columns=['mr', 'ref', 'out'])
+    df_grouped_by_mr = df_data.groupby('mr', sort=False).agg(
+        {'ref': (lambda x: list(x)), 'out': (lambda x: list(x))}).reset_index()
+
+    references = df_grouped_by_mr['ref'].tolist()
+    utterances = df_grouped_by_mr['out'].tolist()
+
+    # Only works if the number of references is the same for each input
+    # references_transposed = list(map(list, zip(*references)))
+
+    max_num_refs = max(len(ref_list) for ref_list in references)
+    references_transposed = [[] for _ in range(max_num_refs)]
+    for ref_list in references:
+        idx = 0
+        for ref in ref_list:
+            references_transposed[idx].append(ref)
+            idx += 1
+
+        # Pad with the first reference
+        for i in range(idx, max_num_refs):
+            references_transposed[i].append(ref_list[0])
+
+    utterances_first = [utt[0] for utt in utterances]
+
+    return corpus_bleu(utterances_first, references_transposed).score
+
+
 def test(device='cpu'):
     pretrained_model = 'gpt2'
-    checkpoint_epoch = 2
-    checkpoint_step = 2104
+    checkpoint_epoch = 15
+    checkpoint_step = 426
     batch_size = 1
     convert_slot_names = True
     predictions = []
 
     # Load model and corresponding tokenizer
-    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-        pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+    #     pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
     #     pretrained_model, special_tokens=E2ECleanedDataset.get_special_tokens(convert_slot_names=convert_slot_names))
-    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-    #     pretrained_model, special_tokens=ViggoDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+        pretrained_model, special_tokens=ViggoDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     load_model_checkpoint(model, pretrained_model, checkpoint_epoch, checkpoint_step)
     model = model.to(device)
     model.eval()
 
     # Load test data
-    test_set = E2EDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
+    # test_set = E2EDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
     # test_set = E2ECleanedDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
-    # test_set = ViggoDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
+    test_set = ViggoDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names, group_by_mr=True)
     test_data_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=0)
 
     for batch in tqdm(test_data_loader, desc='Evaluating'):
@@ -427,8 +469,8 @@ def main():
     else:
         device = 'cpu'
 
-    # train(device=device)
-    test(device=device)
+    train(device=device)
+    # test(device=device)
     # generate_from_input(['<|name|> alimentum <|area|> city centre <|familyfriendly|> no <|begoftext|>'], device=device)
 
 
