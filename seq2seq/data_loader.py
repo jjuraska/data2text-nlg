@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import os
 import pandas as pd
 from torch.utils.data import Dataset
@@ -23,8 +24,9 @@ class MRToTextDataset(Dataset):
         self.convert_slot_names = convert_slot_names
         self.group_by_mr = group_by_mr
 
-        self.mrs_raw = []
         self.mrs = []
+        self.mrs_dict = []
+        self.mrs_raw = []
         self.utterances = []
 
         self.load_data()
@@ -58,7 +60,8 @@ class MRToTextDataset(Dataset):
             self.lowercase_data()
 
         # Perform dataset-specific preprocessing of the MRs
-        self.mrs = [self.preprocess_mr(mr) for mr in self.mrs]
+        self.mrs_dict = [self.preprocess_mr(mr) for mr in self.mrs]
+        self.mrs = [self.convert_mr_dict_to_str(mr_dict) for mr_dict in self.mrs_dict]
 
         # DEBUG
         # print('>> MRs:\n{}'.format('\n'.join(self.mrs[:50])))
@@ -113,7 +116,7 @@ class MRToTextDataset(Dataset):
         self.mrs_raw = self.mrs[:]
 
     def preprocess_mr(self, mr_str):
-        mr_seq = []
+        mr_dict = OrderedDict()
 
         mr_str = self.preprocess_da_in_mr(mr_str)
 
@@ -127,11 +130,13 @@ class MRToTextDataset(Dataset):
             if self.convert_slot_names:
                 slot = self.convert_slot_name(slot)
 
-            mr_seq.append(slot)
-            if value:
-                mr_seq.append(value)
+            mr_dict[slot] = value
 
-        return ' '.join(mr_seq)
+        return mr_dict
+
+    @staticmethod
+    def convert_mr_dict_to_str(mr_dict):
+        return ' '.join(['{0}{1}'.format(slot, ' ' + val if val else '') for slot, val in mr_dict.items()])
 
     @classmethod
     def preprocess_da_in_mr(cls, mr):
@@ -243,6 +248,9 @@ class MRToTextDataset(Dataset):
     def get_mrs(self, raw=False, lowercased=False):
         mrs = self.mrs_raw if raw else self.mrs
         return [mr.lower() for mr in mrs] if lowercased else mrs[:]
+
+    def get_mrs_as_dicts(self, lowercased=False):
+        return [mr_dict.lower() for mr_dict in self.mrs_dict] if lowercased else self.mrs_dict[:]
 
     def get_utterances(self, lowercased=False):
         return [utt.lower() for utt in self.utterances] if lowercased else self.utterances[:]

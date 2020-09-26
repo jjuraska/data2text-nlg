@@ -10,6 +10,7 @@ from transformers import AdamW, get_linear_schedule_with_warmup
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, ViggoDataset
+from seq2seq.slot_aligner.slot_alignment import score_alignment
 
 
 def load_pretrained_gpt2_model_and_tokenizer(model_name, special_tokens=None):
@@ -329,27 +330,28 @@ def calculate_multiref_bleu(dataset, predictions):
 
 def test(device='cpu'):
     pretrained_model = 'gpt2'
-    checkpoint_epoch = 15
-    checkpoint_step = 426
+    checkpoint_epoch = 2
+    checkpoint_step = 3506
     batch_size = 1
     convert_slot_names = True
+    semantic_reranking = True
     predictions = []
 
     # Load model and corresponding tokenizer
-    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-    #     pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+        pretrained_model, special_tokens=E2EDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
     #     pretrained_model, special_tokens=E2ECleanedDataset.get_special_tokens(convert_slot_names=convert_slot_names))
-    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-        pretrained_model, special_tokens=ViggoDataset.get_special_tokens(convert_slot_names=convert_slot_names))
+    # model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+    #     pretrained_model, special_tokens=ViggoDataset.get_special_tokens(convert_slot_names=convert_slot_names))
     load_model_checkpoint(model, pretrained_model, checkpoint_epoch, checkpoint_step)
     model = model.to(device)
     model.eval()
 
     # Load test data
-    # test_set = E2EDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
-    # test_set = E2ECleanedDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names)
-    test_set = ViggoDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names, group_by_mr=True)
+    test_set = E2EDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names, group_by_mr=True)
+    # test_set = E2ECleanedDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names, group_by_mr=True)
+    # test_set = ViggoDataset(tokenizer, 'test', lowercase=True, convert_slot_names=convert_slot_names, group_by_mr=True)
     test_data_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=0)
 
     for batch in tqdm(test_data_loader, desc='Evaluating'):
@@ -373,21 +375,29 @@ def test(device='cpu'):
                                  # top_k=0,
                                  # temperature=0.7,
                                  # repetition_penalty=1.0,
-                                 length_penalty=2.0,    # Set to > 1.0 in order to encourage longer sequences
-                                 num_return_sequences=1,
+                                 length_penalty=3.0,    # Set to > 1.0 in order to encourage longer sequences
+                                 num_return_sequences=10,
                                  bos_token_id=tokenizer.bos_token_id,
                                  pad_token_id=tokenizer.pad_token_id)
 
         # DEBUG
         # print('>> OUTPUTS', outputs)
 
+        outputs_decoded = []
+
         # TODO: decode all outputs at the same time (for when num_return_sequences > 1)
         # TODO: generalize to batch_size > 1
         for i, output_seq in enumerate(outputs):
             utt_beg_pos = np.where(output_seq.cpu().numpy() == tokenizer.bos_token_id)[0][0] + 1
             utt_decoded = tokenizer.decode(output_seq[utt_beg_pos:], skip_special_tokens=True)
-            predictions.append(utt_decoded)
+            outputs_decoded.append(utt_decoded)
             # print('>> Sample #{}: {}'.format(i, utt_decoded))
+
+        predictions.append(outputs_decoded)
+
+    if semantic_reranking:
+        predictions = rerank_beams(predictions, test_set.get_mrs_as_dicts())
+    predictions = [pred_beam[0] for pred_beam in predictions]
 
     predictions_dir = os.path.join('seq2seq', 'predictions', test_set.name)
     if not os.path.exists(predictions_dir):
@@ -461,6 +471,44 @@ def generate_from_input(input_list, device='cpu'):
             print('>> Sample #{}: {}'.format(i, utt_decoded))
 
 
+def rerank_beams(beams, mrs, keep_n=None, keep_least_errors_only=False):
+    """Rerank beams by modifying the log-probability of each candidate utterance based on the slot error score
+    indicated by the slot aligner. Keep at most n best candidates.
+    """
+
+    beams_reranked = []
+
+    for idx, mr in enumerate(tqdm(mrs, desc='Reranking')):
+        beam_scored = []
+
+        for utt in beams[idx]:
+            # Calculate the slot error score
+            score = score_alignment(utt, mr)
+            beam_scored.append((utt, score))
+
+        # Rerank utterances by slot error score
+        beam_scored.sort(key=lambda tup: tup[1], reverse=True)
+
+        if keep_least_errors_only:
+            # Filter only those utterances that have the least number of errors identified by the slot aligner
+            beam_scored = [candidate for candidate in beam_scored if candidate[1] == beam_scored[0][1]]
+
+        # Keep at most n candidates
+        if keep_n is not None and len(beam_scored) > keep_n > 0:
+            beam_scored = beam_scored[:keep_n]
+
+        # DEBUG
+        # if idx < 5:
+        #     print('>> Scored beams:')
+        #     print('\n'.join('{0} :: {1}'.format(utt[1], utt[0]) for utt in beam_scored))
+        #     print()
+
+        # Store the reranked beam (utterances only)
+        beams_reranked.append([utt[0] for utt in beam_scored])
+
+    return beams_reranked
+
+
 def main():
     if torch.cuda.is_available():
         device = 'cuda'
@@ -469,8 +517,8 @@ def main():
     else:
         device = 'cpu'
 
-    train(device=device)
-    # test(device=device)
+    # train(device=device)
+    test(device=device)
     # generate_from_input(['<|name|> alimentum <|area|> city centre <|familyfriendly|> no <|begoftext|>'], device=device)
 
 
