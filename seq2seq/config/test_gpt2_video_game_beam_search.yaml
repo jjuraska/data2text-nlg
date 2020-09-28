@@ -1,0 +1,12 @@
+pretrained_model: "gpt2"
+checkpoint_epoch: 10
+checkpoint_step: 426
+convert_slot_names: True
+batch_size: 1
+max_seq_length: 512
+num_beams: 10
+beam_search_early_stopping: True
+do_sample: False
+length_penalty: 1.0
+num_return_sequences: 1
+semantic_reranking: False
