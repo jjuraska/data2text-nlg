@@ -7,6 +7,6 @@ max_seq_length: 512
 do_sample: True
 top_p: 0.3
 top_k: 0
-length_penalty: 3.0
+#length_penalty: 1.0
 num_return_sequences: 10
-semantic_reranking: False
+semantic_reranking: True
