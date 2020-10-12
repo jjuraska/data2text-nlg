@@ -20,17 +20,23 @@ from seq2seq.slot_aligner.slot_alignment import score_alignment
 from seq2seq.task_config import TestConfig, TrainingConfig
 
 
-def load_config(config_name):
-    config_path = os.path.join('seq2seq', 'config', config_name + '.yaml')
+def load_config(config_name, dataset_name, task, print_config=False):
+    config_path = os.path.join('seq2seq', 'config', dataset_name, task, config_name + '.yaml')
 
     try:
         with open(config_path) as f_config:
             config = yaml.safe_load(f_config)
     except FileNotFoundError:
-        print('Error: config file "{}" not found'.format(config_path))
+        print(f'Error: config file "{config_path}" not found')
         sys.exit()
     except yaml.YAMLError as err:
         print(err)
+        sys.exit()
+
+    if print_config:
+        print(f'>> Starting a "{task}" task with the following parameters:')
+        print(yaml.dump(config, default_flow_style=False))
+        print()
 
     return config
 
@@ -96,6 +102,16 @@ def load_model_checkpoint(model, model_name, epoch, step):
         raise FileNotFoundError('Checkpoint "{}" not found'.format(file_name))
 
     model.load_state_dict(torch.load(checkpoint_path))
+
+
+def save_training_config(config):
+    config_dir = os.path.join('seq2seq', 'model', 'config')
+    if not os.path.exists(config_dir):
+        os.makedirs(config_dir)
+
+    file_name = 'training_config.yaml'
+    with open(os.path.join(config_dir, file_name), 'w') as f_out:
+        yaml.dump(config, f_out, default_flow_style=False)
 
 
 def save_model(model, model_name, epoch, step):
@@ -168,7 +184,6 @@ def train(config, dataset_class, device='cpu'):
         scaler = torch.cuda.amp.GradScaler()
 
     for epoch in range(1, config.num_epochs + 1):
-        print()
         print(' *************** ')
         print('**   EPOCH {:<2}  **'.format(epoch))
         print(' *************** ')
@@ -694,9 +709,6 @@ def main():
                         help='Task (train or test)')
     args = parser.parse_args()
 
-    # Load the task configuration
-    config = load_config(args.config)
-
     # Get the corresponding dataset class
     if args.dataset == 'rest_e2e':
         dataset_class = E2EDataset
@@ -708,25 +720,32 @@ def main():
         print('Error: dataset "{}" not recognized'.format(args.dataset))
         sys.exit()
 
+    # Validate the task name
+    if args.task not in ['train', 'test', 'generate']:
+        print('Error: task "{}" not recognized'.format(args.task))
+        sys.exit()
+
+    # Load the task configuration
+    config = load_config(args.config, args.dataset, args.task, print_config=True)
+
     # Set the device to GPU if available, or CPU otherwise
     if torch.cuda.is_available():
         device = 'cuda'
         print('GPUs available:', torch.cuda.device_count())
         print('CUDA version:', torch.version.cuda)
+        print()
     else:
         device = 'cpu'
 
     # Run the corresponding task
     if args.task == 'train':
+        save_training_config(config)
         train(TrainingConfig(config), dataset_class, device=device)
     elif args.task == 'test':
         test(TestConfig(config), dataset_class, device=device)
     elif args.task == 'generate':
         input_str = '<|name|> alimentum <|area|> city centre <|familyfriendly|> no <|begoftext|>'
         generate_from_input(input_str, TestConfig(config), dataset_class, device=device)
-    else:
-        print('Error: task "{}" not recognized'.format(args.task))
-        sys.exit()
 
 
 if __name__ == '__main__':
