@@ -12,7 +12,8 @@ class MRToTextDataset(Dataset):
     name = 'mr_to_text'
     delimiters = {}
 
-    def __init__(self, tokenizer, partition='train', lowercase=False, convert_slot_names=False, group_by_mr=False):
+    def __init__(self, tokenizer, partition='train', lowercase=False, convert_slot_names=False, group_by_mr=False,
+                 separate_source_and_target=False):
         super().__init__()
 
         self.tokenizer = tokenizer
@@ -23,6 +24,7 @@ class MRToTextDataset(Dataset):
         self.convert_to_lowercase = lowercase
         self.convert_slot_names = convert_slot_names
         self.group_by_mr = group_by_mr
+        self.separate_source_and_target = separate_source_and_target
 
         self.mrs = []
         self.mrs_dict = []
@@ -38,17 +40,27 @@ class MRToTextDataset(Dataset):
         mr = self.mrs[idx]
         utt = self.utterances[idx] if self.utterances else None
 
-        if self.partition == 'test':
-            # If test set, load the MRs only as inputs
-            input_str = mr + self.bos_token
-        elif utt is not None:
-            # If training/validation set, concatenate the MR and the utterance with a BOS token in between
-            input_str = mr + self.bos_token + utt + self.eos_token
+        if self.separate_source_and_target:
+            source_str = mr
+            if self.partition == 'test':
+                target_str = ''
+            elif utt is not None:
+                target_str = utt
+            else:
+                raise ValueError('Utterances must be present in training and validation data')
         else:
-            raise ValueError('Utterances must be present in training and validation data')
-        input_str_wo_utt = mr + self.bos_token
+            if self.partition == 'test':
+                # If test set, load the MRs only as source
+                source_str = mr + self.bos_token
+            elif utt is not None:
+                # If training/validation set, concatenate the MR and the utterance with a BOS token in between
+                source_str = mr + self.bos_token + utt + self.eos_token
+            else:
+                raise ValueError('Utterances must be present in training and validation data')
+            # When MR and utterance are concatenated as source, use the target string as an auxiliary variable
+            target_str = mr + self.bos_token
 
-        return input_str, input_str_wo_utt
+        return source_str, target_str
 
     def load_data(self):
         # Load the data file
@@ -72,6 +84,12 @@ class MRToTextDataset(Dataset):
 
         if self.utterances:
             assert len(self.mrs) == len(self.utterances)
+
+        # DEBUG
+        # self.mrs = self.mrs[:10]
+        # self.mrs_raw = self.mrs_raw[:10]
+        # self.mrs_dict = self.mrs_dict[:10]
+        # self.utterances = self.utterances[:10]
 
     @staticmethod
     def get_data_file_path(partition):

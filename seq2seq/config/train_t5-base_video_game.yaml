@@ -1,10 +1,10 @@
-pretrained_model: "gpt2"
+pretrained_model: "t5-base"
 convert_slot_names: True
 num_epochs: 10
 batch_size: 12
 max_seq_length: 512
 num_warmup_steps: 400
 lr: 2.0e-5
-max_grad_norm: 10
-eval_interval_in_steps: 400
+max_grad_norm: 1.0
+eval_interval_in_steps: 200
 fp16: True
