@@ -143,7 +143,8 @@ def create_label_mask(input_ids, input_mask, label_mask):
 
 
 def train(config, dataset_class, device='cpu'):
-    global_step = 0
+    train_loss_sum = 0.0
+    steps_since_last_eval = 0
 
     # Load model and corresponding tokenizer
     if 'gpt2' in config.pretrained_model:
@@ -173,6 +174,9 @@ def train(config, dataset_class, device='cpu'):
                               separate_source_and_target=is_enc_dec)
     valid_data_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
+    # Determine the training steps at which validation should be performed in each epoch
+    eval_steps = np.delete(np.linspace(0, len(train_data_loader), config.eval_times_per_epoch + 1, dtype=int), 0)
+
     # Set up the optimizer and learning rate scheduler
     num_training_steps = len(train_data_loader) * config.num_epochs
     optimizer = AdamW(model.parameters(), lr=config.lr, eps=1e-6, correct_bias=False)
@@ -184,14 +188,13 @@ def train(config, dataset_class, device='cpu'):
         scaler = torch.cuda.amp.GradScaler()
 
     for epoch in range(1, config.num_epochs + 1):
+        print()
         print(' *************** ')
         print('**   EPOCH {:<2}  **'.format(epoch))
         print(' *************** ')
         print()
 
-        train_loss_sum = 0
-
-        for step, batch in enumerate(tqdm(train_data_loader, desc='Step')):
+        for step, batch in enumerate(tqdm(train_data_loader, desc='Step'), start=1):
             # tokenizer.padding_side = 'left'
 
             if is_enc_dec:
@@ -305,15 +308,16 @@ def train(config, dataset_class, device='cpu'):
             # Update the learning rate according to the defined schedule
             scheduler.step()
 
-            global_step += 1
+            steps_since_last_eval += 1
 
-            if global_step % config.eval_interval_in_steps == 0:
+            if step in eval_steps:
                 # Print stats
-                avg_train_loss = train_loss_sum / config.eval_interval_in_steps
+                avg_train_loss = train_loss_sum / steps_since_last_eval
                 print()
                 print('>> Training loss:  \t{0:.4f}'.format(avg_train_loss))
                 print()
-                train_loss_sum = 0
+                train_loss_sum = 0.0
+                steps_since_last_eval = 0
 
                 # Validation
                 metrics = evaluate(config, valid_set, valid_data_loader, model, tokenizer, device=device)
@@ -324,9 +328,8 @@ def train(config, dataset_class, device='cpu'):
                 print('>> Validation BLEU (multi-ref): {0:.4f}'.format(metrics.get('bleu_multiref')))
                 print()
 
-                save_model(model, config.pretrained_model, epoch, step + 1)
-
-        save_model(model, config.pretrained_model, epoch, len(train_data_loader))
+                # Save a model checkpoint
+                save_model(model, config.pretrained_model, epoch, step)
 
     model_dir = os.path.join('seq2seq', 'model', 'final')
     model.save_pretrained(model_dir)
