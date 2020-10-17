@@ -271,7 +271,13 @@ class MRToTextDataset(Dataset):
         return [mr_dict.lower() for mr_dict in self.mrs_dict] if lowercased else self.mrs_dict[:]
 
     def get_utterances(self, lowercased=False):
-        return [utt.lower() for utt in self.utterances] if lowercased else self.utterances[:]
+        if lowercased:
+            if self.group_by_mr:
+                return [[utt.lower() for utt in utt_list] for utt_list in self.utterances]
+            else:
+                return [utt.lower() for utt in self.utterances]
+        else:
+            return self.utterances[:]
 
     @classmethod
     def get_special_tokens(cls, convert_slot_names=False):

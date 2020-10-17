@@ -1,4 +1,6 @@
 import argparse
+import copy
+from itertools import chain
 import numpy as np
 import os
 import pandas as pd
@@ -9,7 +11,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AdamW, get_linear_schedule_with_warmup
-from transformers import BartForConditionalGeneration, BartTokenizer, BartConfig
+from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 from transformers.modeling_bart import shift_tokens_right
@@ -174,6 +176,10 @@ def train(config, dataset_class, device='cpu'):
                               separate_source_and_target=is_enc_dec)
     valid_data_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
+    valid_set_grouped = dataset_class(tokenizer, 'valid', lowercase=True, convert_slot_names=config.convert_slot_names,
+                                      group_by_mr=True, separate_source_and_target=is_enc_dec)
+    valid_grouped_data_loader = DataLoader(valid_set_grouped, batch_size=1, shuffle=False, num_workers=0)
+
     # Determine the training steps at which validation should be performed in each epoch
     eval_steps = np.delete(np.linspace(0, len(train_data_loader), config.eval_times_per_epoch + 1, dtype=int), 0)
 
@@ -320,12 +326,16 @@ def train(config, dataset_class, device='cpu'):
                 steps_since_last_eval = 0
 
                 # Validation
-                metrics = evaluate(config, valid_set, valid_data_loader, model, tokenizer, device=device)
+                scores = validate(config, valid_data_loader, tokenizer, model, is_enc_dec, device=device)
+                scores_bleu = validate_bleu(config, valid_set_grouped, valid_grouped_data_loader, tokenizer, model,
+                                            is_enc_dec, device=device)
+                metrics = {**scores, **scores_bleu}
+
                 print()
                 print('>> Validation loss: {0:.4f}'.format(metrics.get('loss').item()))
                 print('>> Validation PPL: {0:.4f}'.format(metrics.get('perplexity').item()))
-                print('>> Validation BLEU: {0:.4f}'.format(metrics.get('bleu')))
-                print('>> Validation BLEU (multi-ref): {0:.4f}'.format(metrics.get('bleu_multiref')))
+                print('>> Validation BLEU: {0:.4f}'.format(metrics.get('bleu').item()))
+                print('>> Validation BLEU (multi-ref): {0:.4f}'.format(metrics.get('bleu_multiref').item()))
                 print()
 
                 # Save a model checkpoint
@@ -336,13 +346,12 @@ def train(config, dataset_class, device='cpu'):
     tokenizer.save_pretrained(model_dir)
 
 
-def evaluate(config, dataset, data_loader, model, tokenizer, device='cpu'):
-    eval_loss_sum = 0.0
-    num_steps = 0
-    predictions = []
-    model.eval()
+def validate(config, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
+    """Generates token ID sequences with teacher forcing, and calculates the loss and perplexity using references."""
 
-    is_enc_dec = any(enc_dec_model_name in config.pretrained_model for enc_dec_model_name in ['bart', 't5'])
+    eval_loss_sum = 0.0
+
+    model.eval()
 
     for batch in tqdm(data_loader, desc='Evaluating'):
         if is_enc_dec:
@@ -388,90 +397,133 @@ def evaluate(config, dataset, data_loader, model, tokenizer, device='cpu'):
 
         with torch.no_grad():
             if is_enc_dec:
-                model_outputs = model(input_tensor, attention_mask=mask_tensor,
-                                      decoder_input_ids=decoder_input_tensor,
-                                      # decoder_attention_mask=decoder_mask_tensor,
-                                      labels=label_tensor, use_cache=False)
+                loss = model(input_tensor, attention_mask=mask_tensor,
+                             decoder_input_ids=decoder_input_tensor,
+                             # decoder_attention_mask=decoder_mask_tensor,
+                             labels=label_tensor, use_cache=False)[0]
             else:
-                model_outputs = model(input_tensor, attention_mask=mask_tensor, labels=label_tensor)
-            loss, logits = model_outputs[:2]
+                loss = model(input_tensor, attention_mask=mask_tensor, labels=label_tensor)[0]
 
             # Accumulate the evaluation loss
             eval_loss_sum += loss.item()
 
-            logits = logits.detach().cpu().numpy()
-
-            # DEBUG
-            # print('>> logits.shape:', logits.shape)
-            # print('>> logits:', logits)
-            # print('>> type(label_mask):', type(label_mask))
-
-            if is_enc_dec:
-                for logit_array in logits:
-                    # print('>> SHAPE logits:', logit_array.shape)
-                    output_ids = np.argmax(logit_array, axis=1)
-                    # print('>> ARGMAX outputs:', output_ids)
-
-                    eos_idx = -1
-                    for idx in range(len(output_ids)):
-                        if output_ids[idx] == tokenizer.eos_token_id:
-                            eos_idx = idx
-                            break
-
-                    prediction = tokenizer.decode(output_ids[:eos_idx + 1], skip_special_tokens=True)
-                    # print('>> PREDICTION:', prediction)
-                    predictions.append(prediction)
-            else:
-                # Shift label mask one position to the left, ignoring thus the last position of the logits
-                logits = logits[:, :-1, :]
-                logit_masks = label_mask.numpy()[:, 1:]
-
-                for logit_array, logit_mask in zip(logits, logit_masks):
-                    # print('>> SHAPE logits (before mask):', logit_array.shape)
-                    # print('>> SHAPE mask:', logit_mask.shape)
-                    # print('>> MASK:', mask_array)
-                    logit_array = logit_array[logit_mask == 0]
-                    # print('>> SHAPE logits (after mask):', logit_array.shape)
-                    # print('>> LOGITS (after mask):', logit_array)
-                    output_ids = np.argmax(logit_array, axis=1)
-                    # print('>> LOGITS (after argmax):', logit_array)
-                    prediction = tokenizer.decode(output_ids, skip_special_tokens=True)
-                    # print('>> PREDICTION:', prediction)
-                    predictions.append(prediction)
-
-        num_steps += 1
-
-    # DEBUG
-    # print('>> PREDICTIONS:\n', predictions[:20])
-
-    eval_loss = torch.tensor(eval_loss_sum / num_steps)
+    eval_loss = torch.tensor(eval_loss_sum / len(data_loader))
     perplexity = torch.exp(eval_loss)
-    bleu = corpus_bleu(predictions, [dataset.get_utterances(lowercased=True)]).score
-    bleu_multiref = calculate_multiref_bleu(dataset, predictions)
 
     result = {
         'loss': eval_loss,
-        'perplexity': perplexity,
-        'bleu': bleu,
-        'bleu_multiref': bleu_multiref
+        'perplexity': perplexity
     }
 
     return result
 
 
-def calculate_multiref_bleu(dataset, predictions):
-    # Group references and generated utterances by MR -- in order to perform multi-reference BLEU evaluation
-    df_data = pd.DataFrame(zip(dataset.get_mrs(lowercased=True), dataset.get_utterances(lowercased=True), predictions),
-                           columns=['mr', 'ref', 'out'])
-    df_grouped_by_mr = df_data.groupby('mr', sort=False).agg(
-        {'ref': (lambda x: list(x)), 'out': (lambda x: list(x))}).reset_index()
+def validate_bleu(config, dataset, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
+    """Generates decoded utterances without teacher forcing, and calculates their BLEU score using references."""
 
-    references = df_grouped_by_mr['ref'].tolist()
-    utterances = df_grouped_by_mr['out'].tolist()
+    generated_utterances = generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_validation=True,
+                                               device=device)
+    generated_utterances_flat = list(chain.from_iterable(generated_utterances))
+
+    # DEBUG
+    # print('>> PREDICTIONS decoded:')
+    # print('\n'.join(generated_utterances[:50]))
+
+    bleu = calculate_singleref_bleu(dataset, generated_utterances_flat)
+    bleu_multiref = calculate_multiref_bleu(dataset, generated_utterances_flat)
+
+    result = {
+        'bleu': torch.tensor(bleu),
+        'bleu_multiref': torch.tensor(bleu_multiref)
+    }
+
+    return result
+
+
+def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_validation=False, device='cpu'):
+    generated_sequences = []
+
+    for batch in tqdm(data_loader, desc='Evaluating'):
+        inputs = tokenizer(batch[0], add_special_tokens=True, padding=True, truncation=True, return_tensors='pt')
+
+        # DEBUG
+        # print('>> ENCODED inputs:', inputs['input_ids'])
+        # print('>> ENCODED mask:', inputs['attention_mask'])
+
+        if is_validation:
+            outputs = model.generate(inputs['input_ids'].to(device),
+                                     attention_mask=inputs['attention_mask'].to(device),
+                                     max_length=config.max_seq_length)
+        else:
+            outputs = model.generate(inputs['input_ids'].to(device),
+                                     attention_mask=inputs['attention_mask'].to(device),
+                                     max_length=config.max_seq_length,
+                                     num_beams=config.num_beams,
+                                     early_stopping=config.early_stopping,
+                                     no_repeat_ngram_size=config.no_repeat_ngram_size,
+                                     do_sample=config.do_sample,
+                                     top_p=config.top_p,
+                                     top_k=config.top_k,
+                                     temperature=config.temperature,
+                                     repetition_penalty=config.repetition_penalty,
+                                     length_penalty=config.length_penalty,
+                                     num_return_sequences=config.num_return_sequences,
+                                     # bos_token_id=tokenizer.bos_token_id,
+                                     # decoder_start_token_id=tokenizer.eos_token_id,
+                                     # pad_token_id=tokenizer.pad_token_id
+                                     )
+
+        generated_sequences.append(decode_model_outputs(outputs, tokenizer, is_enc_dec))
+
+    return generated_sequences
+
+
+def decode_model_outputs(sequences, tokenizer, is_enc_dec):
+    outputs_decoded = []
+
+    # TODO: generalize to batch_size > 1
+    for i, seq in enumerate(sequences):
+        if is_enc_dec:
+            utt_decoded = tokenizer.decode(seq, skip_special_tokens=True)
+        else:
+            utt_beg_pos = np.where(seq.cpu().numpy() == tokenizer.bos_token_id)[0][0] + 1
+            utt_decoded = tokenizer.decode(seq[utt_beg_pos:], skip_special_tokens=True)
+
+        # print('>> Sample #{}: {}'.format(i, utt_decoded))
+        outputs_decoded.append(utt_decoded)
+
+    return outputs_decoded
+
+
+def calculate_singleref_bleu(dataset, predictions):
+    """Calculates the corpus BLEU score with a single reference per generated utterance.
+
+    Assumes the dataset to be grouped by MR, and to thus have a list of reference utterances for each MR. This method
+    flattens the references and multiplies the generated predictions as necessary to match corresponding references.
+    """
+    references = dataset.get_utterances(lowercased=True)
+
+    # Multiply generated utterances depending on the number of corresponding references, and then flatten references
+    predictions_multiplied = list(chain.from_iterable(
+        [pred] * len(ref_list) for pred, ref_list in zip(predictions, references)))
+    references_flat = list(chain.from_iterable(references))
+
+    return corpus_bleu(predictions_multiplied, [references_flat]).score
+
+
+def calculate_multiref_bleu(dataset, predictions):
+    """Calculates the corpus BLEU score with multiple references per generated utterance.
+
+    Assumes the dataset to be grouped by MR, and to thus have a list of reference utterances for each MR. Assumes the
+    generated utterances to have been produced from unique inputs, and hence to be a flat list. This method transposes
+    the nested list of reference utterances to conform with the format sacreblue's corpus_bleu method expects.
+    """
+    references = dataset.get_utterances(lowercased=True)
 
     # Only works if the number of references is the same for each input
     # references_transposed = list(map(list, zip(*references)))
 
+    # Transpose the reference utterances
     max_num_refs = max(len(ref_list) for ref_list in references)
     references_transposed = [[] for _ in range(max_num_refs)]
     for ref_list in references:
@@ -484,14 +536,10 @@ def calculate_multiref_bleu(dataset, predictions):
         for i in range(idx, max_num_refs):
             references_transposed[i].append(ref_list[0])
 
-    utterances_first = [utt[0] for utt in utterances]
-
-    return corpus_bleu(utterances_first, references_transposed).score
+    return corpus_bleu(predictions, references_transposed).score
 
 
 def test(config, dataset_class, device='cpu'):
-    predictions = []
-
     # Load model and corresponding tokenizer
     if 'gpt2' in config.pretrained_model:
         loading_function = load_pretrained_gpt2_model_and_tokenizer
@@ -519,52 +567,8 @@ def test(config, dataset_class, device='cpu'):
                              group_by_mr=True, separate_source_and_target=is_enc_dec)
     test_data_loader = DataLoader(test_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
-    for batch in tqdm(test_data_loader, desc='Evaluating'):
-        inputs = tokenizer(batch[0], add_special_tokens=True, padding=True, truncation=True, return_tensors='pt')
-
-        # DEBUG
-        # print('>> ENCODED inputs:', inputs['input_ids'])
-        # print('>> ENCODED mask:', inputs['attention_mask'])
-
-        input_tensor = inputs['input_ids'].to(device)
-        mask_tensor = inputs['attention_mask'].to(device)
-
-        outputs = model.generate(input_tensor,
-                                 attention_mask=mask_tensor,
-                                 max_length=config.max_seq_length,
-                                 num_beams=config.num_beams,
-                                 early_stopping=config.early_stopping,
-                                 no_repeat_ngram_size=config.no_repeat_ngram_size,
-                                 do_sample=config.do_sample,
-                                 top_p=config.top_p,
-                                 top_k=config.top_k,
-                                 temperature=config.temperature,
-                                 repetition_penalty=config.repetition_penalty,
-                                 length_penalty=config.length_penalty,
-                                 num_return_sequences=config.num_return_sequences,
-                                 # bos_token_id=tokenizer.bos_token_id,
-                                 # decoder_start_token_id=tokenizer.eos_token_id,
-                                 # pad_token_id=tokenizer.pad_token_id
-                                 )
-
-        # DEBUG
-        # print('>> OUTPUTS', outputs)
-
-        outputs_decoded = []
-
-        # TODO: decode all outputs at the same time (for when num_return_sequences > 1)
-        # TODO: generalize to batch_size > 1
-        for i, output_seq in enumerate(outputs):
-            if is_enc_dec:
-                utt_decoded = tokenizer.decode(output_seq, skip_special_tokens=True)
-            else:
-                utt_beg_pos = np.where(output_seq.cpu().numpy() == tokenizer.bos_token_id)[0][0] + 1
-                utt_decoded = tokenizer.decode(output_seq[utt_beg_pos:], skip_special_tokens=True)
-
-            outputs_decoded.append(utt_decoded)
-            # print('>> Sample #{}: {}'.format(i, utt_decoded))
-
-        predictions.append(outputs_decoded)
+    # Generate decoded utterances
+    predictions = generate_and_decode(config, test_data_loader, tokenizer, model, is_enc_dec, device=device)
 
     # Make sure the output directory exists for the given dataset
     predictions_dir = os.path.join('seq2seq', 'predictions', test_set.name)
@@ -667,7 +671,11 @@ def generate_from_input(input_str, config, dataset_class, device='cpu'):
 
 
 def rerank_beams(beams, mrs, keep_n=None, keep_least_errors_only=False):
-    """Reranks beams based on the slot error rate determined by the slot aligner. Keeps at most n best candidates."""
+    """Reranks beams based on the slot error rate determined by the slot aligner. Keeps at most n best candidates.
+
+    Note: Python's sort is guaranteed to be stable, i.e., when multiple records have the same key (e.g., slot error
+    score), their original order (e.g., based on their beam score) is preserved.
+    """
     beams_reranked = []
 
     for idx, mr in enumerate(tqdm(mrs, desc='Reranking')):
@@ -678,7 +686,7 @@ def rerank_beams(beams, mrs, keep_n=None, keep_least_errors_only=False):
             score = score_alignment(utt, mr)
             beam_scored.append((utt, score))
 
-        # Rerank utterances by slot error score
+        # Rerank utterances by slot error score (the higher the better)
         beam_scored.sort(key=lambda tup: tup[1], reverse=True)
 
         if keep_least_errors_only:
