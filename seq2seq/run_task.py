@@ -753,7 +753,24 @@ def main():
         save_training_config(config)
         train(TrainingConfig(config), dataset_class, device=device)
     elif args.task == 'test':
-        test(TestConfig(config), dataset_class, device=device)
+        test_config = TestConfig(config)
+        if isinstance(test_config.length_penalty, list):
+            # Batch test with different length penalty values
+            param_values = copy.deepcopy(test_config.length_penalty)
+            for val in param_values:
+                # Update the parameter value in the configuration and re-run testing
+                test_config.length_penalty = val
+                test(test_config, dataset_class, device=device)
+        elif isinstance(test_config.top_p, list):
+            # Batch test with different p values for nucleus sampling
+            param_values = copy.deepcopy(test_config.top_p)
+            for val in param_values:
+                # Update the parameter value in the configuration and re-run testing
+                test_config.top_p = val
+                test(test_config, dataset_class, device=device)
+        else:
+            # Test with a single configuration
+            test(test_config, dataset_class, device=device)
     elif args.task == 'generate':
         input_str = '<|name|> alimentum <|area|> city centre <|familyfriendly|> no <|begoftext|>'
         generate_from_input(input_str, TestConfig(config), dataset_class, device=device)

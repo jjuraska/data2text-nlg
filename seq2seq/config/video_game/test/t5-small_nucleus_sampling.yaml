@@ -5,7 +5,7 @@ convert_slot_names: True
 batch_size: 1
 max_seq_length: 512
 do_sample: True
-top_p: 0.8
+top_p: [0.3, 0.5, 0.8]
 top_k: 0
 #no_repeat_ngram_size: 3
 #repetition_penalty: 2.5
