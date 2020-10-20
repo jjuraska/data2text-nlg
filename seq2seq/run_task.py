@@ -3,210 +3,25 @@ import copy
 from itertools import chain
 import numpy as np
 import os
-import pandas as pd
-# from rouge_score import rouge_scorer, scoring
-from sacrebleu import corpus_bleu
 import sys
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-# from tokenizers.implementations import ByteLevelBPETokenizer, SentencePieceBPETokenizer
 from transformers import AdamW, get_linear_schedule_with_warmup
-from transformers import BartConfig, BartForConditionalGeneration, BartTokenizer
-from transformers import GPT2Config, GPT2LMHeadModel, GPT2Tokenizer
-from transformers import T5Config, T5ForConditionalGeneration, T5Tokenizer
-from transformers.modeling_bart import shift_tokens_right
-import yaml
 
 from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, ViggoDataset
-from seq2seq.slot_aligner.slot_alignment import score_alignment
 from seq2seq.task_config import TestConfig, TrainingConfig
-
-
-def load_config(config_name, dataset_name, task, print_config=False):
-    config_path = os.path.join('seq2seq', 'config', dataset_name, task, config_name + '.yaml')
-
-    try:
-        with open(config_path) as f_config:
-            config = yaml.safe_load(f_config)
-    except FileNotFoundError:
-        print(f'Error: config file "{config_path}" not found')
-        sys.exit()
-    except yaml.YAMLError as err:
-        print(err)
-        sys.exit()
-
-    if print_config:
-        print(f'>> Starting a "{task}" task with the following parameters:')
-        print(yaml.dump(config, default_flow_style=False))
-        print()
-
-    return config
-
-
-def load_pretrained_bart_model_and_tokenizer(model_name, pretrained=False, special_tokens=None):
-    if pretrained:
-        # Load pretrained tokenizer
-        tokenizer = BartTokenizer.from_pretrained(model_name)
-    else:
-        # Load tokenizer trained on custom dataset(s)
-        tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
-        tokenizer = BartTokenizer(os.path.join(tokenizer_dir, 'bart-base-video_game-vocab.json'),
-                                  os.path.join(tokenizer_dir, 'bart-base-video_game-merges.txt'),
-                                  model_max_length=64)
-
-    special_tokens = {
-        'additional_special_tokens': special_tokens
-    }
-    tokenizer.add_special_tokens(special_tokens)
-
-    if pretrained:
-        # Load model with pretrained weights
-        model = BartForConditionalGeneration.from_pretrained(model_name)
-    else:
-        # Load model without pretrained weights
-        config = BartConfig.from_pretrained(model_name, vocab_size=tokenizer.vocab_size)
-        model = BartForConditionalGeneration(config)
-        print('>> config.vocab_size:', config.vocab_size)
-    model.resize_token_embeddings(len(tokenizer))
-
-    return model, tokenizer
-
-
-def load_pretrained_gpt2_model_and_tokenizer(model_name, pretrained=False, special_tokens=None):
-    if pretrained:
-        # Load pretrained tokenizer
-        tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-    else:
-        # Load tokenizer trained on custom dataset(s)
-        tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
-        tokenizer = GPT2Tokenizer(os.path.join(tokenizer_dir, 'gpt2-video_game-vocab.json'),
-                                  os.path.join(tokenizer_dir, 'gpt2-video_game-merges.txt'),
-                                  model_max_length=64)
-
-    special_tokens = {
-        'bos_token': '<|begoftext|>',
-        'pad_token': '<pad>',
-        'additional_special_tokens': special_tokens
-    }
-    tokenizer.add_special_tokens(special_tokens)
-
-    if pretrained:
-        # Load model with pretrained weights
-        model = GPT2LMHeadModel.from_pretrained(model_name)
-    else:
-        # Load model without pretrained weights
-        config = GPT2Config.from_pretrained(model_name)
-        model = GPT2LMHeadModel(config)
-    model.resize_token_embeddings(len(tokenizer))
-
-    return model, tokenizer
-
-
-def load_pretrained_t5_model_and_tokenizer(model_name, pretrained=False, special_tokens=None):
-    # if pretrained:
-    # Load pretrained tokenizer
-    tokenizer = T5Tokenizer.from_pretrained(model_name)
-
-    special_tokens = {
-        'additional_special_tokens': special_tokens
-    }
-    # else:
-    #     tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
-    #     tokenizer = SentencePieceBPETokenizer.from_file(os.path.join(tokenizer_dir, 't5-video_game-vocab.json'),
-    #                                                     os.path.join(tokenizer_dir, 't5-video_game-merges.txt'))
-
-    tokenizer.add_special_tokens(special_tokens)
-
-    if pretrained:
-        # Load model with pretrained weights
-        model = T5ForConditionalGeneration.from_pretrained(model_name)
-        model.resize_token_embeddings(len(tokenizer))
-    else:
-        # Load model without pretrained weights
-        config = T5Config.from_pretrained(model_name, vocab_size=tokenizer.vocab_size)
-        model = T5ForConditionalGeneration(config)
-        # model.resize_token_embeddings(tokenizer.get_vocab_size())
-        model.resize_token_embeddings(len(tokenizer))
-
-    return model, tokenizer
-
-
-def load_model_checkpoint(model, model_name, epoch, step):
-    model_dir = os.path.join('seq2seq', 'model')
-    if not os.path.exists(model_dir):
-        raise NotADirectoryError('No saved checkpoint found')
-
-    if '/' in model_name:
-        model_name = model_name.split('/')[-1]
-
-    file_name = '{}_epoch_{}_step_{}.pt'.format(model_name, epoch, step)
-    checkpoint_path = os.path.join(model_dir, file_name)
-    if not os.path.exists(checkpoint_path):
-        raise FileNotFoundError('Checkpoint "{}" not found'.format(file_name))
-
-    model.load_state_dict(torch.load(checkpoint_path))
-
-
-def save_training_config(config):
-    config_dir = os.path.join('seq2seq', 'model', 'config')
-    if not os.path.exists(config_dir):
-        os.makedirs(config_dir)
-
-    file_name = 'training_config.yaml'
-    with open(os.path.join(config_dir, file_name), 'w') as f_out:
-        yaml.dump(config, f_out, default_flow_style=False)
-
-
-def save_model(model, model_name, epoch, step):
-    model_dir = os.path.join('seq2seq', 'model')
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-
-    if '/' in model_name:
-        model_name = model_name.split('/')[-1]
-
-    file_name = '{}_epoch_{}_step_{}.pt'.format(model_name, epoch, step)
-    torch.save(model.state_dict(), os.path.join(model_dir, file_name))
-
-
-def create_label_mask(input_ids, input_mask, label_mask):
-    label_offsets = input_mask.sum(dim=1) - label_mask.sum(dim=1)
-
-    # DEBUG
-    # print('>> label offsets:', label_offsets)
-
-    mask = torch.zeros_like(input_ids)
-    mask[torch.arange(input_ids.shape[0]), label_offsets] = 1
-    mask = 1 - mask.cumsum(dim=1)
-
-    # DEBUG
-    # print('>> label mask:', mask)
-
-    return mask
+import seq2seq.eval_utils as eval_utils
+import seq2seq.model_utils as model_utils
 
 
 def train(config, dataset_class, device='cpu'):
     train_loss_sum = 0.0
     steps_since_last_eval = 0
 
-    # Load model and corresponding tokenizer
-    if 'gpt2' in config.model_name:
-        loading_function = load_pretrained_gpt2_model_and_tokenizer
-        is_enc_dec = False
-    elif 'bart' in config.model_name:
-        loading_function = load_pretrained_bart_model_and_tokenizer
-        is_enc_dec = True
-    elif 't5' in config.model_name:
-        loading_function = load_pretrained_t5_model_and_tokenizer
-        is_enc_dec = True
-    else:
-        print('Error: model "{}" not supported'.format(config.model_name))
-        sys.exit()
-
-    model, tokenizer = loading_function(
-        config.model_name, pretrained=config.pretrained,
-        special_tokens=dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names))
+    # Load model and the corresponding tokenizer
+    special_tokens = dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names)
+    model, tokenizer, is_enc_dec = model_utils.load_model_and_tokenizer(config, special_tokens=special_tokens)
     model = model.to(device)
 
     # Load training and validation data
@@ -243,64 +58,15 @@ def train(config, dataset_class, device='cpu'):
         print()
 
         for step, batch in enumerate(tqdm(train_data_loader, desc='Step'), start=1):
-            # tokenizer.padding_side = 'left'
+            batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec, device=device)
 
-            if is_enc_dec:
-                # inputs = tokenizer.prepare_seq2seq_batch(batch[0], batch[1], max_length=config.max_seq_length,
-                #                                          padding=True, truncation=True, return_tensors='pt')
-                inputs = tokenizer(batch[0], add_special_tokens=True, max_length=config.max_seq_length,
-                                   padding=True, truncation=True, return_tensors='pt')
-                targets = tokenizer(batch[1], add_special_tokens=True, max_length=config.max_seq_length,
-                                    padding=True, truncation=True, return_tensors='pt')
-
-                input_ids = inputs['input_ids']
-                input_mask = inputs['attention_mask']
-                label_ids = targets['input_ids'].clone()
-                label_ids[label_ids == tokenizer.pad_token_id] = -100
-
-                if 'bart' in config.model_name:
-                    """Prepare decoder inputs manually because BART gets confused by the -100 mask values during
-                    automatic generation of decoder inputs from labels, expecting the padding token IDs instead."""
-                    decoder_input_ids = shift_tokens_right(targets['input_ids'], tokenizer.pad_token_id)
-                    # decoder_mask = targets['attention_mask']
-                    decoder_input_tensor = decoder_input_ids.to(device)
-                    # decoder_mask_tensor = decoder_mask.to(device)
-                else:
-                    # Decoder input IDs and mask are inferred automatically from labels
-                    decoder_input_tensor = None
+            input_tensor = batch['input_ids'].to(device)
+            mask_tensor = batch['attention_mask'].to(device)
+            label_tensor = batch['labels'].to(device)
+            if batch.get('decoder_input_ids') is not None:
+                decoder_input_tensor = batch['decoder_input_ids'].to(device)
             else:
-                # TODO: Experiment with the token_type_id parameter.
-                inputs = tokenizer(batch[0], add_special_tokens=False, max_length=config.max_seq_length,
-                                   padding=True, truncation=True, return_tensors='pt')
-                mrs_only = tokenizer(batch[1], add_special_tokens=False, max_length=config.max_seq_length,
-                                     padding=True, truncation=True, return_tensors='pt')
-
-                input_ids = inputs['input_ids']
-                input_mask = inputs['attention_mask']
-                mr_mask = mrs_only['attention_mask']
-
-                label_mask = torch.zeros_like(input_ids)
-                label_mask[:, :mr_mask.shape[1]] = mr_mask
-                label_mask[input_ids == tokenizer.pad_token_id] = 1
-
-                label_ids = input_ids.masked_fill(label_mask, -100)
-
-            input_tensor = input_ids.to(device)
-            mask_tensor = input_mask.to(device)
-            label_tensor = label_ids.to(device)
-
-            # DEBUG
-            # print()
-            # print('>> ENCODED inputs:\n', input_ids)
-            # print('>> DECODED inputs:\n', tokenizer.decode(input_ids[0]))
-            # print()
-            # print('>> ENCODED input masks:\n', input_mask)
-            # print()
-            # print('>> ENCODED labels:\n', label_ids)
-            # print('>> DECODED labels:\n', tokenizer.decode(label_ids[0][label_ids[0] >= 0]))
-            # print()
-            # print('>> ENCODED decoder masks:\n', decoder_mask)
-            # print()
+                decoder_input_tensor = None
 
             model.train()
 
@@ -382,7 +148,7 @@ def train(config, dataset_class, device='cpu'):
                     print()
 
                 # Save a model checkpoint
-                save_model(model, config.model_name, epoch, step)
+                model_utils.save_model(model, config.model_name, epoch, step)
 
     model_dir = os.path.join('seq2seq', 'model', 'final')
     model.save_pretrained(model_dir)
@@ -397,46 +163,15 @@ def validate(config, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
     model.eval()
 
     for batch in tqdm(data_loader, desc='Evaluating'):
-        if is_enc_dec:
-            # inputs = tokenizer.prepare_seq2seq_batch(batch[0], batch[1], max_length=config.max_seq_length,
-            #                                          padding=True, truncation=True, return_tensors='pt')
-            inputs = tokenizer(batch[0], add_special_tokens=True, max_length=config.max_seq_length,
-                               padding=True, truncation=True, return_tensors='pt')
-            targets = tokenizer(batch[1], add_special_tokens=True, max_length=config.max_seq_length,
-                                padding=True, truncation=True, return_tensors='pt')
+        batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec, device=device)
 
-            input_ids = inputs['input_ids']
-            input_mask = inputs['attention_mask']
-            label_ids = targets['input_ids'].clone()
-            label_ids[label_ids == tokenizer.pad_token_id] = -100
-
-            if 'bart' in config.model_name:
-                decoder_input_ids = shift_tokens_right(targets['input_ids'], tokenizer.pad_token_id)
-                # decoder_mask = targets['attention_mask']
-                decoder_input_tensor = decoder_input_ids.to(device)
-                # decoder_mask_tensor = decoder_mask.to(device)
-            else:
-                # Decoder input IDs and mask are inferred automatically from labels
-                decoder_input_tensor = None
+        input_tensor = batch['input_ids'].to(device)
+        mask_tensor = batch['attention_mask'].to(device)
+        label_tensor = batch['labels'].to(device)
+        if batch.get('decoder_input_ids') is not None:
+            decoder_input_tensor = batch['decoder_input_ids'].to(device)
         else:
-            inputs = tokenizer(batch[0], add_special_tokens=False, max_length=config.max_seq_length,
-                               padding=True, truncation=True, return_tensors='pt')
-            mrs_only = tokenizer(batch[1], add_special_tokens=False, max_length=config.max_seq_length,
-                                 padding=True, truncation=True, return_tensors='pt')
-
-            input_ids = inputs['input_ids']
-            input_mask = inputs['attention_mask']
-            mr_mask = mrs_only['attention_mask']
-
-            label_mask = torch.zeros_like(input_ids)
-            label_mask[:, :mr_mask.shape[1]] = mr_mask
-            label_mask[input_ids == tokenizer.pad_token_id] = 1
-
-            label_ids = input_ids.masked_fill(label_mask, -100)
-
-        input_tensor = input_ids.to(device)
-        mask_tensor = input_mask.to(device)
-        label_tensor = label_ids.to(device)
+            decoder_input_tensor = None
 
         with torch.no_grad():
             if is_enc_dec:
@@ -472,8 +207,8 @@ def validate_bleu(config, dataset, data_loader, tokenizer, model, is_enc_dec, de
     # print('>> PREDICTIONS decoded:')
     # print('\n'.join(generated_utterances[:50]))
 
-    bleu = calculate_singleref_bleu(dataset, generated_utterances_flat)
-    bleu_multiref = calculate_multiref_bleu(dataset, generated_utterances_flat)
+    bleu = eval_utils.calculate_singleref_bleu(dataset, generated_utterances_flat)
+    bleu_multiref = eval_utils.calculate_multiref_bleu(dataset, generated_utterances_flat)
 
     result = {
         'bleu': torch.tensor(bleu),
@@ -540,71 +275,14 @@ def decode_model_outputs(sequences, tokenizer, is_enc_dec):
     return outputs_decoded
 
 
-def calculate_singleref_bleu(dataset, predictions):
-    """Calculates the corpus BLEU score with a single reference per generated utterance.
-
-    Assumes the dataset to be grouped by MR, and to thus have a list of reference utterances for each MR. This method
-    flattens the references and multiplies the generated predictions as necessary to match corresponding references.
-    """
-    references = dataset.get_utterances(lowercased=True)
-
-    # Multiply generated utterances depending on the number of corresponding references, and then flatten references
-    predictions_multiplied = list(chain.from_iterable(
-        [pred] * len(ref_list) for pred, ref_list in zip(predictions, references)))
-    references_flat = list(chain.from_iterable(references))
-
-    return corpus_bleu(predictions_multiplied, [references_flat]).score
-
-
-def calculate_multiref_bleu(dataset, predictions):
-    """Calculates the corpus BLEU score with multiple references per generated utterance.
-
-    Assumes the dataset to be grouped by MR, and to thus have a list of reference utterances for each MR. Assumes the
-    generated utterances to have been produced from unique inputs, and hence to be a flat list. This method transposes
-    the nested list of reference utterances to conform with the format sacreblue's corpus_bleu method expects.
-    """
-    references = dataset.get_utterances(lowercased=True)
-
-    # Only works if the number of references is the same for each input
-    # references_transposed = list(map(list, zip(*references)))
-
-    # Transpose the reference utterances
-    max_num_refs = max(len(ref_list) for ref_list in references)
-    references_transposed = [[] for _ in range(max_num_refs)]
-    for ref_list in references:
-        idx = 0
-        for ref in ref_list:
-            references_transposed[idx].append(ref)
-            idx += 1
-
-        # Pad with the first reference
-        for i in range(idx, max_num_refs):
-            references_transposed[i].append(ref_list[0])
-
-    return corpus_bleu(predictions, references_transposed).score
-
-
 def test(config, dataset_class, device='cpu'):
-    # Load model and corresponding tokenizer
-    if 'gpt2' in config.model_name:
-        loading_function = load_pretrained_gpt2_model_and_tokenizer
-        is_enc_dec = False
-    elif 'bart' in config.model_name:
-        loading_function = load_pretrained_bart_model_and_tokenizer
-        is_enc_dec = True
-    elif 't5' in config.model_name:
-        loading_function = load_pretrained_t5_model_and_tokenizer
-        is_enc_dec = True
-    else:
-        print('Error: model "{}" not supported'.format(config.model_name))
-        sys.exit()
+    eval_configurations = []
 
-    # Load model and corresponding tokenizer
-    model, tokenizer = loading_function(
-        config.model_name,
-        special_tokens=dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names))
-    load_model_checkpoint(model, config.model_name, config.checkpoint_epoch, config.checkpoint_step)
+    # Load model and the corresponding tokenizer
+    special_tokens = dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names)
+    model, tokenizer, is_enc_dec = model_utils.load_model_and_tokenizer(config, special_tokens=special_tokens)
     model = model.to(device)
+
     model.eval()
 
     # Load test data
@@ -615,23 +293,9 @@ def test(config, dataset_class, device='cpu'):
     # Generate decoded utterances
     predictions = generate_and_decode(config, test_data_loader, tokenizer, model, is_enc_dec, device=device)
 
-    # Make sure the output directory exists for the given dataset
-    predictions_dir = os.path.join('seq2seq', 'predictions', test_set.name)
-    if not os.path.exists(predictions_dir):
-        os.makedirs(predictions_dir)
-
-    # Prepare the metrics script command, and create the reference file for the given dataset
-    eval_dir = os.path.join('seq2seq', 'eval')
-    metrics_script = 'python ' + os.path.join(eval_dir, 'E2E', 'measure_scores.py')
-    reference_file = os.path.join(eval_dir, 'test_references_{}.txt'.format(test_set.name))
-    if not os.path.exists(reference_file):
-        print('>> Generating a reference file for the "{}" test set.'.format(test_set.name))
-        test_set.create_reference_file_for_testing()
-
-    eval_configurations = []
-
     if config.semantic_reranking:
-        predictions_reranked = rerank_beams(predictions, test_set.get_mrs_as_dicts())
+        # Rerank generated beams based on semantic accuracy
+        predictions_reranked = eval_utils.rerank_beams(predictions, test_set.get_mrs_as_dicts())
         predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
         eval_configurations.append((predictions_reranked, True))
 
@@ -639,55 +303,16 @@ def test(config, dataset_class, device='cpu'):
     predictions = [pred_beam[0] for pred_beam in predictions]
     eval_configurations.insert(0, (predictions, False))
 
-    for prediction_list, reranked in eval_configurations:
-        file_name_root = compose_output_file_name(config, reranked=reranked)
-
-        # Save generated utterances along with their corresponding MRs into a CSV file
-        file_name = f'{file_name_root}.csv'
-        df_predictions = pd.DataFrame({'mr': test_set.get_mrs(raw=True), 'utt': prediction_list})
-        df_predictions.to_csv(os.path.join(predictions_dir, file_name), index=False, encoding='utf-8-sig')
-
-        # Save generated utterances in a text file (for reference-based metric evaluation)
-        file_name = f'{file_name_root}_utt_only.txt'
-        predictions_file = os.path.join(predictions_dir, file_name)
-        with open(predictions_file, 'w') as f_out:
-            for prediction in prediction_list:
-                f_out.write(prediction + '\n')
-
-        # Run the metrics script provided by the E2E NLG Challenge
-        os.system(metrics_script + ' ' + reference_file + ' ' + predictions_file)
-
-
-def compose_output_file_name(config, reranked=False):
-    if config.num_beams > 1:
-        inference_method_suffix = '_beam_search_'
-        if reranked:
-            inference_method_suffix += 'reranked_'
-        inference_method_suffix += str(config.length_penalty)
-    elif config.do_sample and config.top_p < 1.0:
-        inference_method_suffix = '_nucleus_sampling_'
-        if reranked:
-            inference_method_suffix += 'reranked_'
-        inference_method_suffix += str(config.top_p)
-    elif config.do_sample and config.top_k > 0:
-        inference_method_suffix = '_top_k_sampling_'
-        if reranked:
-            inference_method_suffix += 'reranked_'
-        inference_method_suffix += str(config.top_k)
-    else:
-        inference_method_suffix = '_no_beam_search'
-
-    file_name = 'epoch_{}_step_{}{}'.format(config.checkpoint_epoch, config.checkpoint_step, inference_method_suffix)
-
-    return file_name
+    # Run reference-based evaluation of the generated utterances
+    eval_utils.execute_e2e_evaluation_script(config, test_set, eval_configurations)
 
 
 def generate_from_input(input_str, config, dataset_class, device='cpu'):
     # Load model and corresponding tokenizer
-    model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
+    model, tokenizer = model_utils.load_pretrained_gpt2_model_and_tokenizer(
         config.model_name,
         special_tokens=dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names))
-    load_model_checkpoint(model, config.model_name, config.checkpoint_epoch, config.checkpoint_step)
+    model_utils.load_model_checkpoint(model, config.model_name, config.checkpoint_epoch, config.checkpoint_step)
     model = model.to(device)
     model.eval()
 
@@ -713,45 +338,6 @@ def generate_from_input(input_str, config, dataset_class, device='cpu'):
         utt_beg_pos = np.where(output_seq.cpu().numpy() == tokenizer.bos_token_id)[0][0] + 1
         utt_decoded = tokenizer.decode(output_seq[utt_beg_pos:], skip_special_tokens=True)
         print('>> Sample #{}: {}'.format(i, utt_decoded))
-
-
-def rerank_beams(beams, mrs, keep_n=None, keep_least_errors_only=False):
-    """Reranks beams based on the slot error rate determined by the slot aligner. Keeps at most n best candidates.
-
-    Note: Python's sort is guaranteed to be stable, i.e., when multiple records have the same key (e.g., slot error
-    score), their original order (e.g., based on their beam score) is preserved.
-    """
-    beams_reranked = []
-
-    for idx, mr in enumerate(tqdm(mrs, desc='Reranking')):
-        beam_scored = []
-
-        for utt in beams[idx]:
-            # Calculate the slot error score
-            score = score_alignment(utt, mr)
-            beam_scored.append((utt, score))
-
-        # Rerank utterances by slot error score (the higher the better)
-        beam_scored.sort(key=lambda tup: tup[1], reverse=True)
-
-        if keep_least_errors_only:
-            # Filter only those utterances that have the least number of errors identified by the slot aligner
-            beam_scored = [candidate for candidate in beam_scored if candidate[1] == beam_scored[0][1]]
-
-        # Keep at most n candidates
-        if keep_n is not None and len(beam_scored) > keep_n > 0:
-            beam_scored = beam_scored[:keep_n]
-
-        # DEBUG
-        # if idx < 5:
-        #     print('>> Scored beams:')
-        #     print('\n'.join('{0} :: {1}'.format(utt[1], utt[0]) for utt in beam_scored))
-        #     print()
-
-        # Store the reranked beam (utterances only)
-        beams_reranked.append([utt[0] for utt in beam_scored])
-
-    return beams_reranked
 
 
 def main():
@@ -782,7 +368,7 @@ def main():
         sys.exit()
 
     # Load the task configuration
-    config = load_config(args.config, args.dataset, args.task, print_config=True)
+    config = model_utils.load_config(args.config, args.dataset, args.task, print_config=True)
 
     # Set the device to GPU if available, or CPU otherwise
     if torch.cuda.is_available():
@@ -795,7 +381,7 @@ def main():
 
     # Run the corresponding task
     if args.task == 'train':
-        save_training_config(config)
+        model_utils.save_training_config(config)
         train(TrainingConfig(config), dataset_class, device=device)
     elif args.task == 'test':
         test_config = TestConfig(config)

@@ -5,6 +5,8 @@ class TaskConfig(object):
     def __init__(self, config):
         self.model_name = config.get('model_name', 'gpt2')
         self.pretrained = config.get('pretrained', False)
+        self.checkpoint_epoch = config.get('checkpoint_epoch')
+        self.checkpoint_step = config.get('checkpoint_step')
         self.batch_size = config.get('batch_size', 1)
         self.max_seq_length = config.get('max_seq_length', 512)
         self.convert_slot_names = config.get('convert_slot_names', False)
@@ -25,14 +27,12 @@ class TrainingConfig(TaskConfig):
 
 class TestConfig(TaskConfig):
     def __init__(self, config):
-        super().__init__(config)
-
         if 'checkpoint_epoch' not in config or 'checkpoint_step' not in config:
             print('Error: checkpoint epoch or step not provided in the task configuration')
             sys.exit()
 
-        self.checkpoint_epoch = config['checkpoint_epoch']
-        self.checkpoint_step = config['checkpoint_step']
+        super().__init__(config)
+
         self.num_beams = config.get('num_beams', 1)
         self.early_stopping = config.get('beam_search_early_stopping', False)
         self.do_sample = config.get('do_sample', False)
