@@ -3,7 +3,8 @@ import sys
 
 class TaskConfig(object):
     def __init__(self, config):
-        self.pretrained_model = config.get('pretrained_model', 'gpt2')
+        self.model_name = config.get('model_name', 'gpt2')
+        self.pretrained = config.get('pretrained', False)
         self.batch_size = config.get('batch_size', 1)
         self.max_seq_length = config.get('max_seq_length', 512)
         self.convert_slot_names = config.get('convert_slot_names', False)
@@ -18,6 +19,7 @@ class TrainingConfig(TaskConfig):
         self.lr = config.get('lr', 5e-5)
         self.max_grad_norm = config.get('max_grad_norm', 1.0)
         self.eval_times_per_epoch = config.get('eval_times_per_epoch', 1)
+        self.eval_every_n_epochs = config.get('eval_every_n_epochs', 1)
         self.fp16 = config.get('fp16', False)
 
 

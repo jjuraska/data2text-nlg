@@ -1,6 +1,7 @@
-pretrained_model: "facebook/bart-base"
-checkpoint_epoch: 10
-checkpoint_step: 426
+model_name: "facebook/bart-base"
+pretrained: True
+checkpoint_epoch: 9
+checkpoint_step: 256
 convert_slot_names: True
 batch_size: 1
 max_seq_length: 512

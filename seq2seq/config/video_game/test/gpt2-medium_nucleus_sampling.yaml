@@ -1,4 +1,5 @@
-pretrained_model: "gpt2-medium"
+model_name: "gpt2-medium"
+pretrained: True
 checkpoint_epoch: 4
 checkpoint_step: 1276
 convert_slot_names: True

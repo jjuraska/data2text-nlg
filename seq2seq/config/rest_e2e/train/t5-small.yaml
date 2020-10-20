@@ -1,11 +1,11 @@
 model_name: "t5-small"
 pretrained: True
 convert_slot_names: True
-num_epochs: 10
-batch_size: 32
+num_epochs: 5
+batch_size: 20
 max_seq_length: 512
-num_warmup_steps: 100
-lr: 2.0e-4
+num_warmup_steps: 500
+lr: 1.0e-4
 max_grad_norm: 1.0
-eval_times_per_epoch: 2
+eval_times_per_epoch: 4
 fp16: True

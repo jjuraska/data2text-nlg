@@ -1,4 +1,5 @@
-pretrained_model: "facebook/bart-base"
+model_name: "facebook/bart-base"
+pretrained: True
 checkpoint_epoch: 10
 checkpoint_step: 426
 convert_slot_names: True

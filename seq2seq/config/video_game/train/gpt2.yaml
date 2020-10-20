@@ -1,4 +1,5 @@
-pretrained_model: "gpt2"
+model_name: "gpt2"
+pretrained: True
 convert_slot_names: True
 num_epochs: 10
 batch_size: 12

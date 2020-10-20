@@ -1,12 +1,12 @@
 model_name: "t5-small"
 pretrained: True
-checkpoint_epoch: 10
-checkpoint_step: 426
+checkpoint_epoch: 3
+checkpoint_step: 2104
 convert_slot_names: True
 batch_size: 1
 max_seq_length: 512
 do_sample: True
-top_p: [0.3, 0.5, 0.8]
+top_p: 0.3
 top_k: 0
 #no_repeat_ngram_size: 3
 #repetition_penalty: 2.5

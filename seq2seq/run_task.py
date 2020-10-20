@@ -10,10 +10,11 @@ import sys
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+# from tokenizers.implementations import ByteLevelBPETokenizer, SentencePieceBPETokenizer
 from transformers import AdamW, get_linear_schedule_with_warmup
-from transformers import BartForConditionalGeneration, BartTokenizer
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
-from transformers import T5ForConditionalGeneration, T5Tokenizer
+from transformers import BartConfig, BartForConditionalGeneration, BartTokenizer
+from transformers import GPT2Config, GPT2LMHeadModel, GPT2Tokenizer
+from transformers import T5Config, T5ForConditionalGeneration, T5Tokenizer
 from transformers.modeling_bart import shift_tokens_right
 import yaml
 
@@ -43,49 +44,90 @@ def load_config(config_name, dataset_name, task, print_config=False):
     return config
 
 
-def load_pretrained_bart_model_and_tokenizer(model_name, special_tokens=None):
-    # Load pretrained tokenizer
-    tokenizer = BartTokenizer.from_pretrained(model_name)
+def load_pretrained_bart_model_and_tokenizer(model_name, pretrained=False, special_tokens=None):
+    if pretrained:
+        # Load pretrained tokenizer
+        tokenizer = BartTokenizer.from_pretrained(model_name)
+    else:
+        # Load tokenizer trained on custom dataset(s)
+        tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
+        tokenizer = BartTokenizer(os.path.join(tokenizer_dir, 'bart-base-video_game-vocab.json'),
+                                  os.path.join(tokenizer_dir, 'bart-base-video_game-merges.txt'),
+                                  model_max_length=64)
+
     special_tokens = {
         'additional_special_tokens': special_tokens
     }
     tokenizer.add_special_tokens(special_tokens)
 
-    # Load pretrained model
-    model = BartForConditionalGeneration.from_pretrained(model_name)
+    if pretrained:
+        # Load model with pretrained weights
+        model = BartForConditionalGeneration.from_pretrained(model_name)
+    else:
+        # Load model without pretrained weights
+        config = BartConfig.from_pretrained(model_name, vocab_size=tokenizer.vocab_size)
+        model = BartForConditionalGeneration(config)
+        print('>> config.vocab_size:', config.vocab_size)
     model.resize_token_embeddings(len(tokenizer))
 
     return model, tokenizer
 
 
-def load_pretrained_gpt2_model_and_tokenizer(model_name, special_tokens=None):
-    # Load pretrained tokenizer
-    tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+def load_pretrained_gpt2_model_and_tokenizer(model_name, pretrained=False, special_tokens=None):
+    if pretrained:
+        # Load pretrained tokenizer
+        tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+    else:
+        # Load tokenizer trained on custom dataset(s)
+        tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
+        tokenizer = GPT2Tokenizer(os.path.join(tokenizer_dir, 'gpt2-video_game-vocab.json'),
+                                  os.path.join(tokenizer_dir, 'gpt2-video_game-merges.txt'),
+                                  model_max_length=64)
+
     special_tokens = {
         'bos_token': '<|begoftext|>',
-        'pad_token': '<PAD>',
+        'pad_token': '<pad>',
         'additional_special_tokens': special_tokens
     }
     tokenizer.add_special_tokens(special_tokens)
 
-    # Load pretrained model
-    model = GPT2LMHeadModel.from_pretrained(model_name)
+    if pretrained:
+        # Load model with pretrained weights
+        model = GPT2LMHeadModel.from_pretrained(model_name)
+    else:
+        # Load model without pretrained weights
+        config = GPT2Config.from_pretrained(model_name)
+        model = GPT2LMHeadModel(config)
     model.resize_token_embeddings(len(tokenizer))
 
     return model, tokenizer
 
 
-def load_pretrained_t5_model_and_tokenizer(model_name, special_tokens=None):
+def load_pretrained_t5_model_and_tokenizer(model_name, pretrained=False, special_tokens=None):
+    # if pretrained:
     # Load pretrained tokenizer
     tokenizer = T5Tokenizer.from_pretrained(model_name)
+
     special_tokens = {
         'additional_special_tokens': special_tokens
     }
+    # else:
+    #     tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
+    #     tokenizer = SentencePieceBPETokenizer.from_file(os.path.join(tokenizer_dir, 't5-video_game-vocab.json'),
+    #                                                     os.path.join(tokenizer_dir, 't5-video_game-merges.txt'))
+
     tokenizer.add_special_tokens(special_tokens)
 
-    # Load pretrained model
-    model = T5ForConditionalGeneration.from_pretrained(model_name)
-    model.resize_token_embeddings(len(tokenizer))
+    if pretrained:
+        # Load model with pretrained weights
+        model = T5ForConditionalGeneration.from_pretrained(model_name)
+        model.resize_token_embeddings(len(tokenizer))
+    else:
+        # Load model without pretrained weights
+        config = T5Config.from_pretrained(model_name, vocab_size=tokenizer.vocab_size)
+        model = T5ForConditionalGeneration(config)
+        # model.resize_token_embeddings(tokenizer.get_vocab_size())
+        model.resize_token_embeddings(len(tokenizer))
 
     return model, tokenizer
 
@@ -149,21 +191,21 @@ def train(config, dataset_class, device='cpu'):
     steps_since_last_eval = 0
 
     # Load model and corresponding tokenizer
-    if 'gpt2' in config.pretrained_model:
+    if 'gpt2' in config.model_name:
         loading_function = load_pretrained_gpt2_model_and_tokenizer
         is_enc_dec = False
-    elif 'bart' in config.pretrained_model:
+    elif 'bart' in config.model_name:
         loading_function = load_pretrained_bart_model_and_tokenizer
         is_enc_dec = True
-    elif 't5' in config.pretrained_model:
+    elif 't5' in config.model_name:
         loading_function = load_pretrained_t5_model_and_tokenizer
         is_enc_dec = True
     else:
-        print('Error: model "{}" not supported'.format(config.pretrained_model))
+        print('Error: model "{}" not supported'.format(config.model_name))
         sys.exit()
 
     model, tokenizer = loading_function(
-        config.pretrained_model,
+        config.model_name, pretrained=config.pretrained,
         special_tokens=dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names))
     model = model.to(device)
 
@@ -177,7 +219,7 @@ def train(config, dataset_class, device='cpu'):
     valid_data_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
     valid_set_grouped = dataset_class(tokenizer, 'valid', lowercase=True, convert_slot_names=config.convert_slot_names,
-                                      group_by_mr=True, separate_source_and_target=is_enc_dec)
+                                      group_by_mr=True, no_target=True, separate_source_and_target=is_enc_dec)
     valid_grouped_data_loader = DataLoader(valid_set_grouped, batch_size=1, shuffle=False, num_workers=0)
 
     # Determine the training steps at which validation should be performed in each epoch
@@ -195,9 +237,9 @@ def train(config, dataset_class, device='cpu'):
 
     for epoch in range(1, config.num_epochs + 1):
         print()
-        print(' *************** ')
-        print('**   EPOCH {:<2}  **'.format(epoch))
-        print(' *************** ')
+        print(' ******************* ')
+        print('**   EPOCH {:>2}/{:<2}   **'.format(epoch, config.num_epochs))
+        print(' ******************* ')
         print()
 
         for step, batch in enumerate(tqdm(train_data_loader, desc='Step'), start=1):
@@ -216,7 +258,7 @@ def train(config, dataset_class, device='cpu'):
                 label_ids = targets['input_ids'].clone()
                 label_ids[label_ids == tokenizer.pad_token_id] = -100
 
-                if 'bart' in config.pretrained_model:
+                if 'bart' in config.model_name:
                     """Prepare decoder inputs manually because BART gets confused by the -100 mask values during
                     automatic generation of decoder inputs from labels, expecting the padding token IDs instead."""
                     decoder_input_ids = shift_tokens_right(targets['input_ids'], tokenizer.pad_token_id)
@@ -325,21 +367,22 @@ def train(config, dataset_class, device='cpu'):
                 train_loss_sum = 0.0
                 steps_since_last_eval = 0
 
-                # Validation
-                scores = validate(config, valid_data_loader, tokenizer, model, is_enc_dec, device=device)
-                scores_bleu = validate_bleu(config, valid_set_grouped, valid_grouped_data_loader, tokenizer, model,
-                                            is_enc_dec, device=device)
-                metrics = {**scores, **scores_bleu}
+                if epoch % config.eval_every_n_epochs == 0:
+                    # Validation
+                    scores = validate(config, valid_data_loader, tokenizer, model, is_enc_dec, device=device)
+                    scores_bleu = validate_bleu(config, valid_set_grouped, valid_grouped_data_loader, tokenizer, model,
+                                                is_enc_dec, device=device)
+                    metrics = {**scores, **scores_bleu}
 
-                print()
-                print('>> Validation loss: {0:.4f}'.format(metrics.get('loss').item()))
-                print('>> Validation PPL: {0:.4f}'.format(metrics.get('perplexity').item()))
-                print('>> Validation BLEU: {0:.4f}'.format(metrics.get('bleu').item()))
-                print('>> Validation BLEU (multi-ref): {0:.4f}'.format(metrics.get('bleu_multiref').item()))
-                print()
+                    print()
+                    print('>> Validation loss: {0:.4f}'.format(metrics.get('loss').item()))
+                    print('>> Validation PPL: {0:.4f}'.format(metrics.get('perplexity').item()))
+                    print('>> Validation BLEU: {0:.4f}'.format(metrics.get('bleu').item()))
+                    print('>> Validation BLEU (multi-ref): {0:.4f}'.format(metrics.get('bleu_multiref').item()))
+                    print()
 
                 # Save a model checkpoint
-                save_model(model, config.pretrained_model, epoch, step)
+                save_model(model, config.model_name, epoch, step)
 
     model_dir = os.path.join('seq2seq', 'model', 'final')
     model.save_pretrained(model_dir)
@@ -367,7 +410,7 @@ def validate(config, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
             label_ids = targets['input_ids'].clone()
             label_ids[label_ids == tokenizer.pad_token_id] = -100
 
-            if 'bart' in config.pretrained_model:
+            if 'bart' in config.model_name:
                 decoder_input_ids = shift_tokens_right(targets['input_ids'], tokenizer.pad_token_id)
                 # decoder_mask = targets['attention_mask']
                 decoder_input_tensor = decoder_input_ids.to(device)
@@ -453,7 +496,10 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
         if is_validation:
             outputs = model.generate(inputs['input_ids'].to(device),
                                      attention_mask=inputs['attention_mask'].to(device),
-                                     max_length=config.max_seq_length)
+                                     max_length=config.max_seq_length,
+                                     # bos_token_id=tokenizer.bos_token_id,
+                                     pad_token_id=tokenizer.pad_token_id,
+                                     )
         else:
             outputs = model.generate(inputs['input_ids'].to(device),
                                      attention_mask=inputs['attention_mask'].to(device),
@@ -469,8 +515,7 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
                                      length_penalty=config.length_penalty,
                                      num_return_sequences=config.num_return_sequences,
                                      # bos_token_id=tokenizer.bos_token_id,
-                                     # decoder_start_token_id=tokenizer.eos_token_id,
-                                     # pad_token_id=tokenizer.pad_token_id
+                                     pad_token_id=tokenizer.pad_token_id,
                                      )
 
         generated_sequences.append(decode_model_outputs(outputs, tokenizer, is_enc_dec))
@@ -541,30 +586,30 @@ def calculate_multiref_bleu(dataset, predictions):
 
 def test(config, dataset_class, device='cpu'):
     # Load model and corresponding tokenizer
-    if 'gpt2' in config.pretrained_model:
+    if 'gpt2' in config.model_name:
         loading_function = load_pretrained_gpt2_model_and_tokenizer
         is_enc_dec = False
-    elif 'bart' in config.pretrained_model:
+    elif 'bart' in config.model_name:
         loading_function = load_pretrained_bart_model_and_tokenizer
         is_enc_dec = True
-    elif 't5' in config.pretrained_model:
+    elif 't5' in config.model_name:
         loading_function = load_pretrained_t5_model_and_tokenizer
         is_enc_dec = True
     else:
-        print('Error: model "{}" not supported'.format(config.pretrained_model))
+        print('Error: model "{}" not supported'.format(config.model_name))
         sys.exit()
 
     # Load model and corresponding tokenizer
     model, tokenizer = loading_function(
-        config.pretrained_model,
+        config.model_name,
         special_tokens=dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names))
-    load_model_checkpoint(model, config.pretrained_model, config.checkpoint_epoch, config.checkpoint_step)
+    load_model_checkpoint(model, config.model_name, config.checkpoint_epoch, config.checkpoint_step)
     model = model.to(device)
     model.eval()
 
     # Load test data
     test_set = dataset_class(tokenizer, 'test', lowercase=True, convert_slot_names=config.convert_slot_names,
-                             group_by_mr=True, separate_source_and_target=is_enc_dec)
+                             group_by_mr=True, no_target=True, separate_source_and_target=is_enc_dec)
     test_data_loader = DataLoader(test_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
     # Generate decoded utterances
@@ -640,9 +685,9 @@ def compose_output_file_name(config, reranked=False):
 def generate_from_input(input_str, config, dataset_class, device='cpu'):
     # Load model and corresponding tokenizer
     model, tokenizer = load_pretrained_gpt2_model_and_tokenizer(
-        config.pretrained_model,
+        config.model_name,
         special_tokens=dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names))
-    load_model_checkpoint(model, config.pretrained_model, config.checkpoint_epoch, config.checkpoint_step)
+    load_model_checkpoint(model, config.model_name, config.checkpoint_epoch, config.checkpoint_step)
     model = model.to(device)
     model.eval()
 

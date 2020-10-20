@@ -13,7 +13,7 @@ class MRToTextDataset(Dataset):
     delimiters = {}
 
     def __init__(self, tokenizer, partition='train', lowercase=False, convert_slot_names=False, group_by_mr=False,
-                 separate_source_and_target=False):
+                 no_target=False, separate_source_and_target=False):
         super().__init__()
 
         self.tokenizer = tokenizer
@@ -24,6 +24,7 @@ class MRToTextDataset(Dataset):
         self.convert_to_lowercase = lowercase
         self.convert_slot_names = convert_slot_names
         self.group_by_mr = group_by_mr
+        self.no_target = no_target
         self.separate_source_and_target = separate_source_and_target
 
         self.mrs = []
@@ -42,14 +43,14 @@ class MRToTextDataset(Dataset):
 
         if self.separate_source_and_target:
             source_str = mr
-            if self.partition == 'test':
+            if self.no_target:
                 target_str = ''
             elif utt is not None:
                 target_str = utt
             else:
                 raise ValueError('Utterances must be present in training and validation data')
         else:
-            if self.partition == 'test':
+            if self.no_target:
                 # If test set, load the MRs only as source
                 source_str = mr + self.bos_token
             elif utt is not None:
