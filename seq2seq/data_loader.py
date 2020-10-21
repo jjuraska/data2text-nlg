@@ -303,7 +303,7 @@ class MRToTextDataset(Dataset):
         # DEBUG
         # print('>> slot_tokens:', slot_tokens)
 
-        return list(slot_tokens)
+        return sorted(list(slot_tokens))
 
     @staticmethod
     def convert_slot_name(slot_name):
