@@ -21,7 +21,8 @@ def train(config, dataset_class, device='cpu'):
 
     # Load model and the corresponding tokenizer
     special_tokens = dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names)
-    model, tokenizer, is_enc_dec = model_utils.load_model_and_tokenizer(config, special_tokens=special_tokens)
+    model, tokenizer = model_utils.load_model_and_tokenizer(config, special_tokens=special_tokens)
+    is_enc_dec = model.config.is_encoder_decoder
     model = model.to(device)
 
     # Load training and validation data
@@ -35,7 +36,7 @@ def train(config, dataset_class, device='cpu'):
 
     valid_set_grouped = dataset_class(tokenizer, 'valid', lowercase=True, convert_slot_names=config.convert_slot_names,
                                       group_by_mr=True, no_target=True, separate_source_and_target=is_enc_dec)
-    valid_grouped_data_loader = DataLoader(valid_set_grouped, batch_size=1, shuffle=False, num_workers=0)
+    valid_grouped_data_loader = DataLoader(valid_set_grouped, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
     # Determine the training steps at which validation should be performed in each epoch
     eval_steps = np.delete(np.linspace(0, len(train_data_loader), config.eval_times_per_epoch + 1, dtype=int), 0)
@@ -58,7 +59,7 @@ def train(config, dataset_class, device='cpu'):
         print()
 
         for step, batch in enumerate(tqdm(train_data_loader, desc='Step'), start=1):
-            batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec, device=device)
+            batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec)
 
             input_tensor = batch['input_ids'].to(device)
             mask_tensor = batch['attention_mask'].to(device)
@@ -163,7 +164,7 @@ def validate(config, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
     model.eval()
 
     for batch in tqdm(data_loader, desc='Evaluating'):
-        batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec, device=device)
+        batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec)
 
         input_tensor = batch['input_ids'].to(device)
         mask_tensor = batch['attention_mask'].to(device)
@@ -222,6 +223,11 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
     generated_sequences = []
 
     for batch in tqdm(data_loader, desc='Evaluating'):
+        if 'gpt2' in config.model_name:
+            tokenizer.padding_side = 'left'
+            # tokenizer.pad_token = tokenizer.eos_token
+            # model.config.pad_token_id = model.config.eos_token_id
+
         inputs = tokenizer(batch[0], add_special_tokens=True, padding=True, truncation=True, return_tensors='pt')
 
         # DEBUG
@@ -229,16 +235,18 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
         # print('>> ENCODED mask:', inputs['attention_mask'])
 
         if is_validation:
+            num_seqs_per_input = 1
             outputs = model.generate(inputs['input_ids'].to(device),
                                      attention_mask=inputs['attention_mask'].to(device),
                                      max_length=config.max_seq_length,
-                                     # bos_token_id=tokenizer.bos_token_id,
-                                     pad_token_id=tokenizer.pad_token_id,
+                                     min_length=1,
                                      )
         else:
+            num_seqs_per_input = config.num_return_sequences
             outputs = model.generate(inputs['input_ids'].to(device),
                                      attention_mask=inputs['attention_mask'].to(device),
                                      max_length=config.max_seq_length,
+                                     min_length=1,
                                      num_beams=config.num_beams,
                                      early_stopping=config.early_stopping,
                                      no_repeat_ngram_size=config.no_repeat_ngram_size,
@@ -249,28 +257,30 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
                                      repetition_penalty=config.repetition_penalty,
                                      length_penalty=config.length_penalty,
                                      num_return_sequences=config.num_return_sequences,
-                                     # bos_token_id=tokenizer.bos_token_id,
-                                     pad_token_id=tokenizer.pad_token_id,
                                      )
 
-        generated_sequences.append(decode_model_outputs(outputs, tokenizer, is_enc_dec))
+        generated_sequences.extend(decode_model_outputs(outputs, num_seqs_per_input, tokenizer, is_enc_dec))
 
     return generated_sequences
 
 
-def decode_model_outputs(sequences, tokenizer, is_enc_dec):
+def decode_model_outputs(sequences, num_seqs_per_input, tokenizer, is_enc_dec):
     outputs_decoded = []
 
-    # TODO: generalize to batch_size > 1
-    for i, seq in enumerate(sequences):
-        if is_enc_dec:
-            utt_decoded = tokenizer.decode(seq, skip_special_tokens=True)
-        else:
-            utt_beg_pos = np.where(seq.cpu().numpy() == tokenizer.bos_token_id)[0][0] + 1
-            utt_decoded = tokenizer.decode(seq[utt_beg_pos:], skip_special_tokens=True)
+    for beam_idx in range(0, len(sequences), num_seqs_per_input):
+        beam_sequences = sequences[beam_idx:beam_idx + num_seqs_per_input]
+        beam_decoded = []
 
-        # print('>> Sample #{}: {}'.format(i, utt_decoded))
-        outputs_decoded.append(utt_decoded)
+        for seq in beam_sequences:
+            if is_enc_dec:
+                utt_decoded = tokenizer.decode(seq, skip_special_tokens=True)
+            else:
+                utt_beg_pos = np.where(seq.cpu().numpy() == tokenizer.bos_token_id)[0][0] + 1
+                utt_decoded = tokenizer.decode(seq[utt_beg_pos:], skip_special_tokens=True)
+
+            beam_decoded.append(utt_decoded)
+
+        outputs_decoded.append(beam_decoded)
 
     return outputs_decoded
 
@@ -280,7 +290,8 @@ def test(config, dataset_class, device='cpu'):
 
     # Load model and the corresponding tokenizer
     special_tokens = dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names)
-    model, tokenizer, is_enc_dec = model_utils.load_model_and_tokenizer(config, special_tokens=special_tokens)
+    model, tokenizer = model_utils.load_model_and_tokenizer(config, special_tokens=special_tokens)
+    is_enc_dec = model.config.is_encoder_decoder
     model = model.to(device)
 
     model.eval()
@@ -309,7 +320,7 @@ def test(config, dataset_class, device='cpu'):
 
 def generate_from_input(input_str, config, dataset_class, device='cpu'):
     # Load model and corresponding tokenizer
-    model, tokenizer = model_utils.load_pretrained_gpt2_model_and_tokenizer(
+    model, tokenizer = model_utils.load_gpt2_model_and_tokenizer(
         config.model_name,
         special_tokens=dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names))
     model_utils.load_model_checkpoint(model, config.model_name, config.checkpoint_epoch, config.checkpoint_step)
@@ -331,8 +342,7 @@ def generate_from_input(input_str, config, dataset_class, device='cpu'):
                              repetition_penalty=config.repetition_penalty,
                              length_penalty=config.length_penalty,
                              num_return_sequences=config.num_return_sequences,
-                             bos_token_id=tokenizer.bos_token_id,
-                             pad_token_id=tokenizer.pad_token_id)
+                             )
 
     for i, output_seq in enumerate(outputs):
         utt_beg_pos = np.where(output_seq.cpu().numpy() == tokenizer.bos_token_id)[0][0] + 1

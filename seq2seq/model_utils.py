@@ -31,109 +31,162 @@ def load_config(config_name, dataset_name, task, print_config=False):
 
 
 def load_model_and_tokenizer(config, special_tokens=None):
-    if 'gpt2' in config.model_name:
-        loading_function = load_pretrained_gpt2_model_and_tokenizer
-        is_enc_dec = False
-    elif 'bart' in config.model_name:
-        loading_function = load_pretrained_bart_model_and_tokenizer
-        is_enc_dec = True
+    if 'bart' in config.model_name:
+        loading_function = load_bart_model_and_tokenizer
+    elif 'gpt2' in config.model_name:
+        loading_function = load_gpt2_model_and_tokenizer
     elif 't5' in config.model_name:
-        loading_function = load_pretrained_t5_model_and_tokenizer
-        is_enc_dec = True
+        loading_function = load_t5_model_and_tokenizer
     else:
         print('Error: model "{}" not supported'.format(config.model_name))
         sys.exit()
 
-    model, tokenizer = loading_function(config.model_name, pretrained=config.pretrained, special_tokens=special_tokens)
+    model, tokenizer = loading_function(config, special_tokens=special_tokens)
 
     if config.checkpoint_epoch is not None and config.checkpoint_step is not None:
         load_model_checkpoint(model, config.model_name, config.checkpoint_epoch, config.checkpoint_step)
 
-    return model, tokenizer, is_enc_dec
+    assert model.config.vocab_size == len(tokenizer), \
+        'Model\'s vocab size ({}) does not match tokenizer\'s vocab size ({})'.format(
+               model.config.vocab_size, len(tokenizer))
+
+    # Special tokens summary
+    print('>> Tokenizer\'s special tokens:')
+    print('bos_token: {} (ID: {})'.format(tokenizer.bos_token, tokenizer.bos_token_id))
+    print('eos_token: {} (ID: {})'.format(tokenizer.eos_token, tokenizer.eos_token_id))
+    print('pad_token: {} (ID: {})'.format(tokenizer.pad_token, tokenizer.pad_token_id))
+    print('unk_token: {} (ID: {})'.format(tokenizer.unk_token, tokenizer.unk_token_id))
+    print()
+
+    print('>> Model\'s special tokens:')
+    print('bos_token ID: {}'.format(model.config.bos_token_id))
+    print('eos_token ID: {}'.format(model.config.eos_token_id))
+    print('pad_token ID: {}'.format(model.config.pad_token_id))
+    print('decoder_start_token ID: {}'.format(model.config.decoder_start_token_id))
+    print()
+
+    print('>> Tokenizer\'s additional special tokens:')
+    print('\n'.join(f'{tok}: {tok_id}' for tok, tok_id in tokenizer.get_added_vocab().items()))
+    print()
+
+    return model, tokenizer
 
 
-def load_pretrained_bart_model_and_tokenizer(model_name, pretrained=False, special_tokens=None):
-    if pretrained:
+def load_bart_model_and_tokenizer(config, special_tokens=None):
+    # Specify which additional special tokens should never be split by the tokenizer
+    special_tokens_dict = {
+        'additional_special_tokens': special_tokens
+    }
+
+    if config.pretrained:
         # Load pretrained tokenizer
-        tokenizer = BartTokenizer.from_pretrained(model_name)
+        tokenizer = BartTokenizer.from_pretrained(config.model_name)
     else:
         # Load tokenizer trained on custom dataset(s)
         tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
         tokenizer = BartTokenizer(os.path.join(tokenizer_dir, 'bart-base-video_game-vocab.json'),
                                   os.path.join(tokenizer_dir, 'bart-base-video_game-merges.txt'),
-                                  model_max_length=64)
+                                  model_max_length=config.max_seq_length)
 
-    special_tokens = {
-        'additional_special_tokens': special_tokens
-    }
-    tokenizer.add_special_tokens(special_tokens)
+        special_tokens_dict['bos_token'] = tokenizer.bos_token
+        special_tokens_dict['eos_token'] = tokenizer.eos_token
+        special_tokens_dict['pad_token'] = tokenizer.pad_token
+        special_tokens_dict['unk_token'] = tokenizer.unk_token
 
-    if pretrained:
+    tokenizer.add_special_tokens(special_tokens_dict)
+
+    if config.pretrained:
         # Load model with pretrained weights
-        model = BartForConditionalGeneration.from_pretrained(model_name)
+        model = BartForConditionalGeneration.from_pretrained(config.model_name)
     else:
         # Load model without pretrained weights
-        config = BartConfig.from_pretrained(model_name, vocab_size=tokenizer.vocab_size)
+        config = BartConfig.from_pretrained(config.model_name, vocab_size=len(tokenizer))
         model = BartForConditionalGeneration(config)
-        print('>> config.vocab_size:', config.vocab_size)
+
+        model.config.bos_token_id = tokenizer.bos_token_id
+        model.config.eos_token_id = tokenizer.eos_token_id
+        model.config.pad_token_id = tokenizer.pad_token_id
+        model.config.unk_token_id = tokenizer.unk_token_id
+
+    # Resize the model's embedding matrix to accommodate the added special tokens
     model.resize_token_embeddings(len(tokenizer))
 
     return model, tokenizer
 
 
-def load_pretrained_gpt2_model_and_tokenizer(model_name, pretrained=False, special_tokens=None):
-    if pretrained:
+def load_gpt2_model_and_tokenizer(config, special_tokens=None):
+    # Specify which additional special tokens should never be split by the tokenizer
+    special_tokens_dict = {
+        'bos_token': '<|begoftext|>',
+        'pad_token': '<pad>',
+        'additional_special_tokens': special_tokens
+    }
+
+    if config.pretrained:
         # Load pretrained tokenizer
-        tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+        tokenizer = GPT2Tokenizer.from_pretrained(config.model_name)
     else:
         # Load tokenizer trained on custom dataset(s)
         tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
         tokenizer = GPT2Tokenizer(os.path.join(tokenizer_dir, 'gpt2-video_game-vocab.json'),
                                   os.path.join(tokenizer_dir, 'gpt2-video_game-merges.txt'),
-                                  model_max_length=64)
+                                  model_max_length=config.max_seq_length)
 
-    special_tokens = {
-        'bos_token': '<|begoftext|>',
-        'pad_token': '<pad>',
-        'additional_special_tokens': special_tokens
-    }
-    tokenizer.add_special_tokens(special_tokens)
+        special_tokens_dict['eos_token'] = tokenizer.eos_token
 
-    if pretrained:
+    tokenizer.add_special_tokens(special_tokens_dict)
+
+    if config.pretrained:
         # Load model with pretrained weights
-        model = GPT2LMHeadModel.from_pretrained(model_name)
+        model = GPT2LMHeadModel.from_pretrained(config.model_name)
     else:
         # Load model without pretrained weights
-        config = GPT2Config.from_pretrained(model_name)
+        config = GPT2Config.from_pretrained(config.model_name)
         model = GPT2LMHeadModel(config)
+
+        model.config.eos_token_id = tokenizer.eos_token_id
+
+    model.config.bos_token_id = tokenizer.bos_token_id
+    model.config.pad_token_id = tokenizer.pad_token_id
+
+    # Resize the model's embedding matrix to accommodate the added special tokens
     model.resize_token_embeddings(len(tokenizer))
 
     return model, tokenizer
 
 
-def load_pretrained_t5_model_and_tokenizer(model_name, pretrained=False, special_tokens=None):
-    # if pretrained:
-    # Load pretrained tokenizer
-    tokenizer = T5Tokenizer.from_pretrained(model_name)
-
-    special_tokens = {
+def load_t5_model_and_tokenizer(config, special_tokens=None):
+    # Specify which additional special tokens should never be split by the tokenizer
+    special_tokens_dict = {
         'additional_special_tokens': special_tokens
     }
+
+    # if config.pretrained:
+    # Load pretrained tokenizer
+    tokenizer = T5Tokenizer.from_pretrained(config.model_name)
     # else:
     #     tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
     #     tokenizer = SentencePieceBPETokenizer.from_file(os.path.join(tokenizer_dir, 't5-video_game-vocab.json'),
     #                                                     os.path.join(tokenizer_dir, 't5-video_game-merges.txt'))
+    #
+    #     special_tokens_dict['eos_token'] = tokenizer.eos_token
+    #     special_tokens_dict['pad_token'] = tokenizer.pad_token
+    #     special_tokens_dict['unk_token'] = tokenizer.unk_token
 
-    tokenizer.add_special_tokens(special_tokens)
+    tokenizer.add_special_tokens(special_tokens_dict)
 
-    if pretrained:
+    if config.pretrained:
         # Load model with pretrained weights
-        model = T5ForConditionalGeneration.from_pretrained(model_name)
+        model = T5ForConditionalGeneration.from_pretrained(config.model_name)
+
+        # Resize the model's embedding matrix to accommodate the added special tokens
         model.resize_token_embeddings(len(tokenizer))
     else:
         # Load model without pretrained weights
-        config = T5Config.from_pretrained(model_name, vocab_size=tokenizer.vocab_size)
+        config = T5Config.from_pretrained(config.model_name, vocab_size=len(tokenizer))
         model = T5ForConditionalGeneration(config)
+
+        # Resize the model's embedding matrix to accommodate the added special tokens
         # model.resize_token_embeddings(tokenizer.get_vocab_size())
         model.resize_token_embeddings(len(tokenizer))
 
@@ -178,8 +231,15 @@ def save_model(model, model_name, epoch, step):
     torch.save(model.state_dict(), os.path.join(model_dir, file_name))
 
 
-def prepare_batch(config, batch, tokenizer, is_enc_dec, device='cpu'):
+def prepare_batch(config, batch, tokenizer, is_enc_dec):
     batch_dict = {}
+
+    # DEBUG
+    # print()
+    # print('>> SOURCES:\n', '\n'.join(batch[0]))
+    # print()
+    # print('>> TARGETS:\n', '\n'.join(batch[1]))
+    # print()
 
     # TODO: Incorporate into the data loader?
     if is_enc_dec:
@@ -206,7 +266,8 @@ def prepare_batch(config, batch, tokenizer, is_enc_dec, device='cpu'):
 
         batch_dict['decoder_input_ids'] = decoder_input_ids
     else:
-        # tokenizer.padding_side = 'left'
+        # if 'gpt2' in config.model_name:
+        #     tokenizer.padding_side = 'left'
 
         # TODO: Experiment with the token_type_id parameter.
         inputs = tokenizer(batch[0], add_special_tokens=False, max_length=config.max_seq_length,
@@ -237,11 +298,9 @@ def prepare_batch(config, batch, tokenizer, is_enc_dec, device='cpu'):
     # print('>> ENCODED decoder masks:\n', decoder_mask)
     # print()
 
-    batch_dict = {
-        'input_ids': input_ids,
-        'attention_mask': input_mask,
-        'labels': label_ids
-    }
+    batch_dict['input_ids'] = input_ids
+    batch_dict['attention_mask'] = input_mask
+    batch_dict['labels'] = label_ids
 
     return batch_dict
 
