@@ -5,6 +5,7 @@ class TaskConfig(object):
     def __init__(self, config):
         self.model_name = config.get('model_name', 'gpt2')
         self.pretrained = config.get('pretrained', False)
+        self.tokenizer_name = config.get('tokenizer_name')
         self.checkpoint_epoch = config.get('checkpoint_epoch')
         self.checkpoint_step = config.get('checkpoint_step')
         self.batch_size = config.get('batch_size', 1)

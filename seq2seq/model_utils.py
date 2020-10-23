@@ -62,7 +62,8 @@ def load_model_and_tokenizer(config, special_tokens=None):
     print('bos_token ID: {}'.format(model.config.bos_token_id))
     print('eos_token ID: {}'.format(model.config.eos_token_id))
     print('pad_token ID: {}'.format(model.config.pad_token_id))
-    print('decoder_start_token ID: {}'.format(model.config.decoder_start_token_id))
+    if model.config.is_encoder_decoder:
+        print('decoder_start_token ID: {}'.format(model.config.decoder_start_token_id))
     print()
 
     print('>> Tokenizer\'s additional special tokens:')
@@ -78,16 +79,10 @@ def load_bart_model_and_tokenizer(config, special_tokens=None):
         'additional_special_tokens': special_tokens
     }
 
-    if config.pretrained:
-        # Load pretrained tokenizer
+    if config.pretrained or config.tokenizer_name is None:
         tokenizer = BartTokenizer.from_pretrained(config.model_name)
     else:
-        # Load tokenizer trained on custom dataset(s)
-        tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
-        tokenizer = BartTokenizer(os.path.join(tokenizer_dir, 'bart-base-video_game-vocab.json'),
-                                  os.path.join(tokenizer_dir, 'bart-base-video_game-merges.txt'),
-                                  model_max_length=config.max_seq_length)
-
+        tokenizer = load_custom_tokenizer(BartTokenizer, config.tokenizer_name, config.max_seq_length)
         special_tokens_dict['bos_token'] = tokenizer.bos_token
         special_tokens_dict['eos_token'] = tokenizer.eos_token
         special_tokens_dict['pad_token'] = tokenizer.pad_token
@@ -122,16 +117,10 @@ def load_gpt2_model_and_tokenizer(config, special_tokens=None):
         'additional_special_tokens': special_tokens
     }
 
-    if config.pretrained:
-        # Load pretrained tokenizer
+    if config.pretrained or config.tokenizer_name is None:
         tokenizer = GPT2Tokenizer.from_pretrained(config.model_name)
     else:
-        # Load tokenizer trained on custom dataset(s)
-        tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
-        tokenizer = GPT2Tokenizer(os.path.join(tokenizer_dir, 'gpt2-video_game-vocab.json'),
-                                  os.path.join(tokenizer_dir, 'gpt2-video_game-merges.txt'),
-                                  model_max_length=config.max_seq_length)
-
+        tokenizer = load_custom_tokenizer(GPT2Tokenizer, config.tokenizer_name, config.max_seq_length)
         special_tokens_dict['eos_token'] = tokenizer.eos_token
 
     tokenizer.add_special_tokens(special_tokens_dict)
@@ -161,14 +150,10 @@ def load_t5_model_and_tokenizer(config, special_tokens=None):
         'additional_special_tokens': special_tokens
     }
 
-    # if config.pretrained:
-    # Load pretrained tokenizer
+    # if config.pretrained or config.tokenizer_name is None:
     tokenizer = T5Tokenizer.from_pretrained(config.model_name)
     # else:
-    #     tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
-    #     tokenizer = SentencePieceBPETokenizer.from_file(os.path.join(tokenizer_dir, 't5-video_game-vocab.json'),
-    #                                                     os.path.join(tokenizer_dir, 't5-video_game-merges.txt'))
-    #
+    #     tokenizer = load_custom_tokenizer(SentencePieceBPETokenizer, config.tokenizer_name, config.max_seq_length)
     #     special_tokens_dict['eos_token'] = tokenizer.eos_token
     #     special_tokens_dict['pad_token'] = tokenizer.pad_token
     #     special_tokens_dict['unk_token'] = tokenizer.unk_token
@@ -191,6 +176,19 @@ def load_t5_model_and_tokenizer(config, special_tokens=None):
         model.resize_token_embeddings(len(tokenizer))
 
     return model, tokenizer
+
+
+def load_custom_tokenizer(tokenizer_class, tokenizer_name, max_length):
+    """Loads a tokenizer trained on a custom dataset(s)."""
+
+    tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
+    vocab_file = os.path.join(tokenizer_dir, f'{tokenizer_name}-vocab.json')
+    merges_file = os.path.join(tokenizer_dir, f'{tokenizer_name}-merges.txt')
+
+    if not os.path.exists(vocab_file) or not os.path.exists(merges_file):
+        raise FileNotFoundError(f'Tokenizer files not found in the "{tokenizer_dir}" directory')
+
+    return tokenizer_class(vocab_file, merges_file, model_max_length=max_length)
 
 
 def load_model_checkpoint(model, model_name, epoch, step):

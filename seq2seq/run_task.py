@@ -10,9 +10,9 @@ from tqdm import tqdm
 from transformers import AdamW, get_linear_schedule_with_warmup
 
 from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, ViggoDataset
-from seq2seq.task_config import TestConfig, TrainingConfig
 import seq2seq.eval_utils as eval_utils
 import seq2seq.model_utils as model_utils
+from seq2seq.task_config import TestConfig, TrainingConfig
 
 
 def train(config, dataset_class, device='cpu'):
@@ -51,6 +51,9 @@ def train(config, dataset_class, device='cpu'):
     if config.fp16:
         scaler = torch.cuda.amp.GradScaler()
 
+    # DEBUG
+    # longest_seq = 0
+
     for epoch in range(1, config.num_epochs + 1):
         print()
         print(' ******************* ')
@@ -60,6 +63,10 @@ def train(config, dataset_class, device='cpu'):
 
         for step, batch in enumerate(tqdm(train_data_loader, desc='Step'), start=1):
             batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec)
+
+            # DEBUG
+            # if batch['input_ids'].size(1) > longest_seq:
+            #     longest_seq = batch['input_ids'].size(1)
 
             input_tensor = batch['input_ids'].to(device)
             mask_tensor = batch['attention_mask'].to(device)
@@ -151,6 +158,11 @@ def train(config, dataset_class, device='cpu'):
                 # Save a model checkpoint
                 model_utils.save_model(model, config.model_name, epoch, step)
 
+        # DEBUG
+        # print()
+        # print('>> Longest sequence:', longest_seq)
+        # print()
+
     model_dir = os.path.join('seq2seq', 'model', 'final')
     model.save_pretrained(model_dir)
     tokenizer.save_pretrained(model_dir)
@@ -222,12 +234,11 @@ def validate_bleu(config, dataset, data_loader, tokenizer, model, is_enc_dec, de
 def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_validation=False, device='cpu'):
     generated_sequences = []
 
-    for batch in tqdm(data_loader, desc='Evaluating'):
-        if 'gpt2' in config.model_name:
-            tokenizer.padding_side = 'left'
-            # tokenizer.pad_token = tokenizer.eos_token
-            # model.config.pad_token_id = model.config.eos_token_id
+    if 'gpt2' in config.model_name:
+        # Set the tokenizer to padding input sequences on the left side in order to enable batch inference
+        tokenizer.padding_side = 'left'
 
+    for batch in tqdm(data_loader, desc='Evaluating'):
         inputs = tokenizer(batch[0], add_special_tokens=True, padding=True, truncation=True, return_tensors='pt')
 
         # DEBUG
@@ -260,6 +271,10 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
                                      )
 
         generated_sequences.extend(decode_model_outputs(outputs, num_seqs_per_input, tokenizer, is_enc_dec))
+
+    if 'gpt2' in config.model_name:
+        # Set the tokenizer back to padding input sequences on the right
+        tokenizer.padding_side = 'right'
 
     return generated_sequences
 

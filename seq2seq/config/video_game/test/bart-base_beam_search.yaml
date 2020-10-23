@@ -1,5 +1,6 @@
 model_name: "facebook/bart-base"
-pretrained: False
+pretrained: True
+#tokenizer_name: "bart-base-video_game"
 checkpoint_epoch: 20
 checkpoint_step: 128
 convert_slot_names: True
