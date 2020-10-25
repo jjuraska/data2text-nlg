@@ -1,7 +1,7 @@
 model_name: "gpt2"
-pretrained: False
+pretrained: True
 #tokenizer_name: "gpt2-video_game"
-checkpoint_epoch: 24
+checkpoint_epoch: 28
 checkpoint_step: 319
 convert_slot_names: True
 batch_size: 20

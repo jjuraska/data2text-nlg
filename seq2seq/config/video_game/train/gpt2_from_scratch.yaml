@@ -1,8 +1,8 @@
 model_name: "gpt2"
 pretrained: False
-#tokenizer_name: "gpt2-video_game"
+tokenizer_name: "gpt2-video_game"
 convert_slot_names: True
-num_epochs: 35
+num_epochs: 30
 batch_size: 16
 max_seq_length: 256
 num_warmup_steps: 0

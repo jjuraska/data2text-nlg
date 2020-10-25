@@ -1,23 +1,31 @@
-import glob
 import os
+import sys
 from tokenizers import ByteLevelBPETokenizer, SentencePieceBPETokenizer
-from transformers import AutoTokenizer
+from transformers import AutoConfig, AutoTokenizer
+
+from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, ViggoDataset
 
 
-def train_tokenizer(datasets, pretrained_model_name):
+def train_tokenizer(datasets, pretrained_model_name, vocab_size=1000, lowercase=False, convert_slot_names=False):
+    train_data = []
     data_file_paths = []
-    data_dir = os.path.join('seq2seq', 'data')
 
-    for dataset_name in datasets:
-        dataset_dir = os.path.join(data_dir, dataset_name)
-        data_file_paths.extend(glob.glob(os.path.join(dataset_dir, '*.csv')))
+    # Create the tokenizer directory if it does not exist
+    tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
+    tokenizer_data_dir = os.path.join(tokenizer_dir, 'data_files')
+    if not os.path.exists(tokenizer_dir):
+        os.makedirs(tokenizer_dir)
+    if not os.path.exists(tokenizer_data_dir):
+        os.makedirs(tokenizer_data_dir)
 
-    print('>> Files found:')
-    print('\n'.join(data_file_paths))
-    print()
+    # Load the pretrained model's configuration and tokenizer
+    print('Loading pretrained model\'s tokenizer...', end='')
+    sys.stdout.flush()
+    config_pretrained = AutoConfig.from_pretrained(pretrained_model_name)
+    tokenizer_pretrained = AutoTokenizer.from_pretrained(pretrained_model_name)
+    print(' Done')
 
     # Extract special tokens from the pretrained model's tokenizer
-    tokenizer_pretrained = AutoTokenizer.from_pretrained(pretrained_model_name)
     special_tokens = [
         (tokenizer_pretrained.pad_token, tokenizer_pretrained.pad_token_id),
         (tokenizer_pretrained.bos_token, tokenizer_pretrained.bos_token_id),
@@ -32,25 +40,52 @@ def train_tokenizer(datasets, pretrained_model_name):
     special_tokens = [token for token in set(special_tokens) if token[1] is not None]
     special_tokens = [token[0] for token in sorted(special_tokens, key=lambda x: x[1])]
 
+    # Get the corresponding dataset class
+    datasets.sort()
+    for dataset in datasets:
+        if dataset == 'rest_e2e':
+            dataset_class = E2EDataset
+        elif dataset == 'rest_e2e_cleaned':
+            dataset_class = E2ECleanedDataset
+        elif dataset == 'video_game':
+            dataset_class = ViggoDataset
+        else:
+            print('Error: dataset "{}" not recognized'.format(dataset))
+            sys.exit()
+
+        train_set = dataset_class(tokenizer_pretrained, 'train', lowercase=lowercase,
+                                  convert_slot_names=convert_slot_names,
+                                  separate_source_and_target=config_pretrained.is_encoder_decoder)
+
+        train_data.extend(train_set.get_mrs())
+        train_data.extend(train_set.get_utterances())
+
+        special_tokens.extend(train_set.get_special_tokens(convert_slot_names=convert_slot_names))
+
+        # Write the processed data to a simple text file
+        data_file_path = os.path.join(tokenizer_data_dir, dataset + '.txt')
+        with open(data_file_path, 'w') as f_data:
+            f_data.write('\n'.join(train_data))
+
+        data_file_paths.append(data_file_path)
+
     print('>> Special tokens:')
     print(special_tokens)
     print()
 
-    # Select the tokenizer type based on the pretrained model
+    # Determine the tokenizer type based on the pretrained model
     if any(model_name in pretrained_model_name for model_name in ['t5']):
         tokenizer = SentencePieceBPETokenizer()
     else:
         tokenizer = ByteLevelBPETokenizer()
 
-    tokenizer.train(files=data_file_paths, vocab_size=3000, show_progress=True, special_tokens=special_tokens)
+    tokenizer.train(files=data_file_paths, vocab_size=vocab_size, show_progress=True, special_tokens=special_tokens)
 
     # Save tokenizer files to disk
-    tokenizer_dir = os.path.join('seq2seq', 'tokenizer')
     if '/' in pretrained_model_name:
         pretrained_model_name = pretrained_model_name.split('/')[-1]
-
     tokenizer.save_model(tokenizer_dir, '{}-{}'.format(pretrained_model_name, '-'.join(datasets)))
 
 
 if __name__ == '__main__':
-    train_tokenizer(['video_game'], 'gpt2')
+    train_tokenizer(['video_game'], 'facebook/bart-base', vocab_size=5000, lowercase=True, convert_slot_names=True)
