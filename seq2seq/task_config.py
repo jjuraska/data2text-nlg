@@ -1,9 +1,11 @@
+import os
+import re
 import sys
 
 
 class TaskConfig(object):
     def __init__(self, config):
-        self.model_name = config.get('model_name', 'gpt2')
+        self.model_name = config.get('model_name')
         self.pretrained = config.get('pretrained', False)
         self.tokenizer_name = config.get('tokenizer_name')
         self.checkpoint_epoch = config.get('checkpoint_epoch')
@@ -28,11 +30,10 @@ class TrainingConfig(TaskConfig):
 
 class TestConfig(TaskConfig):
     def __init__(self, config):
-        if 'checkpoint_epoch' not in config or 'checkpoint_step' not in config:
-            print('Error: checkpoint epoch or step not provided in the task configuration')
-            sys.exit()
-
         super().__init__(config)
+
+        if self.checkpoint_epoch is None or self.checkpoint_step is None:
+            self.extract_epoch_and_step_from_model_path()
 
         self.num_beams = config.get('num_beams', 1)
         self.early_stopping = config.get('beam_search_early_stopping', False)
@@ -45,3 +46,13 @@ class TestConfig(TaskConfig):
         self.length_penalty = config.get('length_penalty', 1.0)
         self.num_return_sequences = config.get('num_return_sequences', self.num_beams)
         self.semantic_reranking = config.get('semantic_reranking', False)
+
+    def extract_epoch_and_step_from_model_path(self):
+        epoch_and_step_str = os.path.split(self.model_name.rstrip(r'\/'))[-1]
+        try:
+            epoch, step = re.search(r'epoch_(\d+)_step_(\d+)', epoch_and_step_str).groups()
+            self.checkpoint_epoch = int(epoch)
+            self.checkpoint_step = int(step)
+        except AttributeError:
+            print('Error: checkpoint epoch or step neither provided in the task configuration, nor found in the model name')
+            sys.exit()

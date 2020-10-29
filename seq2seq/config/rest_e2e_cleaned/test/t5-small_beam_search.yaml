@@ -1,9 +1,7 @@
-#model_name: "t5-small"
-model_name: "seq2seq/export/video_game/finetuned_from_e2e/t5-small_lr_2e-4_bs_48_wus_100_run_3/epoch_12_step_107"
+model_name: "t5-small"
 pretrained: True
-#tokenizer_name: "t5-video_game"
-#checkpoint_epoch: 5
-#checkpoint_step: 53
+checkpoint_epoch: 10
+checkpoint_step: 524
 convert_slot_names: True
 batch_size: 64
 max_seq_length: 128

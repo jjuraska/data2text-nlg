@@ -43,7 +43,7 @@ def load_model_and_tokenizer(config, special_tokens=None):
 
     model, tokenizer = loading_function(config, special_tokens=special_tokens)
 
-    if config.checkpoint_epoch is not None and config.checkpoint_step is not None:
+    if config.model_name.count('/') < 2 and config.checkpoint_epoch is not None and config.checkpoint_step is not None:
         load_model_checkpoint(model, config.model_name, config.checkpoint_epoch, config.checkpoint_step)
 
     assert model.config.vocab_size == len(tokenizer), \
