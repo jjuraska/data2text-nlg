@@ -84,7 +84,10 @@ def train_tokenizer(datasets, pretrained_model_name, vocab_size=1000, lowercase=
     # Save tokenizer files to disk
     if '/' in pretrained_model_name:
         pretrained_model_name = pretrained_model_name.split('/')[-1]
-    tokenizer.save_model(tokenizer_dir, '{}-{}'.format(pretrained_model_name, '-'.join(datasets)))
+    file_name = '{}-{}'.format(pretrained_model_name, '-'.join(datasets))
+    if lowercase:
+        file_name += '-lowercase'
+    tokenizer.save_model(tokenizer_dir, file_name)
 
 
 if __name__ == '__main__':

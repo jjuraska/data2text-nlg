@@ -1,0 +1,5315 @@
+#version: 0.2 - Trained by `huggingface/tokenizers`
+< |
+| >
+▁ <|
+e r
+r i
+a n
+▁ c
+▁ t
+a t
+▁ i
+▁t h
+e n
+e |>
+r e
+▁ f
+l y
+a m
+▁th e
+s t
+▁ a
+o d
+i n
+o od
+▁ o
+▁<| n
+▁<| f
+e s
+ri c
+in g
+e a
+▁i s
+▁ p
+r at
+en d
+ri end
+riend ly
+o m
+i d
+rat ing
+v er
+u st
+ust om
+ustom er
+▁ h
+▁ s
+am e|>
+▁<|n ame|>
+▁ b
+▁ n
+ea r
+t y
+an g
+am i
+▁ l
+. 
+
+ami ly
+ood |>
+▁<|f ood|>
+▁o f
+▁i n
+e d
+l i
+f riendly
+▁ ri
+▁ri ver
+p ric
+id e
+re a
+▁ 5
+s ide
+▁river side
+▁i t
+▁<| pric
+er ang
+▁<|pric erang
+▁<|pricerang e|>
+▁l o
+c ustomer
+▁<| customer
+rating |>
+▁<|customer rating|>
+▁c o
+▁f ood
+▁<|f amily
+friendly |>
+▁<|family friendly|>
+▁ m
+▁ w
+u r
+a rea
+▁<| area
+▁<|area |>
+u t
+g e
+h o
+e e
+en t
+▁ an
+f f
+▁o ut
+▁ y
+e at
+re st
+▁c h
+▁ £
+▁co ff
+▁coff ee
+▁s ho
+▁sho p
+▁<|n ear
+▁<|near |>
+g h
+▁ r
+ty p
+▁<| eat
+typ e|>
+▁<|eat type|>
+▁n ear
+ric e
+i gh
+▁h igh
+▁ rest
+▁y es
+an t
+▁an d
+a ur
+▁rest aur
+▁restaur ant
+▁lo c
+i ty
+▁c ity
+▁c ent
+▁ rating
+es e
+i l
+▁n o
+▁cent re
+▁p u
+▁c a
+▁f riendly
+i t
+▁c ustomer
+▁th an
+2 0
+at ed
+c h
+▁loc ated
+▁ g
+r en
+▁£ 20
+▁h a
+▁pu b
+l l
+a st
+o u
+v e
+a p
+r o
+ver a
+▁lo w
+a li
+f é
+▁a vera
+▁ca fé
+▁avera ge
+▁ j
+▁p rice
+▁f ast
+▁it ali
+▁itali an
+▁f amily
+ap an
+▁j apan
+▁japan ese
+at e
+▁m od
+▁mod er
+▁moder ate
+▁ha s
+▁f ren
+▁fren ch
+d i
+▁r ang
+o l
+▁s er
+o r
+▁in di
+u m
+er s
+▁indi an
+▁w it
+▁wit h
+▁rang e
+▁ser v
+a r
+▁yes 
+
+s h
+n e
+il d
+l a
+ea p
+▁ch eap
+c e
+es s
+▁l ess
+l e
+▁ k
+▁ en
+▁b o
+li sh
+▁ rice
+▁bo at
+▁ 3
+▁p ric
+▁ 1
+g lish
+▁en glish
+o re
+▁m ore
+r a
+3 0
+▁ e
+▁£ 30
+▁serv es
+▁th at
+▁b y
+▁ch ild
+d ge
+am b
+ri dge
+▁c amb
+▁camb ridge
+▁ st
+2 5
+ol d
+ro w
+▁g old
+▁gold en
+x p
+▁ch in
+▁chin ese
+▁b ar
+- 25
+▁no t
+▁e xp
+at er
+▁k id
+▁£20 -25
+▁w ater
+m an
+▁water man
+- friendly
+n s
+▁a r
+o w
+er e
+u e
+▁a rea
+▁t w
+▁p la
+m ent
+li es
+▁pric ed
+r y
+▁no 
+
+▁ rat
+a y
+▁ca ll
+▁call ed
+▁f or
+l ue
+s e
+▁b lue
+▁th ere
+z i
+s s
+▁rat ed
+▁r ou
+▁rou ge
+▁c ur
+re ss
+▁h ol
+id ay
+▁hol iday
+▁in n
+▁exp ress
+▁cur ry
+▁ at
+i x
+▁f it
+z b
+il lies
+▁fit zb
+▁fitzb illies
+▁ ea
+▁r a
+▁ea g
+▁eag le
+▁o ne
+▁t o
+▁rating .
+
+▁family -friendly
+d a
+▁riverside 
+
+▁of f
+row ns
+▁b rowns
+ment um
+▁a li
+▁ali mentum
+▁a ll
+i c
+i s
+▁ d
+▁h ou
+▁hou se
+or t
+ra da
+▁st rada
+▁ v
+m s
+an d
+▁child ren
+▁friendly .
+
+i ce
+l and
+▁p ort
+▁ar ms
+▁port land
+u l
+▁w rest
+▁wrest l
+▁wrestl ers
+▁s p
+▁5 .
+
+e l
+en ix
+▁p ho
+▁pho enix
+ge t
+ul t
+▁pric es
+▁g re
+▁f y
+▁fy ne
+▁loc h
+▁sp ice
+a ri
+t t
+ur g
+▁p ro
+▁a re
+▁b urg
+▁b e
+▁pro v
+p p
+▁ ve
+▁ve get
+b ow
+in bow
+ari an
+▁veget arian
+▁ra inbow
+▁off ers
+n t
+▁m id
+i ve
+▁prov id
+▁n ood
+▁burg er
+tt o
+▁nood le
+▁co tto
+i pp
+ipp ee
+o t
+▁y ippee
+▁food .
+in e
+▁pu nt
+▁punt er
+▁k ing
+ult s
+▁h ot
+▁hot el
+z a
+▁c row
+en ty
+▁pla za
+▁tw enty
+▁st ar
+▁tw o
+w ood
+ild wood
+▁w ildwood
+▁c l
+▁o n
+c um
+▁co cum
+▁crow ne
+▁v a
+o n
+s .
+
+▁m an
+▁pla ce
+re e
+▁va ults
+i li
+▁gre en
+▁s ic
+▁rouge 
+
+▁sic ili
+▁sicili a
+a k
+il l
+z zi
+zi zzi
+▁r an
+▁inn 
+
+▁ zizzi
+▁serv ing
+▁w h
+▁ran ch
+▁c u
+▁cu is
+▁cuis ine
+▁o li
+▁oli ve
+m er
+▁g ro
+▁gro ve
+um mer
+s ummer
+▁mid summer
+▁b ut
+▁p a
+▁moderate ly
+▁food .
+
+▁the y
+la ce
+▁pa lace
+▁ar om
+▁arom i
+▁b ak
+▁bak ers
+▁c la
+▁m ill
+▁ha ll
+▁cla re
+▁kid s
+▁it s
+l ing
+en s
+um p
+▁t ree
+▁d ump
+▁dump ling
+ens ive
+n d
+r ent
+▁s or
+▁a d
+▁arms 
+
+rent o
+▁sor rento
+i ch
+▁wh ich
+▁g i
+▁y ou
+▁provid es
+▁one 
+
+e t
+▁range .
+' s
+ou gh
+▁p l
+▁centre 
+
+ow ns
+▁cl owns
+▁n am
+ff e
+▁gi ra
+▁gira ffe
+▁5 
+
+ll s
+ou nd
+▁pl ough
+k et
+▁café 
+
+▁c ric
+ket ers
+▁cric keters
+▁high ly
+▁riverside .
+
+i m
+▁bar 
+
+▁nam ed
+a b
+▁food ,
+▁b ra
+▁range .
+
+i b
+▁exp ensive
+▁king 
+
+▁friendly ,
+▁riverside ,
+z il
+▁bra zil
+b ap
+im bap
+ib imbap
+▁centre .
+
+▁hotel 
+
+▁b ibimbap
+▁riverside .
+▁centre .
+▁ re
+▁c an
+▁a l
+▁cent er
+a l
+j a
+- pric
+▁ra ja
+▁it 's
+▁t ast
+▁ha ve
+▁sicilia 
+
+▁rating s
+▁tast e
+-pric ed
+▁boat 
+
+▁customer s
+▁ranch 
+
+▁s ix
+▁centre ,
+▁rating .
+eat er
+▁s u
+▁co st
+▁th is
+v i
+▁provid ing
+▁bakers 
+
+▁ 20
+▁hall 
+
+▁rating ,
+▁family-friendly .
+
+▁off er
+ri at
+▁ad riat
+▁adriat ic
+▁s e
+▁restaurant ,
+▁area .
+
+o se
+▁sorrento 
+
+▁a v
+▁be lls
+▁cl ose
+▁restaurant .
+
+▁t ra
+▁f r
+▁area .
+▁friendly .
+▁fr om
+al on
+▁av alon
+▁5 .
+▁n e
+▁offer ing
+▁tra ve
+ll ers
+▁b ee
+▁£30 .
+
+▁bee f
+▁area ,
+▁trave llers
+▁beef eater
+▁f ive
+▁shop ,
+▁£20 .
+
+c om
+▁f ound
+▁ u
+ea l
+▁brazil 
+
+sh i
+▁su shi
+s o
+▁al so
+▁no n
+▁g ood
+▁e st
+ab lish
+▁est ablish
+▁establish ment
+▁cuisine 
+
+▁s it
+t h
+▁f ami
+▁fami lies
+i r
+x t
+▁gre at
+o s
+i on
+▁m eal
+▁ne xt
+▁v en
+e w
+▁ven ue
+▁se lls
+▁i f
+▁p ound
+▁ser ve
+▁5 ,
+▁rouge .
+
+▁bells 
+
+▁rating s.
+
+▁£20-25 .
+
+ab le
+▁a s
+ro n
+▁high 
+
+▁inn .
+▁en vi
+ron ment
+▁envi ronment
+▁on ly
+▁3 0
+▁range ,
+▁ eat
+▁child -friendly
+q u
+u ated
+▁sit uated
+▁kid -friendly
+ver y
+- st
+e c
+▁one .
+
+in d
+▁t ry
+▁w e
+▁priced ,
+▁adriatic 
+
+▁average 
+
+h ere
+o k
+▁restaurant .
+▁ qu
+▁ very
+▁f ind
+i v
+▁re ce
+▁p o
+vi ew
+m os
+p here
+▁at mos
+el com
+▁atmos phere
+▁low 
+
+▁rece iv
+▁w elcom
+▁lo ok
+▁ad ult
+▁th ree
+▁cheap ,
+▁re view
+▁average .
+
+▁pub ,
+▁inn .
+
+-st ar
+▁prices .
+
+▁d o
+▁arms .
+
+▁£20 .
+▁shop .
+e xp
+▁in exp
+ow n
+▁avalon 
+
+▁inexp ensive
+▁look ing
+▁no r
+▁boat ,
+▁star s
+▁customer s.
+
+▁café .
+
+' t
+- f
+▁f a
+▁ rea
+ri n
+▁the ir
+▁boat .
+y le
+▁nor th
+▁family-friendly ,
+▁bar .
+
+▁high er
+▁rouge .
+▁rating 
+
+▁low .
+
+i um
+▁m ed
+▁receiv ed
+▁river .
+
+on g
+▁ eater
+▁boat .
+
+▁rated ,
+ri t
+▁eater y
+▁meal s
+▁med ium
+ali ty
+v en
+▁w ine
+▁hotel .
+
+▁cost s
+b le
+s on
+▁high -priced
+▁£30 .
+▁rea son
+▁welcom e
+w e
+▁friendly 
+
+▁pound s
+▁a ff
+▁aff or
+om e
+▁affor da
+▁qu ality
+t we
+▁be twe
+▁betwe en
+b o
+▁al ong
+▁st yle
+o ur
+▁afforda ble
+▁low -priced
+▁20 -25
+▁w ill
+▁a bo
+▁high .
+
+▁ad ults
+▁o ver
+▁children -friendly
+▁po or
+▁cuisine .
+
+▁rat e
+▁d e
+▁ranch .
+
+▁g o
+▁e x
+▁rouge ,
+▁bakers .
+
+▁do es
+▁y our
+▁arms .
+▁serv ice
+▁d in
+i sh
+▁ get
+▁e ur
+▁prices .
+▁king .
+▁£20 
+
+▁food 
+
+▁café .
+n 't
+at ion
+▁de li
+en u
+▁m enu
+▁b rit
+▁brit ish
+▁su it
+▁one .
+▁ di
+▁arms ,
+nd er
+▁u nder
+▁ex ce
+ak e
+▁inn ,
+▁h ow
+▁star s.
+
+e ver
+▁center .
+▁£30 
+
+▁how ever
+▁ch e
+▁price .
+
+com m
+▁loc ation
+▁kids -friendly
+▁pound s.
+
+▁bar .
+▁hall .
+
+- rat
+▁w ho
+-rat ed
+is it
+▁sicilia .
+
+▁wh ere
+▁family-friendly .
+comm end
+▁suit able
+▁exce ll
+▁re commend
+▁excell ent
+▁cuisine .
+t ion
+▁serv ed
+▁v isit
+▁t ake
+▁din ing
+▁£20 ,
+ll s.
+
+▁be lls.
+
+▁priced .
+
+▁sicilia .
+▁sorrento .
+
+▁£30 ,
+▁waterman ,
+▁abo ve
+▁th en
+▁£20-25 .
+▁families .
+
+a s
+▁hotel .
+▁is n't
+▁children .
+
+▁al t
+▁be en
+▁£20 -
+▁u p
+▁king .
+
+▁brazil .
+
+▁j ust
+▁prices ,
+▁ranch .
+j o
+ho u
+▁cambridge ,
+▁we ll
+▁ ,
+▁en jo
+▁enjo y
+£ 25
+hou gh
+▁there 's
+▁alt hough
+▁ am
+▁you '
+▁crow n
+▁£20- £25
+▁café ,
+▁review s
+▁fitzbillies ,
+▁eagle ,
+▁all ow
+▁rang ing
+▁p er
+▁price .
+▁environment .
+
+y p
+▁t yp
+rin k
+▁with in
+▁d rink
+▁center .
+
+▁recommend ed
+▁one ,
+▁£20-25 
+
+▁o p
+gh t
+▁moderate 
+
+▁house ,
+▁river ,
+▁£ 25
+▁curry ,
+in t
+rin g
+a c
+▁alimentum ,
+w ay
+-f amily
+▁cambridge .
+▁pub .
+
+▁bar ,
+▁strada ,
+▁who le
+▁di sh
+▁non -family
+▁ end
+▁b rea
+it e
+▁ -
+▁reason able
+▁che ese
+▁expensive ,
+-f ood
+▁shop .
+
+▁fa ir
+▁dish es
+ri ent
+▁pric ing
+▁ar ound
+ou s
+▁fast -food
+▁sicilia ,
+▁bakers .
+▁king ,
+▁nam e
+▁river .
+▁cheap .
+
+▁atmosphere .
+
+▁waterman .
+▁ranch ,
+ab ly
+▁brea k
+er i
+▁gi ven
+▁s ide
+▁reason ably
+▁o ur
+▁you' re
+en ce
+c o
+▁b u
+▁pub .
+▁cambridge .
+
+f ast
+▁out side
+▁hotel ,
+▁ratings .
+ec t
+▁review s.
+
+▁break fast
+▁o rient
+▁exp eri
+▁cost ing
+▁k n
+▁moderately -priced
+▁experi ence
+▁cuisine ,
+i es
+▁ .
+▁f eat
+▁£20-25 ,
+▁feat u
+▁rang es
+▁cotto ,
+▁food s
+▁eur o
+▁c ome
+▁o r
+▁se ll
+▁deli ver
+▁p ast
+▁wrestlers ,
+▁mid -priced
+al ly
+▁range 
+
+▁cheap 
+
+a d
+▁eur os
+ec k
+▁welcome .
+
+▁n ice
+▁ch eck
+▁customers .
+▁ 25
+▁punter ,
+▁city .
+
+▁eagle .
+▁kn own
+b y
+▁ri ght
+▁curry .
+▁d own
+▁j o
+▁phoenix ,
+▁poor ly
+▁th ough
+▁co ns
+▁w ant
+▁be st
+▁star ,
+▁ '
+ed .
+
+▁near by
+▁s at
+il e
+▁past a
+▁s o
+▁price y
+▁alimentum .
+▁g ive
+ec i
+▁f ine
+▁average ly
+is f
+tt ing
+▁sorrento ,
+▁ratings ,
+▁fitzbillies .
+▁wh ile
+▁bakers ,
+▁se tting
+▁non-family -friendly
+c a
+▁fa re
+▁sat isf
+▁be ing
+▁star t
+▁sp eci
+▁family .
+
+▁deli c
+i ent
+▁yes ,
+- a
+re s
+▁co n
+▁price ,
+▁typ e
+▁satisf ac
+u n
+▁s ome
+▁restaurant 
+
+ri es
+▁customers ,
+▁non -
+▁t own
+▁f riend
+▁con ven
+i ous
+▁conven ient
+▁ .
+
+▁rated .
+
+a il
+▁p re
+▁v i
+▁get s
+▁satisfac tion
+▁a c
+▁b ring
+▁w as
+▁average ,
+▁av ail
+▁euro s.
+
+▁delic ious
+▁vi ew
+▁avail able
+▁two ,
+▁place .
+
+▁sorrento .
+▁l i
+▁waterman .
+
+▁mid -
+▁however ,
+▁d ine
+▁fyne .
+
+l d
+▁wrestlers .
+▁burg ers
+▁man .
+▁hall .
+▁welcom es
+t s
+▁city ,
+▁man ,
+▁aromi ,
+co st
+▁orient ed
+o p
+▁c ho
+▁f ries
+▁city .
+▁bo ast
+▁house .
+▁expensive .
+
+▁child-friendly .
+
+▁take -a
+▁bu dge
+▁take-a way
+r ang
+▁house .
+
+▁v ari
+▁fyne ,
+▁center ,
+▁jo int
+▁low -
+-pric e
+▁strada .
+▁adriatic .
+
+▁budge t
+it ion
+▁low er
+▁place ,
+▁brazil ,
+▁kid-friendly .
+
+▁cons id
+d ition
+um er
+▁one -star
+▁d ec
+▁fair ly
+▁speci ali
+▁consid er
+▁two .
+
+▁palace .
+
+▁hall ,
+rang e
+▁s c
+▁b es
+▁w ou
+▁spice ,
+▁tree .
+
+▁wou ld
+z ing
+▁vaults ,
+▁zizzi ,
+▁u n
+s ,
+▁c om
+▁b el
+▁w in
+▁rang ed
+th e
+▁pounds .
+▁b as
+▁5 -star
+it t
+▁sell ing
+▁dec ent
+g es
+▁l 20
+▁lo ve
+igh t
+▁high -
+▁tra dition
+▁qu ite
+▁featu res
+▁convenient ly
+e ty
+v ing
+li c
+▁moderate .
+
+▁vari ety
+▁consider ed
+▁op tion
+▁bes ide
+▁average .
+ul d
+▁cocum ,
+▁mill ,
+▁stars .
+▁bas ed
+▁tradition al
+▁family-friendly 
+
+▁receiv es
+f ul
+ul ar
+▁adriatic .
+▁environment .
+▁li k
+▁mid- range
+▁bel ow
+er ic
+▁prov ide
+▁avalon .
+▁ne w
+▁abo ut
+eric an
+▁it e
+▁spice .
+▁spice .
+
+▁palace ,
+▁u s
+▁boast s
+▁ran k
+▁am erican
+▁ite ms
+es es
+▁that 's
+▁kid s.
+
+▁to o
+▁wildwood ,
+th er
+▁po p
+ea d
+▁m o
+▁phoenix .
+▁punter .
+
+▁star .
+
+▁per f
+▁deliver ies
+▁win es
+a in
+i o
+ar d
+▁mid d
+▁cho ice
+▁low- cost
+▁perf ect
+▁curry .
+
+▁high ,
+▁high .
+▁3 -star
+▁two .
+▁brazil .
+▁h ead
+ch ild
+▁low -rated
+▁area 
+
+▁priced .
+▁establishment .
+
+▁sc ore
+▁midd le
+▁cheap .
+▁vaults .
+
+▁adriatic ,
+▁che eses
+▁typ ic
+l ly
+s .
+▁cheap ly
+▁highly -rated
+▁cost umer
+▁five .
+
+▁families .
+▁atmosphere .
+▁lik e
+▁ ear
+at ers
+▁pub lic
+▁punter .
+▁grove ,
+▁tree ,
+▁30 .
+
+▁c aters
+▁d es
+▁20 .
+
+▁bells ,
+▁five -star
+-st yle
+▁three -star
+ca le
+▁non- child
+▁pop ular
+on 't
+▁cricketers ,
+▁sushi .
+
+▁p ay
+ll ar
+▁e ven
+▁place .
+▁grove .
+
+▁giraffe ,
+▁eat ing
+l u
+▁c ater
+▁po int
+▁l itt
+▁vaults .
+▁do llar
+▁litt le
+a zing
+c lu
+▁r o
+▁family .
+▁eagle .
+
+▁am azing
+▁deliver s
+▁wildwood .
+
+▁kid-friendly ,
+re d
+▁f ar
+▁the m
+▁blue .
+
+▁fyne .
+▁wine ,
+▁£20-£25 .
+
+▁' the
+io ns
+▁ro ad
+▁family ,
+▁exp ect
+▁cotto .
+▁clowns ,
+▁f u
+▁alimentum .
+
+▁prices 
+
+▁va lue
+▁zizzi .
+▁ear n
+▁p e
+▁£25 .
+
+k ir
+▁children .
+▁phoenix .
+
+▁cotto .
+
+▁pl ea
+▁plough ,
+▁stars ,
+▁drink s
+▁start ing
+▁pe op
+kir ts
+s kirts
+▁b ad
+▁m ay
+▁out skirts
+▁g ot
+▁low ,
+ic es
+▁sp end
+▁venue ,
+▁venue .
+
+▁fu ll
+▁earn ed
+▁peop le
+i an
+t ions
+▁i d
+ro ss
+▁d on't
+▁sushi .
+▁child-friendly ,
+▁inexpensive ,
+▁pounds ,
+▁ac ross
+a ll
+s cale
+▁loc al
+▁ha d
+ate ly
+▁pla c
+▁blue ,
+▁wrestlers .
+
+▁man .
+
+▁mill .
+
+▁plough .
+▁up scale
+▁high- end
+▁fitzbillies .
+
+▁aromi .
+
+▁environment ,
+i rit
+▁h ere
+▁b it
+▁serv ices
+▁strada .
+
+▁sp irit
+▁cocum .
+
+▁zizzi .
+
+▁palace .
+▁cla ss
+▁does n't
+▁allow ed.
+
+▁op en
+▁speciali z
+n er
+▁h ome
+▁ha ving
+on d
+▁ratings 
+
+▁id eal
+f ort
+▁s li
+le c
+▁bo th
+▁rat es
+▁grove .
+▁avalon ,
+▁atmosphere ,
+k id
+p ite
+▁a pp
+▁a way
+▁1 -star
+ic k
+▁mid -price
+▁aromi .
+▁mill .
+ac k
+▁featu ring
+▁sli ght
+u c
+▁b ea
+▁in clu
+▁river 
+
+▁w ort
+ut i
+▁g r
+▁low .
+▁wildwood .
+▁avalon .
+
+▁rea lly
+▁des pite
+▁slight ly
+▁inclu d
+▁wort h
+▁o ther
+▁average -priced
+▁giraffe .
+▁cricketers .
+
+▁di st
+▁specializ es
+▁bea uti
+▁beauti ful
+u se
+at ive
+▁h ear
+▁food s.
+
+ut h
+▁y et
+▁price 
+
+▁ser ver
+▁se lec
+▁allow ed
+▁pricing .
+
+un ately
+▁un fort
+▁typic ally
+▁unfort unately
+e st
+▁ ent
+▁p ar
+▁20 .
+▁as ian
+▁high-priced ,
+▁menu .
+
+▁plea se
+u it
+▁s om
+▁l 30
+▁co uld
+le t
+▁be ca
+▁cocum .
+▁establishment .
+▁20-25 .
+
+▁children-friendly ,
+▁you' ll
+▁non- kid
+▁beca use
+i p
+▁th ose
+▁s m
+▁sho uld
+▁to p
+▁children ,
+▁sp a
+▁cricketers .
+▁op tions
+▁us u
+f t
+en er
+▁beefeater ,
+▁establishment ,
+▁service .
+
+▁sm all
+' re
+h er
+▁h amb
+▁n ight
+ro nt
+▁italian .
+
+▁japanese ,
+▁moderate .
+▁kids ,
+▁wine .
+
+▁hamb urg
+l o
+v es
+▁it .
+
+▁shop 
+
+▁french ,
+ne y
+▁beefeater .
+
+▁30 .
+▁com p
+▁mo ney
+u s
+an k
+▁low ly
+▁st op
+▁clowns .
+▁bells .
+▁child-friendly .
+▁l20 -25
+▁love ly
+f ront
+t ty
+▁p ers
+▁l ea
+▁out let
+▁ch ar
+▁g ener
+▁be vera
+▁tree .
+▁giraffe .
+
+▁only .
+
+▁stars 
+
+▁fa v
+▁kids-friendly .
+
+▁reviews .
+▁pre tty
+▁pers on
+o ne
+ou p
+▁sit ed
+▁meal .
+
+▁qu ick
+▁rank ed
+▁plac ed
+▁f ur
+▁a w
+▁s h
+▁s ee
+▁wh en
+▁expensive .
+▁drink s.
+
+▁friend s
+▁mo st
+▁non-child ren
+▁usu ally
+- on
+e tt
+l es
+l ed
+o ut
+▁o vera
+gh ett
+▁loc ate
+▁family 
+
+▁st ore
+▁there .
+
+▁su p
+▁cost ly
+▁fr uit
+▁sit s
+▁families ,
+▁eatery .
+
+▁am ong
+▁setting .
+▁score s
+▁spa ghett
+-on ly
+▁overa ll
+▁spaghett i
+er n
+st and
+▁in t
+▁m ar
+▁no ,
+▁average -rated
+▁moderate -priced
+▁wh at
+▁£20-£25 .
+▁experience .
+
+▁app ro
+▁server s
+▁fur ther
+c ket
+an ce
+at es
+▁a ft
+▁out stand
+▁cent ra
+▁pub 
+
+▁low -price
+▁avera g
+▁sp ot
+▁re g
+▁su re
+▁eatery ,
+▁euros .
+▁setting .
+
+▁take-away .
+
+▁outstand ing
+c ent
+▁e very
+▁blue .
+▁clowns .
+
+▁al co
+▁fa c
+▁£25 .
+▁l20 .
+
+▁hamburg ers
+▁sup er
+▁alco ho
+' .
+
+k ing
+▁o k
+▁p r
+▁s ea
+▁b ank
+▁n eat
+▁m at
+▁w ide
+▁high -rated
+▁restaurant s
+ve l
+▁d ue
+▁plough .
+
+▁bra cket
+▁beefeater .
+▁children-friendly .
+
+▁cheese ,
+▁selec tion
+- d
+re sh
+▁f ant
+▁a ren
+▁a ges
+▁s a
+▁w ond
+ast ic
+ro om
+▁english ,
+▁cost ,
+▁offer ed
+▁meal s.
+
+▁low-priced ,
+▁din ner
+▁menu .
+▁center. ,
+▁allow s
+▁dishes .
+
+▁orient al
+▁speciali zing
+▁cheeses ,
+▁spirit s
+▁som ew
+▁gener ally
+▁bevera ges
+▁aft er
+▁fant astic
+▁aren 't
+▁wond er
+0 0
+o f
+r t
+u b
+▁s n
+▁river front
+▁m ight
+ho ut
+▁sho rt
+▁italian ,
+▁wit hout
+▁cambridge 
+
+▁man y
+ak es
+▁customers 
+
+▁review ed
+▁medium -priced
+▁20-25 .
+▁adults .
+
+▁reviews ,
+▁town .
+
+▁pre m
+▁com es
+▁too .
+
+▁typic al
+▁hear t
+▁par t
+- in
+e le
+▁ 4
+▁h e
+▁l ut
+▁cur rent
+▁kids .
+▁re l
+▁review .
+
+▁meals .
+▁affordable ,
+▁service ,
+▁dining .
+
+▁up .
+
+▁per m
+▁though .
+
+▁pasta .
+
+▁fare .
+
+▁open ed
+▁lea ve
+▁fac ili
+▁sn ack
+▁lut on
+i st
+y led
+er t
+▁a ge
+▁h old
+▁rest room
+▁no w
+▁moderate ,
+▁ea st
+▁location .
+
+▁side .
+
+▁euros ,
+ard s
+▁low-cost ,
+▁sh ip
+▁wonder ful
+▁current ly
+▁rel ative
+- 5
+a re
+i re
+ric t
+▁l ies
+▁no ne
+▁italian 
+
+▁star .
+▁they 're
+▁you .
+▁center 
+
+▁tast y
+▁meal .
+rit e
+▁adults .
+▁well -
+▁cons umer
+un ch
+▁un friendly
+▁dollar s.
+
+▁dist rict
+▁centra lly
+▁super b
+▁alcoho l
+of 5
+e ed
+f ood
+i z
+t ing
+v ed
+▁f resh
+▁a uth
+ent ic
+ent ele
+it ive
+▁family -
+▁waterman 
+
+▁priced 
+
+▁at t
+▁nam es
+▁re s
+▁cost .
+
+▁20 ,
+▁kids-friendly ,
+▁who se
+▁cheese .
+
+▁or d
+▁jo in
+▁speci al
+▁ac c
+▁them ed
+▁dist ance
+▁l30 .
+
+▁fav o
+▁perm itt
+▁auth entic
+a ve
+b p
+m p
+x im
+▁c li
+▁f ree
+▁l e
+▁l unch
+▁m akes
+▁g ave
+or s
+▁cheap er
+▁that s
+▁called ,
+▁two 
+
+im ed
+▁tast ing
+vi ous
+▁ne ed
+▁meal ,
+▁only 
+
+qu ality
+▁receiv ing
+▁suit ed
+▁well .
+
+▁pricing .
+▁breakfast .
+
+▁experience ,
+▁so uth
+▁fries .
+▁fries .
+
+lo c
+▁relative ly
+▁favo rite
+g in
+i et
+u ch
+▁ ed
+▁f an
+am es
+▁it ,
+▁m uch
+ee p
+▁rating :
+vera ge
+▁mod est
+▁st and
+▁rated .
+▁children 
+
+▁five .
+▁sushi ,
+▁venue .
+▁qu iet
+▁nor m
+-f ree
+▁location ,
+▁bu y
+▁pricey ,
+▁pre vious
+▁satisfaction .
+
+▁available .
+
+▁gr ub
+▁includ es
+▁comp et
+▁sea food
+▁prem ium
+- s
+n g
+n ing
+p a
+u re
+▁th ir
+▁th ames
+▁f eed
+od uc
+▁s ay
+▁l ight
+▁5 of5
+▁m ust
+▁family 's
+▁more .
+
+▁st yled
+▁gre ater
+pp er
+▁cl entele
+▁pl us
+▁highly .
+
+▁u pper
+▁eat s
+▁eat .
+
+▁welcome .
+▁di s
+▁drink .
+
+▁bu s
+▁breakfast .
+▁25 .
+
+▁town .
+▁gr oup
+' ,
+c re
+e ,
+e an
+s ive
+▁t ak
+▁f ond
+▁s ear
+▁l et
+▁m ake
+▁w ere
+▁coffee .
+
+ch ing
+▁japanese 
+
+▁st e
+▁chinese .
+▁d eal
+▁children-friendly 
+
+▁children-friendly .
+way s
+▁li st
+ard ed
+▁plac es
+▁class ic
+▁ent ire
+▁pr oduc
+▁hold s
+▁ord er
+▁thir ty
+c y
+h ing
+m et
+p s
+p ri
+u al
+▁t ow
+▁s et
+▁m ind
+▁out .
+
+▁family -style
+▁curry 
+
+▁tree 
+
+▁you .
+
+▁al ways
+▁su ch
+▁sit e
+▁eat ,
+▁adult -only
+▁inexpensive .
+
+▁fa lls
+▁go .
+
+▁orient ed.
+
+▁fare .
+▁boast ing
+▁dollar s
+▁includ ing
+▁l20-25 .
+
+▁char ges
+▁bank s
+▁ed ge
+▁fan cy
+a g
+i red
+o rient
+u x
+▁f un
+▁s oup
+▁b ite
+▁l ux
+▁in side
+▁m ain
+▁an y
+▁ch ain
+▁coffee ,
+▁city 
+
+▁g ra
+▁g our
+▁pub -style
+▁italian .
+▁house 
+
+▁fyne 
+
+▁wh y
+▁pl ates
+ib le
+▁re d
+▁only .
+▁30 ,
+▁we 're
+▁fa ll
+▁welcome 
+
+▁adults -only
+▁ex clu
+▁£20-£25 ,
+▁drink .
+▁side .
+▁foods .
+▁nearby .
+
+▁town ,
+▁person .
+
+▁mat ure
+▁bracket .
+
+▁somew here
+▁restroom s
+▁permitt ed.
+
+▁cli ent
+▁le vel
+▁stand ard
+▁sear ching
+▁gour met
+▁exclu sive
+. .
+o e
+r ner
+s ing
+u p
+▁ z
+▁ amb
+er y
+re view
+▁f ew
+▁s am
+▁s cale
+▁co rner
+▁w al
+it ies
+▁e 20
+▁st ay
+▁st ill
+▁not e
+▁rat her
+▁blue 
+
+▁strada 
+
+▁punter 
+
+▁grove 
+
+▁you ng
+et hing
+▁re cent
+▁can 't
+▁cost .
+▁five ,
+▁u s.
+
+▁good ,
+▁kid-friendly .
+▁higher -priced
+▁med io
+▁service .
+▁ranges .
+
+▁pre pa
+▁burgers ,
+▁items .
+
+▁deliveries .
+
+uc ed
+▁som ething
+▁averag ing
+▁averag ed
+▁reg arded
+▁facili ty
+▁compet itive
+▁ste ps
+▁red uced
+▁medio cre
+▁ 2
+er ri
+▁c ra
+▁t ag
+▁t erri
+▁a imed
+in ess
+ea way
+▁l ic
+▁co ok
+▁w ar
+ff er
+▁ch ip
+▁japanese .
+
+▁french 
+
+um ers
+la x
+▁english 
+
+▁all 
+
+▁place 
+
+▁kids 
+
+ens ed
+▁re lax
+▁20 £
+▁u ns
+▁sit -d
+th ere
+▁environment 
+
+▁eat .
+▁welcom ed
+▁quality ,
+▁kids-friendly .
+▁dining ,
+▁side ,
+▁reasonably -priced
+▁kn ow
+▁' b
+-a verage
+▁budget .
+
+▁high- cost
+▁option .
+
+▁ok ay
+▁tak eaway
+▁tow ards
+▁z one
+review ed
+▁prepa red
+▁lic ensed
+▁sit-d own
+' oe
+- out
+a int
+c ri
+e ge
+l f
+t ies
+u v
+£ 20
+▁ ate
+er es
+▁i mp
+▁th eres
+▁a ss
+es ome
+▁p ur
+id es
+▁h ors
+▁s ur
+▁b loc
+▁lo ves
+▁co ll
+▁co up
+▁m y
+▁w on't
+▁coffee .
+▁shop s
+▁high est
+▁g bp
+ou nt
+▁avera ges
+or y
+le vel
+▁3 .
+
+se lf
+▁ra ge
+▁to .
+
+▁d ay
+▁d 'oe
+tt er
+▁be tter
+▁provid ed
+▁cotto 
+
+▁sor ry
+▁gi ves
+▁re p
+▁only ,
+▁welcom ing
+▁do or
+▁quality .
+
+▁20-25 ,
+▁go ing
+▁alt ern
+▁£20-£25 
+
+▁end ,
+▁brea d
+ad e
+▁pasta .
+▁pricey .
+
+▁setting ,
+▁oriented ,
+▁option .
+▁score d
+▁highly-rated ,
+▁point .
+
+▁aw are
+▁aw esome
+▁int o
+▁every one
+▁riverfront ,
+▁family- orient
+-s er
+▁produc ts
+▁gra b
+▁recent ly
+▁terri ble
+▁bloc k
+▁coll ege
+▁d'oe uv
+e .
+
+g ing
+h at
+s p
+▁c am
+▁t r
+▁t end
+▁th ing
+en ities
+in ing
+es ,
+es .
+
+▁p ri
+▁s co
+▁b ill
+▁french -style
+▁cambridge 's
+▁chin es
+▁chinese ,
+ow nt
+▁eagle 
+
+▁d ownt
+▁phoenix 
+
+▁pro xim
+▁vaults 
+
+▁zizzi 
+
+▁zizzi 's
+▁but ,
+▁ne igh
+▁u se
+▁good .
+
+▁eat -in
+▁eatery .
+▁wine .
+▁affordable .
+
+▁20-25 
+
+▁your self
+▁din er
+▁menu ,
+▁however .
+
+▁visit .
+
+▁enjoy .
+▁am enities
+▁drink s.
+▁recommended .
+
+▁reasonable .
+
+▁pricing ,
+▁mid-priced ,
+▁fine -d
+▁non-family-friendly ,
+▁view s
+▁mid- level
+▁joint .
+
+▁wines ,
+ain s
+▁low-rated ,
+▁cater ing
+▁dollar s.
+▁app et
+▁selec tions
+▁allowed .
+▁see king
+▁mar ket
+▁mar gin
+▁mat ch
+▁somew hat
+▁norm al
+▁deal s
+pri ate
+▁altern ative
+▁sco ring
+▁downt own
+▁proxim ity
+▁fine-d ining
+c t
+e ly
+g g
+h n
+i ring
+n ic
+s es
+s ual
+▁ es
+▁t im
+at ing
+▁f o
+▁f ee
+st ert
+in ce
+▁is ,
+▁p at
+▁p ic
+▁p rin
+▁s old
+▁s ince
+▁food ;
+▁m ade
+▁w or
+▁near ,
+▁high t
+▁high -price
+▁ca sual
+ar y
+ce p
+▁3 -5
+▁e xt
+▁nood les
+▁star 
+
+▁highly -priced
+eal th
+▁great ,
+▁po lic
+▁welcom ed.
+
+▁£20. 00
+▁north ern
+▁will ing
+▁rate .
+
+▁go es
+▁service 
+
+▁di ffer
+▁exce ed
+▁che stert
+comm od
+tion al
+▁up w
+ac ies
+▁dishes .
+▁moderately-priced ,
+▁jo hn
+▁poorly -rated
+▁delic acies
+un ning
+▁ac cep
+▁ac commod
+▁view .
+
+▁un i
+▁win ery
+▁5-star ,
+▁high- quality
+▁cheeses .
+▁cheeses .
+
+▁plea s
+▁home .
+
+lo ok
+▁money .
+
+▁fruit ,
+▁appro priate
+▁ages .
+
+▁facili ties
+▁snack s
+ert ain
+▁bus iness
+▁fond ue
+▁war m
+▁ass ort
+▁coup les
+▁prin ce
+▁polic y
+▁differ ent
+▁chestert on
+▁john 's
+' s.
+
+b e
+b ly
+b ed
+b ack
+f in
+i ed
+p o
+p ect
+p tional
+q ue
+s y
+u d
+u g
+v al
+▁t ap
+▁f ish
+am ous
+▁h ealth
+▁5 ;
+▁lo ved
+▁m in
+▁m ood
+▁w ron
+▁w all
+▁ha pp
+ro ns
+ali mentum
+▁japanese .
+▁k eep
+▁e 30
+▁e gg
+▁st .
+▁st unning
+-25 .
+
+▁water front
+▁pla y
+▁rated 
+
+▁eagle '
+▁wrestlers '
+▁twenty -f
+▁pa iring
+▁palace 
+
+▁aromi 
+
+▁ad ja
+▁su pp
+▁20 
+
+▁qu aint
+▁review ,
+▁higher -
+▁high-priced .
+
+▁welcome ,
+▁adults ,
+▁de fin
+▁exce ptional
+▁location .
+▁kids-friendly 
+
+▁excellent ,
+▁take -out
+▁am ount
+▁reviews 
+
+▁£25 
+
+ite ly
+▁foods ,
+▁so ft
+▁dine -in
+▁cho p
+▁decent ly
+ain ed
+▁choice .
+
+▁head .
+
+▁des cri
+▁includ e
+▁hear d
+▁unfortunately ,
+uit able
+▁options .
+▁options .
+
+▁hamburg er
+▁sa id
+▁alcohol .
+▁att ra
+▁special ty
+▁feed back
+▁sam e
+▁cra ving
+▁uns uitable
+sp ired
+▁appet iz
+▁fee l
+▁pat rons
+▁wron g
+▁twenty-f ive
+▁adja cent
+▁defin itely
+- range
+d ing
+g ain
+g bp
+i ss
+l b
+r ound
+t ory
+u ri
+w it
+y .
+
+er ts
+▁t ea
+re at
+▁o pp
+▁p os
+ver s
+▁h is
+▁b ist
+li ar
+▁lo t
+▁co ol
+▁co nd
+▁m om
+▁m ee
+▁m ean
+ur y
+ut ation
+ent s
+▁£ 3
+▁yes .
+
+▁rating ;
+▁pu p
+▁customer .
+
+▁located .
+▁moder ated
+▁french .
+
+ers .
+
+▁indian ,
+▁indian .
+▁range ;
+▁k ind
+▁more ,
+▁more .
+▁by .
+
+▁st ree
+ere st
+▁fitzbillies 
+
+▁d ate
+ul ous
+▁spice 
+
+▁be gin
+▁mill 
+
+▁pl u
+▁expensive 
+
+▁re f
+▁beefeater 
+
+▁u k
+▁atmosphere 
+
+▁£30. 00
+▁pounds 
+
+▁quality .
+▁along side
+▁over look
+▁get ting
+▁visit ing
+▁dining .
+▁although ,
+▁£25 ,
+▁fair -priced
+▁dishes ,
+▁breakfast s
+▁moderately-priced .
+
+▁cons umers
+▁' co
+▁start s
+▁friend ,
+▁friend s,
+▁cho ose
+▁fries ,
+▁one-star ,
+▁com ing
+ian ce
+▁services .
+
+▁spirit s.
+
+▁spirit s,
+uc ive
+▁ent ries
+▁spa ce
+▁bevera ge
+▁most ly
+▁int erest
+▁mar k
+▁appro val
+▁reg ular
+▁fresh ly
+▁acc ess
+▁norm ally
+▁thames ,
+▁bus y
+▁lux ury
+▁amb iance
+▁wal king
+▁stay ing
+▁pur ch
+▁rep utation
+-ser ving
+▁upw ards
+pect ed
+▁health y
+▁wall et
+▁descri bed
+▁bist ro
+▁cond ucive
+▁stree t
+- rating
+a se
+b s
+c k
+h ap
+l ow
+m ely
+n ear
+o st
+p le
+v id
+er ling
+▁t od
+▁t reat
+▁i '
+▁th in
+re mely
+▁f ab
+in ity
+in ation
+▁s im
+▁l a
+▁l ack
+▁in spired
+▁river s
+▁lo ts
+▁co nt
+▁m e
+▁m il
+▁an ot
+▁sho w
+▁yes .
+▁loc ates
+▁centre 's
+▁g ue
+▁price -range
+▁fast ,
+▁french .
+or ding
+▁indian 
+
+▁indian .
+
+la imed
+▁less .
+▁english -style
+▁e ver
+▁child -free
+▁st erling
+▁chinese 
+
+▁chinese .
+
+▁bar gain
+▁waterman '
+▁there .
+▁ea sy
+▁ra ve
+▁alimentum 
+
+ic inity
+▁d ess
+▁v icinity
+▁children 's
+▁sp ort
+▁highly -
+▁rating, 
+
+▁sit ting
+▁families 
+
+os ite
+▁try .
+▁afforda bly
+▁low-priced .
+▁over .
+
+▁deli very
+▁above -average
+▁well -rated
+▁enjoy .
+
+▁per hap
+▁river, there
+▁cheese .
+▁fast-food ,
+▁bu ild
+▁euro p
+▁euro 's.
+
+▁euros 
+
+▁' alimentum
+▁fare ,
+res pected
+▁satisfac tory
+▁view s,
+▁joint ,
+▁low- rating
+▁speciali ses
+▁sc en
+▁bel ug
+▁lik ed
+▁too .
+▁score .
+
+▁point .
+▁spend ing
+▁here .
+
+▁ent ertain
+▁par k
+▁please .
+
+▁non-kid s
+▁usu al
+▁char ging
+▁person ,
+▁spaghetti .
+
+▁appro xim
+▁centra l
+▁sa f
+▁well- respected
+▁district .
+▁acc ording
+loc ated
+▁let 's
+▁lux uri
+▁20£ .
+
+▁zone .
+
+▁tim e
+▁pic nic
+▁ext remely
+▁pleas ant
+▁tap as
+▁e30 .
+
+▁egg s
+▁attra c
+wit h
+▁opp osite
+▁pos itive
+▁mean s
+▁access ible
+▁tod ay
+▁fab ulous
+▁anot her
+▁gue st
+▁perhap s
+▁'alimentum '
+▁belug a
+▁approxim ately
+. 5
+a verage
+b er
+b or
+c on
+c us
+e k
+f er
+f ic
+g ge
+h ood
+i e
+i er
+i se
+l ess
+m ing
+▁ :
+an s
+▁c ant
+▁f ry
+▁f amous
+st ination
+▁a ch
+▁o ld
+es .
+ing .
+
+ea red
+▁p ut
+▁p ick
+om ic
+▁s od
+▁s ing
+▁b eat
+▁b ab
+▁m ix
+▁m iss
+▁out ,
+▁shop p
+▁shop 's
+it her
+▁customer 's
+▁customer -rating
+▁g la
+▁g eared
+ll o
+ap po
+▁japan eses
+▁indi vid
+▁bo ard
+▁1 -5
+▁english .
+
+▁e qu
+▁e con
+▁child less
+▁there ,
+▁to ,
+▁wrestlers 
+
+▁gre ek
+▁cotto n
+▁crow d
+▁wildwood 
+
+▁man 
+
+▁pa ss
+▁ad dition
+▁you ,
+▁pl ate
+▁clowns 
+
+▁cricketers 
+
+▁re m
+▁su gge
+▁cost 
+
+▁ne st
+▁sushi 
+
+▁also ,
+▁eat s.
+
+▁try .
+
+▁po ss
+▁review .
+▁20-25 l
+▁de stination
+▁go .
+▁deli ght
+▁above .
+
+▁well .
+▁drink ing
+▁end .
+
+▁breakfast ,
+▁orient ated
+▁featu re
+▁ranges .
+▁want ing
+▁' ca
+▁so on
+▁pricey .
+▁pre fer
+▁ac t
+▁mid- cost
+▁dine .
+
+▁budget ,
+▁speciali sing
+▁items .
+▁choice .
+▁point ,
+▁amazing .
+
+▁upscale ,
+▁spirit s.
+▁class y
+▁fav or
+▁overall ,
+▁hamburgers ,
+▁alcoho lic
+▁high-rated ,
+▁dinner .
+
+▁beverages .
+
+▁prem is
+▁he llo
+▁snack s,
+▁well- reviewed
+▁district .
+
+▁alcohol .
+
+▁res ides
+▁acc laimed
+▁permitt ed
+▁favorite .
+
+▁dis appo
+▁group s
+▁group s.
+
+▁any one
+▁amb ient
+▁wal k
+▁cook s
+▁family-orient ed
+▁family-orient ed.
+
+▁d'oeuv re
+▁d'oeuv res
+▁neigh bor
+ct ive
+▁fo cus
+▁accep t
+▁assort ed
+▁pairing s
+▁mom ent
+▁mee t
+▁interest ed
+▁purch ase
+▁thin k
+▁europ ean
+▁ach ie
+▁gla ss
+▁individ ual
+▁econ omic
+▁sugge st
+▁'ca fé
+▁disappo int
+- side
+- cent
+- quality
+5 .
+
+e y
+e es
+g ry
+i g
+m ed
+o on
+p eci
+r d
+t en
+v ice
+£ 30
+▁ ric
+▁ -25
+er ,
+ri ed
+an y
+▁c ut
+▁t e
+▁t ri
+at her
+en n
+▁f la
+▁o b
+▁p enn
+▁h un
+▁b ear
+▁b ack
+▁n ative
+ami liar
+▁of ten
+▁river 's
+pric ed
+▁m a
+▁m ere
+▁w ent
+ho p
+ho ol
+ent ly
+ent ion
+▁£ 1
+▁coffee -s
+▁r un
+▁and 
+
+▁city 's
+▁city -cent
+▁ca r
+▁ca re
+it s
+it ing
+it ud
+▁customer -rated
+▁located 
+
+▁g ast
+▁g ather
+▁ha rd
+ro p
+▁low -pric
+▁moder n
+▁indian a
+▁range :
+▁cheap -priced
+▁english .
+ra y
+▁e ither
+▁st eep
+row n
+▁ar ray
+▁for m
+▁all ,
+▁all .
+
+is ed
+▁d id
+▁v ary
+▁children -free
+▁sp ect
+▁pro f
+▁be ans
+▁star red
+▁cocum 
+
+▁sicili an
+▁wh it
+▁moderately .
+
+▁arom is
+▁gi ving
+▁you 
+
+▁highly .
+▁food, 
+
+▁friendly, 
+
+▁centre, 
+
+▁cost umers
+th an
+▁30 
+
+qu isit
+-st yled
+▁rece ive
+▁adult -
+▁adult -friendly
+▁north we
+▁family-friendly, 
+
+▁eatery 
+
+▁style ,
+▁affordable .
+▁over priced
+▁poor .
+
+▁rate .
+▁ex quisit
+▁din ers
+▁excellent ly
+▁served .
+
+▁visit .
+▁visit ed
+▁well -priced
+▁enjoy ing
+▁enjoy ed
+▁typ es
+▁recommended ,
+▁op in
+▁pricing 
+
+▁fast-food .
+▁featu red
+▁euro .
+
+▁' c
+▁pasta ,
+▁fine st
+▁friend -family
+▁view ,
+▁burgers .
+
+▁fries 
+
+▁vari ous
+▁joint .
+▁low- quality
+▁sc hool
+▁l20 ,
+▁l20 .
+▁high- rating
+▁deliveries .
+▁middle -priced
+▁des ired
+▁three-star ,
+▁non-child -friendly
+▁pay ing
+▁cater ed
+▁them e
+▁may be
+▁specializ ed
+▁l30 ,
+let e
+▁comp any
+▁comp lete
+▁money ,
+▁lea ves
+▁char ge
+▁fruit s
+▁fruit .
+
+▁among st
+▁average-rated ,
+▁bracket .
+resh ment
+▁snack s.
+
+▁luton .
+
+▁att itud
+▁need s
+▁need s.
+
+▁main ly
+sing ly
+▁tag .
+
+▁chip s
+▁high-cost ,
+▁imp ress
+▁sur pri
+▁sur round
+▁gbp .
+
+▁tend s
+▁neigh bo
+▁es peci
+▁accommod ate
+▁uni que
+▁uni vers
+▁supp lies
+▁feedback .
+
+▁appetiz ers
+▁wrong .
+
+gbp .
+
+▁£3 5
+▁plu s.
+
+▁ref reshment
+▁overlook ing
+▁'co cum
+▁dess erts
+▁entertain ment
+▁luxuri ous
+▁mix ed
+▁shopp ing
+▁equ ally
+▁hun gry
+▁coffee-s hop
+▁northwe st
+▁exquisit e
+▁surround ing
+▁especi ally
+▁univers ity
+- c
+- e
+0 .
+a le
+b ank
+c ap
+e .
+e qu
+h ib
+h as
+i ly
+k n
+m b
+o .
+
+o nt
+p ro
+r um
+t u
+t eri
+t ained
+u di
+y ,
+er ate
+ri ty
+ri mp
+▁c re
+▁t ou
+at ions
+▁f in
+▁the ,
+▁a udi
+ea k
+▁p ea
+▁p ra
+▁p res
+▁p iz
+end y
+▁h el
+▁h ist
+▁h ost
+▁s ort
+▁s ens
+▁s iz
+▁b ough
+▁n um
+▁l ate
+▁l ar
+▁in ,
+▁in d
+▁in f
+▁ri ve
+▁river -side
+▁river bank
+▁riverside ;
+▁it .
+▁m er
+▁m ak
+▁w ay
+▁w ish
+▁w ont
+▁an s
+▁ch eat
+▁ch eep
+▁sho t
+▁shop s.
+
+▁r d
+▁r u
+▁r ant
+▁and ,
+il et
+▁ca l
+▁friendly :
+it ed.
+
+▁customer .
+▁located ,
+▁g u
+▁g ri
+▁g rown
+▁£20 ;
+▁pub s
+ou d
+ou s.
+
+▁café teri
+▁average -
+▁price 's
+▁italian -style
+▁indian -serving
+ar k
+▁less .
+
+▁boat '
+▁3 out
+▁3 of5
+▁pric ier
+▁1 .
+
+▁1 out
+▁e v
+▁e mer
+▁that ,
+▁cambridge ;
+▁st at
+▁kid -free
+▁for .
+▁for get
+▁rou gh
+▁at .
+
+▁eag les
+▁to ilet
+▁all -
+▁d ear
+▁d rop
+▁strada ;
+▁pro hib
+▁be com
+▁provid er
+▁king ;
+▁vaults '
+▁cu p
+▁moderately -rated
+▁palace ;
+▁ad equ
+▁giraffe 
+
+▁su b
+▁close st
+▁trave ling
+▁non -f
+▁good 
+
+▁good s
+th ing
+▁great .
+
+▁30 lb
+▁eat en
+▁adult ,
+▁meals 
+
+▁meals ,
+▁costs .
+▁20-25 £
+▁adults 
+
+▁go ,
+▁ex c
+▁british -style
+▁di re
+▁location 
+
+▁served .
+▁take out
+▁, 
+
+▁enjoy s
+▁fair ,
+▁fast-food .
+
+▁experience .
+▁ranges ,
+▁past as
+▁25 .
+▁though ,
+▁best .
+
+▁' ra
+▁averagely .
+
+▁setting 
+
+un friendly
+▁friend s.
+▁satisfaction .
+▁available .
+▁dine .
+▁burgers 
+
+▁oriented .
+rang ed
+▁fairly -priced
+▁bes ides
+▁com bo
+▁com fort
+▁option ,
+▁based ,
+▁new ,
+▁rank 
+
+▁rank ing
+▁wines .
+
+▁perfect ly
+▁3-star ,
+▁head ,
+▁cheaply -priced
+▁five-star ,
+▁popular ,
+▁dollar s,
+▁road .
+
+▁here ,
+▁services .
+▁ideal ly
+▁selec t
+▁allowed 
+
+▁ent re
+▁20. 00
+▁l30 .
+lo ch
+us a
+▁l20-25 .
+▁char ming
+▁gener al
+▁person .
+▁quick ly
+▁sh rimp
+▁friends 
+
+▁fruit s,
+▁appro ved
+▁low-price ,
+▁reg ion
+▁fac t
+▁hamburgers .
+▁pr oud
+▁ages ,
+▁sa le
+▁sa usa
+▁reviewed ,
+▁part ies
+▁restroom s.
+
+▁well- re
+▁well- kn
+▁unfriendly ,
+▁district ,
+▁att ention
+▁le g
+▁lunch ,
+▁modest ly
+▁thames .
+
+▁say s
+▁clentele 
+
+▁dis c
+▁tak ing
+▁order ed
+▁soup ,
+▁fall ing
+▁client s
+.. ..
+▁sam ple
+▁e20 -25.
+
+▁e20 -e
+▁facility ,
+▁cook ed
+▁chip s.
+
+▁relax ed
+▁'b lue
+▁'b ibimbap
+£20 -25.
+
+▁sorry ,
+▁rep ort
+▁bread .
+
+-ser vice
+▁block s
+▁pri m
+▁amenities 
+
+▁noodles .
+
+▁exceed ing
+▁accep ts
+▁assort ment
+▁min ors
+▁happ en
+▁waterfront ,
+▁amount .
+
+▁tea .
+
+▁regular ly
+▁reputation .
+▁lack s
+▁mil es
+▁sterling .
+
+▁sport s
+▁scen ic
+▁saf e
+▁attrac ts
+▁old er
+▁sod a
+▁bab y
+▁nest led
+▁poss ible
+▁favor able
+▁focus ed
+▁te ll
+▁tri p
+▁ob tained
+▁penn y.
+
+▁city-cent re
+▁gast ro
+▁low-pric es
+▁either .
+
+than -average
+▁school .
+
+▁impress ive
+▁'cocum '
+▁audi ence
+▁pra ised
+▁piz za
+▁host s
+▁bough t
+▁num ber
+▁mak ing
+▁caféteri a
+▁prohib ited.
+
+▁non-f amiliar
+▁well-kn own
+▁e20-e 25
+' .
+' ve
+- p
+- reviewed
+5 0
+a red
+c i
+c ar
+c able
+d y
+d ed
+d s.
+
+e ur
+f amily
+f it
+f ied
+g an
+g ot
+g ative
+g round
+h igh
+h room
+i res
+l .
+
+m in
+o ric
+o id
+r an
+s er
+s ion
+t ly
+t ers
+w here
+w elcom
+y or
+z y
+£ .
+
+▁ 
+
+▁ 6
+▁ ;
+er .
+er ran
+ri st
+ri ve
+an di
+▁c ate
+▁c ele
+▁c ertain
+▁t ab
+at hroom
+at ters
+▁i ce
+en c
+en ance
+▁f ront
+▁f ried
+▁a h
+▁a bs
+in ary
+▁o w
+▁o re
+▁o th
+ing ,
+ea st
+▁p rest
+rat e
+end ed
+om i
+om ant
+id ed
+ust enance
+▁h er
+▁h op
+▁h andi
+▁s ol
+▁s ad
+▁s ca
+▁s ustenance
+▁b ig
+▁b athroom
+▁l and
+▁l iv
+▁in c
+▁in v
+▁in .
+
+▁in cre
+li t
+▁5 out
+▁5 -5
+▁riverside -
+▁co re
+▁co ur
+▁co ast
+▁co us
+▁food :
+▁m ile
+▁m aint
+ut ely
+ee med
+ent s,
+▁an t
+ff ers
+eat ers
+▁£ ,
+▁coff ees
+▁coffee 
+
+▁r omant
+▁restaurant 's
+▁loc ale
+il st
+il ar
+▁centre ;
+▁friendly ;
+it ed
+it erran
+▁customer 
+
+▁g ains
+▁g ained
+ve yor
+vera l
+▁low est
+▁japanese -style
+ol utely
+▁indi a
+▁wit ch
+ar ant
+ar omi
+la in
+▁cheap est
+▁3 
+
+ore d
+▁e t
+▁e ffe
+▁e th
+▁child -
+▁st y
+▁st ro
+▁st eak
+▁not e,
+▁£20-25 ;
+▁waterman s
+▁waterman 's
+▁for ,
+▁for .
+
+▁fitzbillies '
+▁fitzbillies ;
+▁ra ving
+▁eagle ;
+▁eagle 's
+▁to .
+▁ali k
+ic ated
+▁d eemed
+▁hou ses
+▁strada 's
+▁fyne '
+▁are ,
+▁be ,
+▁be .
+▁be .
+
+pp ing
+ive ly
+tto '
+▁zizzi ;
+▁zizzi s
+▁serving ,
+▁wh et
+▁wh ilst
+▁cuis in
+▁pa l
+▁moderately ,
+▁palace 's
+▁bakers ;
+▁mill s
+▁its '
+▁pl atters
+▁highly ,
+im um
+▁named ,
+▁food, and
+ib ly
+▁riverside, 
+
+▁tast es
+-priced ,
+▁cost s.
+
+▁se c
+▁se veral
+▁av oid
+▁ne gative
+▁offering s
+▁beef eaters
+▁area, the
+▁also .
+
+▁non -friendly
+▁good .
+▁establishment 
+
+▁fami liar
+▁great .
+▁great ly
+▁pound .
+
+▁as ,
+▁30 gbp.
+
+▁eat 
+
+here 
+
+▁qu id
+▁qu ali
+▁find ing
+▁inexpensive .
+▁inexpensive ly
+▁med iterran
+▁wine 
+
+▁over ,
+▁over -
+▁rate ,
+▁go 
+
+▁ex ist
+▁under .
+
+-rat e
+▁who 's
+▁recommend .
+
+▁£30, 
+
+▁above ,
+▁then £20
+▁well ,
+▁enjoy able
+▁you' ve
+▁drink s,
+▁op erate
+▁dish .
+
+▁- £25
+▁around ,
+ous ly
+▁name ,
+▁ranch, 
+
+eri or
+▁bu ck
+▁breakfast s.
+
+▁. the
+▁foods 
+
+▁euro .
+▁euro 's
+▁nice ,
+▁25 ,
+▁poorly .
+
+▁cons ist
+▁' average
+▁' loch
+▁' aromi
+▁satisf ied
+▁speci fic
+res que
+un ity
+▁bring s
+▁bring ing
+▁view .
+▁view s.
+
+▁available ,
+▁mid- ranged
+▁burgers .
+▁cho ices
+▁take-away 
+
+▁vari ed
+▁one-star red
+▁sc ener
+▁would n't
+▁com m
+the y
+▁bas ic
+▁love .
+
+▁variety ,
+▁mid-range ,
+▁mid-range .
+▁about .
+
+▁wines .
+ain ing
+▁midd ling
+▁head 
+
+child ren
+▁like ly
+▁des erts
+▁popular .
+
+▁them .
+▁expect ed
+▁fu sion
+▁earn ing
+▁bad ly
+▁full -service
+▁services ,
+▁home ,
+lec t
+▁away .
+
+ick s
+▁gr ap
+▁hear ty
+▁allowed ,
+▁ent er
+▁par ents
+▁top -rated
+▁options ,
+▁comp ared
+▁lea st
+▁gener ated
+▁fav ored
+▁person 
+
+▁aw ful
+▁aw arded
+▁see k
+▁see ms
+▁store ,
+▁sup erior
+▁overall .
+
+ern oon
+▁int ended
+▁aft ernoon
+▁£25. 00
+▁pr am
+▁bank .
+▁beverages ,
+▁part ner
+▁snack s.
+▁now here
+
+▁unfriendly .
+
+▁res ult
+▁ord ers
+▁cli entele
+▁lunch es
+▁grub ,
+▁compet it
+pa ss
+▁dis cri
+▁group s.
+▁let s
+▁produc es
+▁mind ed
+▁edge .
+
+orient ed
+▁soup s
+▁soup .
+
+▁any thing
+▁any where
+▁level .
+
+▁exclusive ly
+▁competitive ly
+▁2 3
+▁chip s,
+▁'b rowns
+▁imp ro
+▁pur veyor
+▁rage ,
+▁day .
+
+▁bread s
+▁everyone .
+
+▁college .
+
+▁tr endy
+▁thing s
+▁use ,
+▁yourself .
+
+▁market .
+▁match .
+
+▁downtown .
+
+▁es car
+▁pic tu
+▁wor k
+▁casual ,
+▁3-5 .
+
+▁ext ra
+▁£20.00 
+
+▁winery .
+
+▁pleas ed
+▁couples .
+
+▁fish .
+
+▁min imum
+▁happ y
+▁play ground
+▁supp ort
+▁higher- end
+▁higher- cost
+▁higher- than-average
+▁appetiz ers.
+
+▁patrons .
+
+▁kind s
+▁begin ning
+▁£30.00 .
+
+▁overlook s
+▁'co tto'
+▁entries .
+
+▁i' m
+▁sim ilar
+▁la id
+▁cont ains
+▁sterling .
+▁sport ing
+▁highly- reviewed
+▁build ing
+▁today .
+
+▁guest s.
+
+▁sing les
+▁pass ing
+▁addition ally
+▁prefer red
+▁act iv
+▁premis es
+▁permitted 
+
+▁neighbor hood
+▁achie ved
+▁ric h
+▁cut e
+▁fla re
+▁£1 0
+▁spect rum
+▁adult- oriented
+▁opin ion
+▁friend-family .
+
+▁desired .
+
+▁surpri singly
+▁neighbo ur
+▁refreshment s
+▁desserts .
+▁surrounding s
+-c an
+▁cre am
+▁tou rist
+▁pea ce
+▁hist oric
+▁sens ibly
+▁lar ge
+▁ind eed
+▁inf amous
+▁ru ns
+▁cal m
+▁gu arant
+▁emer ging
+▁stat u
+▁adequ ate
+▁dire ct
+▁20.00 .
+
+▁leg al
+got ,
+min ating
+▁cate g
+▁cele b
+▁certain ly
+▁abs olutely
+▁handi cap
+▁sad ly
+▁incre di
+▁cour se
+▁cous in
+▁maint ains
+▁romant ic
+▁effe ctive
+▁eth nic
+▁mediterran ean
+▁discri minating
+▁escar got,
+▁pictu resque
+ 
+
+! 
+
+' 
+
+, 
+
+- 1
+- typ
+- so
+- way
+- by
+- of
+. 3
+. 9
+. .
+
+2 .
+
+8 .
+9 
+
+9 .9
+a ff
+b an
+b ut
+c c
+c ery
+d e
+d ay
+d rink
+f e
+f ore
+g n
+g s
+h ist
+i lies
+i ed.
+
+i ous.
+
+i fied
+k sh
+k ey
+l ust
+l iness
+m ,
+m al
+m ost
+m ber
+m ark
+n am
+n it
+n ot
+o .
+o ns
+o ffer
+o rity
+p an
+p ly
+p ound
+p hist
+r ant
+r ough
+r ank
+s itt
+s ily
+t ed
+t on
+u es
+u ff
+u es.
+v ate
+v or
+w ildwood
+w are
+y ou
+y ippee
+▁ od
+▁ ur
+▁ 's
+▁ -priced
+▁ 't
+er ves
+ri ver
+an sive
+an sp
+▁c ul
+▁c rit
+▁t ur
+▁t able
+▁t ad
+▁t ail
+▁t uc
+▁t akes
+at isf
+▁th rough
+en e
+re commend
+▁f am
+▁f 30
+▁f our
+▁f oe
+am erican
+am ple
+st er
+st ar
+st rada
+st icks
+▁a ble
+es 
+
+ing .
+ing ton
+ea rest
+rat ed
+end ,
+ver th
+▁h i
+▁h at
+▁h ang
+▁b are
+▁b low
+▁l end
+▁l .
+
+▁l ast
+▁l ay
+▁l im
+▁l ad
+▁l uc
+▁of £20-25.
+
+▁in g
+▁in st
+li e
+li ss
+pric e
+rea sy
+rea singly
+▁5 star
+side ,
+▁riverside 's
+▁it '
+▁lo se
+▁lo ng
+▁co ve
+▁m eat
+▁m ild
+▁m ot
+▁w a
+▁w at
+▁w ake
+▁w ise
+ur pass
+ut es
+ho s.
+
+ent s.
+
+▁out .
+▁out er
+▁y ear
+▁ch ill
+▁£ 2
+▁£ .
+
+▁£ 8.
+▁sho res
+▁sho o.
+▁r ood
+ant ly
+▁restaurant s.
+▁loc ating
+▁no ise
+▁ca st
+▁friendly -friendly
+it ch
+▁customer ,
+▁than £20
+ch eap
+▁g y
+▁g od
+▁g ate
+▁g ar
+▁g as
+▁g aining
+▁g liss
+▁g reasy
+▁pub 's
+ast o.
+
+ou rite
+ve llers
+ap pro
+▁low ;
+▁café '.
+
+▁average -price
+▁average -rate
+▁fast .
+
+▁fast food
+▁family -free
+▁moder ates
+▁moderate -
+▁french -styled
+di an
+▁serv ic
+ne xp
+la re
+ce iv
+ess ,
+ess es
+ess ment
+ess ion
+le g
+▁k ey
+▁k itch
+▁boat s
+▁boat 's
+▁3 -out
+▁3 .5
+▁3 .3
+▁english -styled
+ra vellers
+▁serves .
+▁st ,
+▁st ake
+▁st ick
+▁st ud
+▁st aff
+▁st uff
+row ne
+▁chinese -serving
+▁bar '.
+
+-25 ,
+▁not ed
+▁not ch
+▁not hing
+▁exp ansive
+▁kid 's
+▁water .
+▁waterman ;
+▁waterman ',
+ns .
+ns .
+
+▁area ;
+▁area 's
+▁area s.
+ry out
+▁rat ting
+▁rat er,
+▁for £20-25.
+
+▁blue '
+▁there fore
+▁cur ried
+▁inn ;
+▁at ,
+▁at ro
+▁fit s
+zb illies
+▁fitzb ilies
+▁ea ch
+▁ea sily
+▁to ast
+▁to get
+▁alimentum ;
+▁all .
+▁all -d
+ic ult
+ic ular
+is es
+is key
+▁d ra
+▁d et
+▁d rive
+▁house '
+ort ,
+▁v ib
+▁arms ;
+▁arms '.
+
+▁sp l
+▁sp ent
+▁sp ite
+▁sp oon
+el ess,
+▁prices ;
+▁spice '.
+
+ari ly
+tt en
+urg er
+▁pro ble
+▁are s
+▁be ware
+▁prov es
+▁cotto ;
+ot ic
+▁punt ers
+▁punter -
+▁king '.
+
+ults .
+
+▁hotel '.
+
+▁cl os
+▁on es
+▁va lu
+▁sicilia ;
+▁sicilia '.
+
+▁wh ine
+▁wh iskey
+▁oli ves
+▁gro cery
+▁moderately .
+▁aromi 's
+▁bak ed
+▁mill '
+ens al
+ump ington
+▁tree ;
+▁ad v
+▁ad ded
+▁sorrento '.
+
+▁which ,
+et .
+▁gira ff
+▁plough 
+
+im ate
+▁food, it
+▁brazil '.
+
+▁re qu
+▁al be
+▁al most
+▁tast es,
+▁tast es.
+▁ratings ;
+▁taste .
+▁taste .
+
+▁customers '
+▁centre, near
+▁rating. .
+▁rating. .
+
+▁su ffers
+▁20 gbp
+▁20 lb
+▁20 gbp.
+
+▁se en
+▁se vers
+▁restaurant, the
+▁close -by
+▁fr ance
+▁from .
+
+▁5. .
+▁ne ed.
+
+▁ne verth
+▁offering s.
+
+▁area, 
+
+▁beefeater '
+▁five 
+
+com pan
+▁found .
+▁u nexp
+▁sushi -serving
+so ns.
+
+▁establish ed
+▁establishment s.
+
+▁meal 
+
+▁ven ues.
+▁venue 
+
+▁serve .
+
+▁environment :
+▁30 £
+▁30 l.
+
+▁eat s,
+ec cable
+▁try ,
+▁try ing
+▁we st
+▁we 've
+▁priced, kid
+ok s
+▁po cket
+▁po lit
+▁adult 's
+▁review ers
+▁review ed.
+
+▁do ne
+▁do gs
+▁rea r
+▁rea dy
+▁rea sons.
+
+▁north east
+▁higher .
+
+▁med ian
+▁medium -price
+▁style .
+
+our able
+▁20-25 eur
+▁over .
+▁de lect
+▁go tten
+▁ex ac
+▁ex ample
+▁ex otic
+▁din ning
+▁get -a
+▁menu 
+
+▁menu s
+▁di et.
+▁under ,
+▁under .
+▁under rated
+▁inn, 
+
+▁suitable .
+
+▁excellent .
+
+▁served ,
+▁visit or
+▁visit ors
+as ed
+▁£20- 2
+▁£20- £30
+▁£20- 50
+▁up ,
+▁up .
+hou se
+▁, and
+▁, near
+▁, with
+▁enjoy ed.
+
+▁café, is
+▁eagle, has
+▁recommended .
+▁£25 -25
+▁curry, 
+
+ac ular
+▁alimentum, is
+▁- -
+▁dishes 
+
+▁around .
+
+▁bakers. 
+
+▁break ing
+co gn
+▁bu ds.
+
+▁breakfast 
+
+▁experi enc
+▁experience 
+
+▁. n
+▁or gan
+▁past ries
+▁mid-priced .
+
+ad ent
+▁25 
+
+▁25 £.
+
+▁right ,
+▁poorly -reviewed
+▁though 
+
+▁though .
+▁want s
+▁' wildwood
+▁' yippee
+▁' strada
+ile .
+▁so -so
+▁so phist
+▁averagely -rated
+▁ratings, 
+
+▁bakers, 
+
+▁non-family-friendly .
+▁non-family-friendly .
+
+▁fare s
+▁satisf y
+▁start .
+▁start s.
+
+▁delic ious.
+
+▁town 
+
+▁friend .
+▁friend .
+
+▁friend s.
+
+▁satisfaction 
+
+▁ac compan
+▁view ed
+▁view s.
+ts ,
+▁cho pping
+▁budge ts,
+▁take-away ,
+▁take-away .
+▁vari es
+▁low- end,
+▁budget .
+▁dec ided
+▁dec adent
+▁consider able
+▁un f
+▁un able
+▁com ensal
+the med
+▁5-star s
+▁decent ,
+▁love ,
+▁below .
+▁us er
+▁rank s
+▁american -style
+▁items ,
+▁too ,
+ead .
+▁mo ved
+ard ed.
+
+ard s,
+▁choice 
+
+▁choice ,
+▁3-star s
+▁head .
+▁cheaply .
+▁like .
+▁ear ns
+▁ear th
+▁public 
+
+▁public ,
+▁public .
+
+▁des erves
+▁three-star red
+▁even ing
+▁eating .
+
+▁point 
+
+▁far m
+▁far .
+
+▁them e,
+▁them e.
+
+ions 
+
+▁road .
+▁value ,
+▁plea sing
+▁stars, 
+
+▁bad .
+
+▁low, 
+
+▁high-end ,
+▁bit es
+▁services 
+
+▁class ified
+▁open .
+▁open .
+
+kid s
+▁app ear
+▁app eal
+▁away .
+▁gr and
+▁average-priced ,
+▁beautiful ly
+▁ent ree
+▁par king
+▁l30 
+
+▁non-kid -friendly
+ip asto.
+
+▁should n't
+▁night 
+
+▁30. £
+▁money .
+▁l20-25 
+
+▁l20-25 ,
+▁lea ving
+▁outlet .
+▁outlet .
+
+▁fav ourite
+▁fur nit
+▁see m
+▁most ,
+▁store .
+
+▁costly .
+
+▁fruit s.
+
+▁spaghetti ,
+▁spaghetti .
+▁moderate-priced ,
+ates .
+
+▁spot ,
+▁reg arded.
+
+▁every day
+▁pr om
+▁bank ,
+▁english, nam
+▁dinner ,
+▁dinner .
+▁center., there
+▁riverfront .
+▁riverfront .
+
+akes ,
+▁part icular
+-in spired
+▁4 .
+
+▁4 .5
+▁perm its
+▁luton ,
+ert s.
+
+▁age .
+
+▁restroom .
+
+▁ship ,
+▁ship .
+▁unfriendly 
+
+iz ed
+▁family- unfriendly
+▁att ained
+▁res er
+▁res id
+▁res po
+▁res ults.
+
+▁special s
+▁special ties
+▁cli mb
+▁lunch .
+
+▁tasting s
+▁ed ible
+▁fan s,
+▁much ,
+▁modest ,
+▁stand ards
+▁quiet ,
+▁buy .
+
+▁seafood .
+
+▁5of5 ,
+▁family's .
+▁clentele ,
+▁clentele .
+▁group .
+
+▁ste llar
+▁list .
+
+▁produc t
+▁fun ,
+▁soup s.
+
+▁soup s,
+▁plates .
+▁adults-only .
+
+▁client s.
+
+▁level s
+▁standard .
+▁standard s.
+
+ities .
+
+▁e20 
+
+▁e20 .
+
+▁higher-priced ,
+▁burgers, drink
+▁facility .
+▁2 1
+▁2 4
+▁cra ck
+▁cra zy
+▁relax ing
+▁20£ .
+▁uns atisf
+▁uns urpass
+▁'b urger
+▁imp eccable
+▁ass essment
+▁coup led
+▁gbp .
+▁day .
+▁day s
+▁tr ue
+▁tr ansp
+▁tr umpington
+▁pri ed
+▁pri ority
+▁pri vate
+▁use ful
+▁eat-in ,
+▁mid-level .
+
+▁appet ite
+▁match .
+▁fo ol
+▁wor ry
+▁wor se
+▁wor ld
+▁highly-priced ,
+▁£20.00 .
+
+▁delicacies .
+▁accommod ations
+look ing
+▁tap a
+▁min utes
+▁keep ing
+▁egg s,
+▁play ,
+▁eagle' .
+▁pairing s.
+
+▁chop sticks
+▁attra ctive
+ents 
+
+▁£3 2.
+
+▁plu s.
+▁starts 
+
+▁space .
+
+▁interest ing
+▁mark .
+
+▁mark ed
+▁mark s.
+
+▁ambiance .
+▁ambiance .
+
+▁purch ased
+▁reputation .
+
+▁wallet .
+
+low -priced,
+▁i' d
+▁i' ve
+▁sim ply
+▁la w
+▁lack lust
+▁rivers ides
+▁cont in
+▁me ant
+▁mil ksh
+▁show n
+▁price-range .
+
+▁bargain s.
+
+▁easy ,
+▁dess erts.
+
+▁low-rating s
+▁scen e,
+▁non-kids -friendly
+▁saf e,
+▁luxuri ant
+▁attrac tion
+▁accessible .
+▁accessible .
+
+▁guest s,
+.5 0.
+fic ation
+▁sod as
+▁sing le
+▁beat .
+
+▁bab ies
+▁customer-rating 
+
+▁1-5 ,
+▁1-5 .
+
+▁crowd .
+▁plate .
+▁rem ark
+▁poss esses
+▁20-25l .
+
+▁delight s
+▁soon .
+
+▁act ively
+▁premis es,
+▁hello ,
+▁acclaimed ,
+▁ambient .
+▁d'oeuvre s.
+
+▁achie ving
+▁individual s
+▁disappoint ing
+▁disappoint ed.
+
+ig ious
+▁-25 .
+▁fla vor
+▁ma xim
+▁£1 9.9
+▁car ries
+▁car ryout
+▁did n't
+▁vary ing
+▁spect acular
+▁prof ession
+▁prof ile.
+▁sicilian .
+
+▁costumers .
+
+▁opin ions
+
+▁'c lare
+▁'c rowne
+▁attitud e.
+▁neighbo ring
+▁£35 
+
+▁northwest ern
+▁university ,
+▁fin ally
+▁pres ently
+▁hel p
+▁rive .
+
+▁mer its
+▁rant ing
+▁gri ll
+▁gri lls
+▁ev ents,
+▁ev ents
+
+▁forget .
+
+▁rough ly
+▁toilet s
+▁all- you
+▁all- american
+▁becom e
+▁becom ing
+▁exc iting
+▁'ra inbow
+▁'ra ja
+▁comfort able
+▁shrimp .
+
+▁proud ly
+▁sausa ge
+▁sausa ges
+▁well-re ceiv
+▁well-re cogn
+▁attention 
+
+▁disc ount
+.... ..
+▁prim e
+▁prim arily
+▁baby sitt
+▁city-centre .
+
+▁gastro -p
+▁well-known ,
+▁e20-e25 ,
+▁e20-e25 .
+fit zbillies
+ser ving
+welcom ing
+▁oth ers.
+
+▁prest igious
+▁her b
+▁hop e
+▁sca re
+▁bathroom s.
+
+▁land mark
+▁liv es
+▁inc reasingly
+▁5-5 .
+
+▁riverside- area
+▁ant ipasto.
+
+▁et hos.
+
+▁child- unfriendly
+▁sty ling
+▁stro llers
+▁platters ,
+▁sec ond
+▁familiar .
+▁quid .
+
+▁quali fication
+▁over- looking
+▁then£20 .
+
+▁consist ently
+▁'aromi '
+▁specific ally
+▁scener y.
+
+▁comm unity
+▁enter .
+
+▁pram s.
+
+▁competit or
+▁impro ve
+▁activ ities.
+
+▁opinion 
+
+▁cream .
+
+▁peace ful
+▁historic al
+▁indeed ,
+▁guarant ee
+▁statu s.
+
+▁direct ly
+▁categ ory
+▁celeb rating
+▁incredi bly
+-typ e
+-of -5
+offer ing
+rank ed
+▁ur ban
+▁'t ravellers
+▁cul inary
+▁crit ic
+▁tur n
+▁tuc son
+recommend ed
+▁fam ed
+▁bare ly
+▁luc k
+▁cove ted
+▁mild ly
+▁wake y
+▁gliss on
+▁servic ing
+▁kitch en
+▁3.5 ,
+▁3.3 3
+▁toget her
+▁all-d ay
+▁albe it
+▁neverth eless,
+▁20-25eur os
+▁exac tly
+▁get-a -way
+▁organ iz
+▁'strada '
+▁sophist icated
+▁accompan ied
+▁furnit ure
+▁english,nam e
+▁respo ns
+▁burgers,drink s,
+▁crack er
+▁unsurpass ed
+▁transp ort,
+▁lacklust er
+▁milksh akes,
+▁remark able
+▁flavor ful
+▁£19.9 9
+
+▁profession ally
+▁all-you -can
+▁well-receiv ed
+▁well-recogn ized
+▁babysitt er
+▁gastro-p ub

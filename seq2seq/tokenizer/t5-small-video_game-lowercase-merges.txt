@@ -1,0 +1,5079 @@
+#version: 0.2 - Trained by `huggingface/tokenizers`
+< |
+| >
+▁ <|
+e r
+i n
+r e
+▁ a
+a t
+o n
+▁ t
+o r
+▁ p
+m e
+l a
+▁ s
+l e
+a s
+a me
+▁t h
+v e
+▁ i
+la y
+f or
+▁ g
+t i
+in g
+s t
+e n
+▁<| d
+▁ m
+er s
+▁ y
+o u
+e d
+p lay
+▁ w
+▁g ame
+a |>
+▁<|d a|>
+▁ in
+s |>
+for m
+r at
+c ti
+▁ n
+n t
+▁ b
+le as
+re leas
+i r
+▁th e
+i on
+play er
+▁a n
+n ame
+▁<| name
+▁<|name |>
+▁ d
+▁ 2
+▁i s
+e a
+▁ c
+▁ f
+e s
+▁y ou
+at ion
+o o
+releas e
+▁ o
+▁p ers
+▁p lay
+▁ e
+u l
+u re
+p e
+h as
+▁2 0
+g en
+▁<| gen
+re s|>
+▁<|gen res|>
+rat ing
+▁i t
+r o
+. 
+
+▁pers on
+a l
+v er
+▁an d
+a c
+▁ re
+ir d
+▁<| has
+▁<|has _
+r i
+ve nt
+d vent
+dvent ure
+▁<| rating
+▁<|rating |>
+▁o f
+l at
+l o
+a n
+lat form
+▁n o
+▁ h
+▁s t
+cti ve
+g e
+▁p c
+pe ctive
+▁in form
+ul ti
+ulti player
+▁ on
+t er
+i t
+▁20 1
+i e
+st ation
+▁play station
+▁ l
+? 
+
+ea r
+a i
+▁<|has_ m
+lo p
+e ve
+eve lop
+▁game s
+▁ v
+cti on
+p latform
+▁<| platform
+▁<|platform s|>
+' s
+▁y es
+▁th ird
+▁a ction
+▁s h
+b o
+p ers
+_ pers
+▁<| player
+pective |>
+_pers pective|>
+▁<|player _perspective|>
+er |>
+▁ for
+▁th at
+release _
+b le
+x bo
+▁ xbo
+▁xbo x
+y ear
+▁<| release_
+year |>
+▁<|release_ year|>
+ea m
+▁s i
+e l
+a r
+v ai
+vai la
+vaila ble
+▁sh oo
+▁action -
+▁<|d evelop
+▁<|develop er|>
+a dventure
+▁action- adventure
+▁ (
+u t
+▁( for
+_ release
+_release |>
+▁shoo ter
+in u
+inu x
+▁playstation ,
+i c
+▁t o
+oo d
+▁g ood
+a ge
+▁w as
+ie w
+▁ ro
+ultiplayer |>
+▁<|has_m ultiplayer|>
+or t
+▁a ver
+▁aver age
+i f
+▁a dventure
+▁ 1
+le -
+l d
+▁d o
+▁v iew
+▁yes 
+
+▁xbox ,
+▁f ir
+▁e x
+g h
+l y
+▁fir st
+▁si m
+▁ releas
+▁m ultiplayer
+p ort
+k e
+e g
+ou t
+▁releas ed
+rat eg
+▁w it
+in t
+▁ en
+▁st rateg
+le nt
+d o
+▁strateg y
+i s
+u n
+▁s u
+r b
+es rb
+▁p o
+d e
+▁ro le-
+▁role- play
+▁h a
+▁role-play ing
+▁b y
+ri v
+l l
+▁sim ul
+q u
+▁<| esrb
+▁<|esrb |>
+▁m a
+▁ex c
+▁wit h
+▁ r
+o m
+▁b e
+▁20 0
+▁exc el
+▁excel lent
+i ve
+e st
+gh t
+▁l i
+▁ me
+▁s port
+ac ing
+u s
+▁b ird
+▁w h
+▁a vailable
+▁no 
+
+rat ed
+▁st eam
+a vailable
+_ on
+_ st
+▁<| available
+eam |>
+_on _st
+▁<|available _on_st
+▁<|available_on_st eam|>
+▁t e
+▁d riv
+▁driv ing
+f t
+▁in d
+en do
+▁n int
+▁nint endo
+▁simul ation
+▁re qu
+▁action-adventure ,
+▁requ est
+▁m ac
+▁ha ve
+ac _release|>
+▁<|has_m ac_release|>
+▁s o
+t ri
+▁po or
+a y
+▁li ke
+z z
+▁f ro
+▁fro m
+▁l inux
+▁ rated
+l inux
+▁<|has_ linux
+▁<|has_linux _release|>
+▁ind ie
+at ure
+▁p u
+9 9
+▁no t
+o s
+▁n e
+on e
+c e
+/ r
+c h
+/r acing
+▁driving /racing
+▁e ver
+b ut
+d er
+▁p latform
+tri but
+tribut e
+_ at
+_at tribute
+▁ has
+▁m ature
+▁b ut
+▁pu zz
+▁ or
+▁m o
+▁play ed
+p in
+▁ out
+▁puzz le
+pin ion
+▁c an
+i ght
+t a
+▁g ive
+▁mature )
+▁ ver
+▁person 
+
+la n
+▁i i
+▁pers pective
+an d
+▁w or
+▁s pe
+_ o
+y _attribute
+if y_attribute
+▁give _o
+▁ver ify_attribute
+▁give_o pinion
+▁a s
+▁d evelop
+▁ 3
+al l
+l i
+▁it 's
+▁adventure ,
+t h
+▁c on
+▁1 99
+▁ un
+▁a re
+▁re al
+▁platform er
+r y
+▁su p
+▁ever y
+i os
+i a
+▁ rating
+me nt
+▁every one
+▁te en
+n d
+u d
+m b
+▁ k
+o w
+▁201 4
+- and
+-and -
+▁a b
+▁teen )
+▁ne ed
+e x
+c al
+ex p
+pe c
+ed :
+▁spe ed:
+▁develop ed
+c om
+a re
+▁ab out
+u r
+er o
+i g
+' t
+ac k
+c k
+▁a l
+▁c om
+▁wh at
+▁st ud
+a m
+ta in
+i d
+p g
+a nt
+ter tain
+▁en tertain
+in d
+▁201 5
+j o
+▁entertain ment
+r a
+▁wor ld
+▁t a
+ar d
+me nd
+▁re com
+▁recom mend
+jo y
+▁en joy
+ti on
+▁c h
+▁role-playing ,
+if i
+s pec
+▁<| spec
+▁playstation 
+
+ifi er|>
+▁<|spec ifier|>
+cti cal
+▁s k
+o re
+s e
+▁ta ctical
+▁ release
+▁i f
+▁everyone )
+ge st
+▁con f
+s :
+ir m
+▁ la
+▁h ero
+▁stud ios
+_ exp
+ld er
+▁request _exp
+lan ation
+▁request_exp lanation
+a d
+▁su g
+▁conf irm
+▁pc 
+
+▁sug gest
+▁simulation ,
+▁sup er
+▁si de
+▁game .
+▁pc ,
+en t
+k ing
+▁w ar
+▁ us
+er e
+▁c ry
+▁driving/racing ,
+▁an y
+▁pc .
+▁a ge
+▁me t
+▁th is
+el l
+t le
+▁ 4
+▁1 0
+t t
+n 't
+u st
+ti me
+c l
+▁mo st
+m p
+▁t ur
+▁c ame
+▁do es
+▁r ai
+o l
+▁to mb
+▁rai der
+- time
+▁indie ,
+ic k
+▁real -time
+▁w i
+b all
+▁s c
+▁201 6
+m an
+as s
+c o
+i v
+▁ j
+h o
+al ly
+s h
+▁game ,
+▁a m
+▁s m
+r on
+c ra
+▁f e
+▁po int
+cra ft
+s .
+
+ou ld
+▁201 1
+s .
+a g
+l in
+▁th in
+m or
+-and- cl
+▁point -and-cl
+▁point-and-cl ick
+oo m
+▁games ,
+▁p ay
+▁thin k
+▁p re
+▁201 8
+▁m mor
+▁mmor pg
+r an
+▁v i
+la r
+▁person ,
+▁tur n
+as ed
+▁2 k
+it tle
+▁l ittle
+▁steam .
+
+s o
+▁ le
+▁w on
+▁201 7
+▁sport s
+▁met ro
+e m
+▁j ust
+▁m ight
+▁nintendo ,
+b ased
+▁th ere
+▁you '
+- based
+▁t y
+▁s ing
+▁turn -based
+le- player
+▁sing le-player
+ou gh
+c t
+i re
+▁ ea
+n ow
+▁view 
+
+▁so ft
+▁p ro
+▁action ,
+th er
+▁k now
+▁w ant
+▁h ack
+s la
+▁f ore
+ai d
+-and- sla
+▁hack -and-sla
+▁fore st
+▁hack-and-sla sh
+▁s aid
+▁real ly
+▁g en
+u it
+▁sk y
+u lar
+▁on e
+▁on ly
+▁simul at
+s ,
+▁ lo
+▁simulat or
+g ic
+▁t riv
+lan c
+e t
+▁re v
+b a
+at er
+ta le
+▁c re
+▁you r
+lo ad
+▁xbox 
+
+▁ma gic
+▁hero es
+ro ll
+▁i '
+▁f un
+▁steam ,
+▁sc roll
+mb er
+w n
+▁n ba
+▁2k 1
+▁c or
+▁e lder
+▁200 5
+▁ii :
+▁com b
+▁scroll s
+y 's
+▁m an
+▁r acing
+▁d ri
+▁ro ll
+▁multiplayer .
+
+▁war craft
+▁c lanc
+▁to m
+▁raider :
+▁soft w
+▁clanc y's
+▁r un
+▁platformer ,
+▁o ther
+load ed
+t ed
+▁t ry
+▁1 5
+▁wor m
+i ll
+▁s w
+▁re loaded
+▁201 0
+▁3 :
+▁dri ver
+▁worm s:
+in ball
+▁p inball
+▁b ig
+it ch
+▁ma de
+▁un der
+▁sw itch
+▁ qu
+or ation
+▁199 9
+▁sup port
+▁la st
+co on
+▁ty coon
+b er
+▁a r
+▁re ce
+at e
+▁s e
+▁play ing
+h ic
+an ce
+▁comb at
+▁s p
+▁ z
+if e
+▁al so
+▁ ve
+tt y
+▁ve hic
+t e
+▁ u
+n tion
+▁me ntion
+▁want ed
+it e
+▁vehic ular
+▁a d
+▁n ight
+▁b ios
+▁games ?
+
+▁mac .
+
+ho ck
+▁rece ive
+▁bios hock
+a de
+▁receive d
+o ft
+▁201 3
+▁t r
+▁m y
+▁wh y
+▁mo de
+lin e
+▁th r
+▁re me
+▁10 +
+▁h it
+▁on line
+el y
+▁nintendo 
+
+▁me an
+u e
+▁pre tty
+▁under tale
+y st
+▁t i
+▁200 9
+▁puzzle ,
+▁you' re
+▁a ll
+on g
+▁in ter
+▁d id
+▁as s
+▁b l
+▁mention ed
+▁f ight
+▁won der
+a os
+▁ch aos
+▁shooter ,
+▁su ch
+▁r pg
+▁be en
+▁fight ing
+▁en d
+or y
+▁b o
+▁gen er
+in 's
+▁f ind
+ass in's
+▁cre ed
+▁2k1 6
+▁ass assin's
+▁t on
+▁game .
+
+▁d ance
+▁o lder
+ic h
+▁ma d
+▁wh ich
+▁softw are
+ke t
+▁lo ve
+f er
+▁am ong
+as h
+▁g uit
+▁h ill
+▁si lent
+ar ted
+▁sm ash
+▁fe el
+▁guit ar
+c ket
+i er
+w k
+▁g o
+▁m us
+▁h ear
+▁ro cket
+ag ue
+▁le ague
+▁mus ic
+f 's
+i :
+▁th ie
+▁c at
+▁strategy ,
+▁ha wk
+ch arted
+▁ii i:
+▁un charted
+▁sk ater
+▁hero :
+▁4 :
+▁ton y
+▁thie f's
+▁hawk 's
+r or
+▁m ass
+▁e le
+or m
+x t
+▁f a
+ri m
+▁hear d
+▁cat al
+▁ ed
+▁ed ge
+h ing
+m are
+▁g et
+▁m ir
+▁w ol
+▁f an
+▁201 2
+▁triv ia
+▁night mare
+▁older )
+ror 's
+▁catal yst
+▁mir ror's
+▁wol f
+▁h u
+▁te xt
+▁rev iew
+▁i' m
+i li
+▁s ay
+▁steam .
+▁t eam
+▁w ould
+bo ard
+/ board
+▁shoo t
+▁r oom
+▁sm all
+▁trivia /board
+▁view ,
+▁ &
+▁d oom
+▁e mp
+ri o
+▁ma rio
+▁magic :
+k ed
+p o
+t s
+▁ti me
+i l
+le d
+▁d ar
+▁switch ,
+▁hit s
+▁dar k
+▁b li
+zz ard
+ch er
+ig n
+▁wi ld
+▁bli zzard
+a ke
+n es
+▁f ar
+▁o ver
+▁l oo
+_ release_
+c ade
+d ate
+k es
+▁<| exp
+▁p ort
+for ge
+▁an ge
+▁wit cher
+▁200 1
+▁200 4
+▁199 4
+▁hack-and-slash ,
+▁sky forge
+▁ar cade
+▁hu nt
+▁dark nes
+_release_ date
+▁<|exp _release_date
+▁ange l
+▁<|exp_release_date |>
+▁d is
+en d
+▁e v
+▁ ri
+▁does n't
+ire s
+▁m on
+▁st ran
+▁ma kes
+▁ne ver
+▁stran ge
+s is
+v or
+▁p ri
+ing s
+▁f ire
+▁st ron
+▁l ife
+ic e
+▁what 's
+▁release .
+
+▁cry sis
+▁metro id
+▁emp ires
+▁port al
+▁pri me
+▁t al
+▁d ig
+▁h ow
+▁l in
+▁fa vor
+▁th ough
+▁ ear
+▁c ar
+▁o k
+▁enjoy ed
+o ld
+▁the ory
+▁d e
+▁d on
+it al
+is hing
+▁develop er
+▁dig ital
+3 3
+s s
+la st
+as ter
+ou nd
+▁n a
+▁b om
+▁c ro
+▁e th
+▁20 33
+an ishing
+▁v anishing
+▁200 2
+▁perspective .
+ron ic
+ber man
+▁car ter
+▁bom berman
+▁eth an
+▁o s
+▁so li
+▁linux .
+
+▁tal king
+▁soli d
+li er
+▁k ings
+am i
+▁man ag
+▁ear lier
+f e
+in ce
+▁s ince
+oo t
+▁en em
+▁request _attribute
+▁loo king
+▁darknes s
+▁rating s.
+
+d en
+i o
+p oration
+▁n f
+▁d iv
+▁f oot
+▁do g
+is ion
+ay s
+▁perspective .
+
+▁sky rim
+▁cor poration
+▁favor ite
+▁div ision
+h ind
+o x
+r and
+u ght
+er co
+ou ght
+▁b us
+ir is
+▁re d
+▁v :
+gh old
+do s:
+▁be hind
+▁te tri
+▁te mp
+▁so me
+▁or i
+▁out last
+▁mature) .
+
+▁199 8
+▁com man
+▁la ra
+▁super ho
+▁roll erco
+▁bl ind
+▁mad den
+▁stron ghold
+▁lin es
+▁na ught
+▁cro ft
+▁os iris
+▁manag er
+▁enem y
+▁nf l
+▁foot ball
+▁temp le
+▁comman dos:
+▁superho t
+▁rollerco aster
+▁naught y
+c ent
+▁t oo
+▁linux ,
+▁al one
+a p
+c ed
+i al
+p le
+u m
+▁th ought
+▁w ay
+▁it ?
+
+▁sh ow
+▁multiplayer ,
+d a
+ve n
+us e
+c age
+▁li ked
+▁sport ,
+▁roll cage
+s id
+▁re st
+▁re sid
+▁ma x
+▁ev il
+▁resid ent
+b lo
+p se
+t :
+t or
+u tion
+y pse
+z ation
+▁ lay
+▁a po
+▁i ll
+st orm
+ir t:
+▁d ia
+▁d irt:
+▁c ell
+▁c iv
+▁f ear
+▁f if
+▁sh if
+▁si d
+▁shooter 
+
+▁1 2
+do wn
+▁200 7
+▁me ier
+us ion
+▁mo tor
+cal ypse
+ol ution
+lin ter
+▁sp linter
+▁ad v
+ili zation
+▁show down
+▁lay ers
+▁apo calypse
+▁ill usion
+storm :
+▁dia blo
+▁cell :
+▁civ ilization
+▁fif a
+▁shif t
+▁meier 's
+▁motor storm:
+h er
+t o
+y e
+▁e f
+d ay
+n e
+▁bird 's
+▁ok ay
+fe ct
+▁e ye
+▁mac ,
+▁pu r
+▁bo th
+u al
+▁c all
+an ced
+de o
+▁vi deo
+▁reme mber
+▁ele ment
+h l
+u ck
+▁n hl
+▁d es
+▁sh ould
+▁pay ne
+▁tetri s
+a x
+b is
+d ers
+f are
+h am
+p te
+s a
+y :
+z ard
+on ami
+▁d ut
+▁f ound
+▁strategy 
+
+▁200 0
+▁as se
+▁k onami
+▁war fare
+tt o
+▁wi zard
+▁pay day
+▁won ders
+▁cor sa
+▁se pte
+▁u bis
+▁thr one
+▁did n't
+▁mon t
+▁adv anced
+▁ef fect
+▁dut y:
+▁asse tto
+▁wizard 's
+▁septe mber
+▁ubis oft
+v ers
+re at
+▁g reat
+ort h
+▁ex p
+i en
+s port
+▁w ell
+▁pc .
+
+▁v al
+i z
+at h
+ing 
+
+▁e ven
+▁mode .
+
+▁shoot ers
+▁dis li
+▁t ri
+▁c o
+▁o c
+▁multiplayer .
+▁val ve
+b ack
+in a
+gen d
+el da
+ar ina
+▁le gend
+▁z elda
+▁don 't
+▁oc arina
+▁zelda :
+f ia
+s uit
+u ro
+▁ er
+▁t ran
+for ce
+▁y ear
+▁e uro
+▁of f
+ll force
+▁ma fia
+▁ne vers
+▁spe llforce
+▁199 3
+▁pay back
+▁ea d
+▁triv ial
+▁tr uck
+▁rest oration
+▁pur suit
+ath ia
+▁er athia
+▁tran sport
+▁nevers oft
+▁wi ll
+▁fe ature
+ve l
+▁the y
+▁f ri
+▁thr ough
+re a
+▁mac .
+▁u p
+d y
+▁b rea
+▁h o
+▁st ar
+▁sim s
+▁release ,
+▁s en
+▁h or
+▁un iv
+▁teen) .
+
+▁reme dy
+▁gener ally
+▁brea k
+▁univ ers
+a ctive
+a ble
+b y
+▁n orth
+▁re vel
+▁poor ly
+ant um
+▁gen re
+▁rev olution
+▁qu antum
+▁inter active
+▁gener al
+▁star craft
+▁univers e
+▁revel ation
+ing ,
+▁w ere
+▁view .
+▁ex am
+▁ha d
+▁tri ed
+▁exam ple
+n o
+▁m u
+▁in to
+a 's
+p tion
+▁average 
+
+▁wh en
+▁steam ?
+
+▁com p
+▁mu ch
+ti es
+▁the m
+it her
+ien ce
+n am
+y nam
+▁s n
+▁d ynam
+ri f
+▁h ell
+▁v is
+▁that 's
+▁met al
+▁dynam ic
+a wn
+b la
+u a's
+re al
+▁a ut
+on :
+▁s ac
+▁g ear
+▁g rand
+ing ?
+
+▁the ft
+▁d awn
+▁e ater
+de :
+▁z ero
+▁mont real
+iz on:
+▁off ers
+▁sen ua's
+▁hor izon:
+▁sn ake
+rif ice
+▁hell bla
+▁aut o
+▁sac rifice
+▁hellbla de:
+f -
+it y
+▁perspective ,
+at ely
+▁t it
+▁t ell
+▁c u
+▁c al
+▁shooter .
+▁stud io
+▁arcade ,
+▁exp er
+▁fri end
+- rated
+c i
+▁it s
+▁be t
+▁rating s
+▁rating s.
+▁nightmare s
+▁tit le
+▁exper ience
+i der
+for t
+st al
+▁game ?
+
+▁ri ght
+▁de cent
+▁des ign
+l ife
+at ed
+on d
+▁c ore
+▁f ond
+ro p
+al f-
+▁h alf-
+un ately
+ce p
+▁ch e
+▁go t
+▁half- life
+1 7
+t d
+at tle
+le s:
+▁th en
+▁b attle
+▁re ign
+ri ou
+▁l td
+▁good 
+
+▁average .
+▁ind ia
+▁con cep
+▁199 0
+▁ch ronic
+▁sc s
+▁team 17
+▁vis ual
+▁cu riou
+▁chronic les:
+u ally
+▁f el
+▁o ption
+▁view .
+
+▁fel t
+l us
+▁a t
+ti c
+ea king
+▁e ither
+▁se em
+▁cal led
+▁t in
+▁f ran
+▁ex pec
+▁sport 
+
+▁un fort
+▁sp eaking
+▁fran k
+▁unfort unately
+s ?
+
+▁ esrb
+in e
+▁play er
+▁games .
+
+▁rating .
+
+▁you' ve
+▁support ed
+4 ,
+a z
+k y
+ur t
+▁am az
+▁point-and-click ,
+▁run s
+f ox
+f urt
+h em
+i x
+i ties
+m ax
+er ic
+▁a nt
+▁a lan
+▁m ic
+▁w ake
+▁b ad
+▁an ci
+▁d ays
+▁c ities
+▁f use
+oo f
+oo ber
+ro se
+▁201 9
+ar y
+▁to by
+▁1 4,
+▁200 8
+▁poor 
+
+▁puzzle 
+
+▁can ad
+▁al lo
+▁cry te
+▁cry stal
+▁am eric
+▁2k1 9
+▁bl oober
+▁ri se
+rop rose
+▁frank furt
+▁ant hem
+▁mic roprose
+▁wake 's
+▁anci ent
+▁toby fox
+▁cryte k
+▁americ an
+p ic
+re ss
+as y
+do w
+▁rating .
+▁over all
+▁dynamic s
+f ul
+▁b ack
+▁pre fer
+▁mass ive
+e ver
+k s
+u ter
+er ri
+as t
+▁2 .
+▁c ap
+▁o pinion
+▁playstation ?
+
+▁games .
+▁role-playing 
+
+▁be st
+▁canad a
+▁c ould
+▁everyone) .
+
+mp ress
+▁support .
+
+▁fighting ,
+▁disli ke
+▁comp uter
+a ut
+▁a st
+▁is n't
+▁playstation .
+▁perspective ?
+
+▁che ck
+8 6
+9 86
+a dow
+l ight
+m er
+p r
+s y
+s ier
+w ays
+on ix
+▁t ar
+▁p sy
+la ck
+▁s led
+▁s light
+▁g am
+st on
+▁b lack
+▁c e
+▁f ant
+▁play ers
+▁no w
+ge ham
+▁sh adow
+ar re
+▁1 986
+▁exc lus
+▁be ing
+▁driving/racing 
+
+ack man
+▁al ways
+▁tur bo
+ron aut
+ct ronic
+▁i' ve
+▁softw or
+▁qu ite
+▁tr ackman
+▁been ox
+▁bo ston
+▁go d
+▁ele ctronic
+▁review s.
+
+▁fire pr
+▁illusion s
+▁ho le
+▁tell tale
+▁ast ronaut
+▁tar sier
+▁psy onix
+▁sled geham
+▁slight ly
+▁exclus ive
+▁trackman ia
+▁firepr oof
+▁sledgeham mer
+▁2 ,
+▁there 's
+▁concep ts
+▁curiou s,
+▁expec ted
+' re
+▁s ame
+al ity
+▁releas es
+▁con s
+▁inter est
+▁how ever
+▁n orm
+▁playstation .
+
+▁excellent 
+
+▁con so
+▁ty pic
+▁lo t
+▁element s
+▁conso le
+c re
+d u
+▁t end
+▁in cl
+nt ly
+ri s
+▁linux .
+▁only .
+▁pinball ,
+▁cons ider
+v ing
+▁g u
+▁c ur
+▁of fer
+th ing
+▁2014 .
+▁pro du
+▁wonder ing,
+▁co de
+▁norm ally
+▁cur re
+1 ,
+f ore
+j e
+k ill
+m ble
+m ast
+n ation
+s on
+y ro
+▁p yro
+▁f 1
+▁h ud
+el ine
+▁to w
+▁to ky
+▁1 1,
+▁en se
+▁200 3
+▁teen) .
+▁la ck
+▁4 a
+▁ar ts
+▁ad eline
+▁inter nation
+▁over kill
+▁co me
+▁typic ally
+▁code mast
+▁curre ntly
+▁hud son
+▁toky o
+▁ense mble
+▁internation al
+▁codemast ers
+▁ lat
+▁p ar
+as e
+▁2 ?
+
+▁be fore
+▁3 .
+▁love d
+▁amaz ing
+h ,
+▁th an
+lo re
+▁mo re
+▁only .
+
+i le
+▁c ase
+▁person .
+▁re cent
+▁pc ?
+
+▁platform ers
+▁can 't
+▁ver y
+▁qu ality
+▁feature s
+c a
+d io
+u g
+in al
+ers ion
+▁w e
+ie ld
+▁do wn
+▁me dio
+▁wh ile
+tt en
+▁shoot ing
+▁bet ter
+mpress ed
+▁lat ely
+▁medio cre
+d i
+f ly
+▁s a
+▁f inal
+▁v ersion
+▁be ca
+▁ne w
+▁vi i
+▁review s
+▁fant asy
+▁softwor ks
+▁incl ud
+▁beca use
+b ur
+b rand
+f ield
+i ow
+▁s out
+▁g rim
+▁b arre
+▁b iow
+▁the ir
+▁it .
+
+▁person .
+
+▁fir ax
+▁indie 
+
+▁con t
+▁us ually
+sh ade
+▁cre w
+▁night shade
+▁ti bur
+▁fire fly
+▁fire brand
+▁battle field
+▁cap com
+▁however ,
+▁produ ction
+▁sout ham
+▁grim lore
+▁barre l
+▁biow are
+▁firax is
+▁tibur on
+p p
+▁n ice
+ai l
+▁to ld
+▁ab s
+▁astronaut s
+r ing
+▁m ind
+▁multiplayer ?
+
+▁2016 .
+po int
+▁dis ap
+▁friend s
+▁interest ed
+▁recent ly
+▁disap point
+t en
+▁a w
+le ction
+ou s
+▁d et
+▁mature) .
+▁spe ct
+▁2015 .
+i lar
+r u
+u la
+▁a g
+▁game play
+▁o h,
+▁re fer
+▁good .
+▁sim ilar
+▁ma ke
+▁can no
+▁studios .
+▁2018 .
+
+ular ly
+▁too .
+
+▁they 're
+▁par tic
+▁before ?
+
+▁canno t
+▁a tten
+▁it ,
+▁h ate
+▁xbox .
+▁xbox ?
+
+▁su r
+▁puzzle s
+▁rating ,
+▁enjoy able
+▁most ly
+▁rpg s
+▁some thing
+▁unfortunately ,
+▁det ail
+▁refer ring
+▁atten tion
+2 ,
+9 ,
+b ru
+d s
+d us
+i max
+i ous
+k t
+l la
+o dus
+t no
+v ol
+z ion
+z ero
+▁ rat
+▁a ug
+▁a zero
+▁s ie
+▁s ant
+▁s yst
+en imax
+▁b it
+▁2 2,
+▁2 9,
+▁c d
+▁c li
+▁sh ort
+ic a
+▁ex odus
+▁sim ula
+un e
+un os
+▁with out
+▁mo on
+▁spe c
+▁k unos
+▁2014 .
+
+▁2015 ,
+▁j une
+▁fe bru
+▁2011 .
+▁2018 .
+▁pro je
+▁simulator .
+▁simulator s
+▁warcraft :
+▁z enimax
+▁mon ica
+▁don tno
+▁allo w
+▁allo ds
+erri lla
+▁gam ing
+▁consider ed
+▁gu errilla
+▁cont ent
+▁barrel s
+ious ly
+zion i
+▁aug ust
+▁azero th
+▁sant a
+▁syst em
+▁cli max
+▁simula zioni
+▁febru ary
+▁proje kt
+▁dontno d
+- so
+c es
+e en
+v iously
+w een
+ou nt
+▁in vol
+▁n or
+▁was n't
+▁so -so
+▁not hing
+th ough
+▁platformer .
+▁al though
+▁pre viously
+▁ad di
+▁disli ked
+▁bet ween
+▁right ?
+
+▁exclusive ly
+y le
+er ely
+la ss
+▁i m
+▁m erely
+▁in c
+ul l
+▁of ten
+▁perspective s.
+▁cre ated
+▁man y
+▁mode .
+▁end .
+▁too .
+▁up com
+▁them ?
+
+▁t erri
+▁y et
+▁b a
+▁c lass
+▁f am
+el ight
+▁ro ck
+est 
+
+▁wh o
+▁nintendo .
+
+▁simulation 
+
+▁3 ,
+▁un i
+▁teen) 
+
+▁com m
+▁entertainment .
+▁tactical 
+
+▁studios ,
+▁fa ir
+▁review s.
+▁hunt ?
+
+▁sa w
+▁sur p
+▁rat her
+i ally
+▁ es
+▁s ti
+▁s et
+ou r
+ul y
+▁re f
+▁xbox .
+
+ly ,
+▁so l
+▁played ?
+
+▁2014 ,
+pec ially
+▁release .
+▁i' d
+▁reloaded ?
+
+▁2010 .
+▁bioshock ?
+
+▁2013 .
+▁tr uly
+▁wonder ing
+ili ar
+▁though .
+
+▁much ?
+
+▁allow s
+▁terri ble
+▁class ic
+▁fam iliar
+▁comm on
+▁surp ris
+▁es pecially
+a b
+▁a pp
+st rateg
+ea p
+▁play .
+
+▁re c
+▁st yle
+it able
+▁games 
+
+▁shooter .
+
+if fer
+do s
+▁su itable
+▁r ts
+▁nintendo .
+▁platform ing
+▁k ind
+▁ch eap
+▁everyone) .
+▁2017 .
+te ,
+▁say ing
+▁lately ?
+
+▁partic ularly
+strateg y
+iffer ent
+- man
+6 ,
+7 ,
+i dos
+j a
+o ber
+p ite
+r é
+r um
+v ory
+w ood
+y er
+z elight
+▁ 7,
+in ja
+▁i vory
+st ar
+▁game 
+
+▁n inja
+▁o ct
+▁e idos
+lo by
+ie st
+▁sh ore
+▁1 6,
+▁ha zelight
+▁entertainment 's
+▁ch ris
+▁sc ary
+▁mmorpg 
+
+▁2017 ?
+
+lanc ed
+▁sp ider
+▁wonder ,
+▁music 
+
+▁ev olution
+▁strange .
+▁red wood
+▁des pite
+▁mont ré
+▁ho loby
+▁general ?
+
+▁tow er
+▁tow ard
+lection s
+▁spect rum
+▁addi ctive
+▁im m
+▁ba lanced
+▁rock star
+▁saw yer
+▁sti ll
+▁ref lections
+▁rec all
+▁oct ober
+▁spider -man
+▁montré al
+▁holoby te,
+f in
+o ther
+▁i mpressed
+ers ive
+▁an other
+▁st and
+un ch
+▁ma y
+▁release ?
+
+ol ut
+▁2016 ,
+▁tycoon ?
+
+il ity
+▁kings ?
+
+▁poorly -rated
+▁abs olut
+▁ag o
+▁imm ersive
+n g
+o me
+p ly
+s i
+ve s
+▁m -rated
+▁f ami
+es ome
+▁play ?
+
+▁e asy
+▁average ?
+
+▁adventure .
+▁sim ply
+is h
+▁mac ?
+
+▁develop ers
+▁rating s,
+ack ed
+▁entertainment ,
+▁everyone) ,
+▁2016 .
+
+▁2011 ,
+▁2005 .
+▁skyforge .
+▁well .
+
+▁revelation .
+▁includ ing
+▁aw esome
+▁spec ial
+▁upcom ing
+▁shore s
+▁fami ly
+y ,
+▁a ud
+at ur
+▁s ad
+le ar
+▁f ull
+▁you ?
+
+oo ter
+▁o ld
+▁play s
+▁play able
+al le
+ac t
+▁v ia
+▁strateg ic
+▁linux ?
+
+os e
+▁mature) 
+
+▁ii ,
+▁ii .
+▁perspective s.
+
+▁3 ?
+
+▁entertainment 
+
+▁ch alle
+▁4 ?
+
+sh ooter
+▁other 
+
+▁reloaded ,
+▁2010 ,
+▁wanted .
+▁fighting 
+
+▁league ?
+
+▁2033 ?
+
+▁lines .
+▁apocalypse ?
+
+ful 
+
+▁cap ab
+▁uni mpressed
+▁sol ving
+▁toward s
+▁absolut ely
+e p
+l ic
+in ally
+▁a ct
+▁p ick
+▁in st
+ri ght
+▁h e
+▁h el
+▁li king
+▁or ig
+▁mo ment
+▁give n
+▁2015 ?
+
+▁la unch
+▁2018 ,
+▁only ,
+▁fun ,
+▁fun .
+▁fun ction
+▁comb in
+▁1999 .
+▁mode ,
+▁2k16 ?
+
+ili ties
+▁time .
+▁loo k
+▁developer ,
+▁okay .
+▁element s.
+▁we 're
+▁down load
+▁capab ilities
+▁act ually
+▁orig inally
+c as
+i es
+t s.
+u ti
+w h
+▁ ke
+▁ jo
+▁a c
+ing .
+
+▁m ust
+▁w ish
+▁b or
+▁b ea
+es da
+▁it .
+▁games '
+▁v ?
+
+▁to t
+▁be th
+▁simulation -
+▁platform s
+▁platform .
+
+▁give s
+▁mature) ,
+▁un us
+▁k id
+▁2015 .
+
+▁entertainment ?
+
+▁ta ke
+▁us es
+▁fe atur
+▁mmorpg ,
+▁fun .
+
+▁man ,
+▁qu ick
+▁older) .
+
+▁catalyst ?
+
+▁review ed
+▁2004 .
+
+▁de fin
+▁bomberman ?
+
+ien ces
+▁general ,
+▁title s
+▁curiou s
+▁option .
+
+▁players .
+
+▁aud iences
+lic ated
+▁inst ance
+▁bea uti
+▁beth esda
+▁featur ing
+- to
+- lear
+3 ,
+b je
+j er
+m it
+o ice
+p s
+p er
+▁ leas
+re d
+▁t ear
+or b
+▁s qu
+as on
+as tic
+▁th ose
+ve mber
+▁g ri
+▁g ho
+ti ve
+▁n ade
+▁b iz
+▁c ri
+▁re ason
+▁of ?
+
+▁no vember
+it ely
+▁<|player_perspective|> 
+
+▁action-adventure 
+
+▁good ?
+
+▁average .
+
+▁average -rated
+▁adventure 
+
+▁adventure -
+▁1 ,
+▁1 3,
+▁ha ving
+▁<|esrb|> 
+
+ght en
+▁li mit
+rated 
+
+▁ind ifferent
+▁so ,
+▁<|has_linux_release|> 
+
+ce mber
+▁199 7
+▁un cas
+▁are n't
+ow er
+▁com ing
+▁ch ance
+▁ch oice
+▁everyone) 
+
+▁studios .
+
+▁studios ?
+
+▁us ers
+▁us ?
+
+▁am ount
+▁2011 ?
+
+▁2017 .
+
+▁you' d
+▁ty pe
+▁2005 .
+
+▁se e
+▁hit man
+▁2009 .
+
+▁nightmare s.
+▁emp ower
+▁1994 .
+
+▁crysis .
+▁de cember
+▁superhot ,
+▁fri ghten
+▁sims ?
+
+▁genre ,
+▁friend s.
+
+▁che er
+▁come s
+▁includ es
+▁abs orb
+▁recently ?
+
+▁similar ly
+▁invol ves
+▁challe ng
+▁he y,
+▁tot ally
+▁unus ual
+▁quick -to
+▁defin itely
+-lear n
+jer king
+▁leas t
+▁tear jerking
+▁squ are
+▁gho st
+▁nade o
+▁biz arre
+▁uncas ual
+▁quick-to -learn
+! 
+
+b e
+b ility
+er ed
+re ct
+▁p er
+▁i mpress
+▁w orth
+▁f re
+es .
+oo l
+▁re g
+▁st ory
+ie ve
+▁good ,
+▁view ?
+
+▁wh ere
+▁puzz le-
+▁as pec
+▁rating ?
+
+▁teen ag
+▁enjoy ing
+▁us .
+▁us e
+▁2018 ?
+
+▁you' ll
+▁know s
+▁cor rect
+▁driver ?
+
+▁1999 .
+
+▁support ,
+▁bioshock ,
+▁tr ue
+▁hit s.
+▁mean s
+▁undertale ,
+▁undertale ?
+
+▁2009 .
+▁2012 .
+▁stron g
+▁lin e
+▁2033 .
+▁1998 .
+▁okay ,
+▁payne ?
+
+▁tetris ?
+
+▁shooters ,
+▁shooters ?
+
+▁fant astic
+▁softwor k
+▁releases .
+
+▁console s
+▁gri tty
+▁teenag ers
+b ly
+c us
+c ount
+i gh
+o cus
+u p
+v o
+w ard
+▁a ble
+on est
+▁p la
+le ss
+▁g ra
+▁b u
+▁c our
+▁c ool
+▁f ocus
+▁play ,
+▁h ated
+▁h igh
+▁h onest
+▁that ?
+
+▁adventure ?
+
+▁su bje
+qu ent
+▁ne ither
+▁platform s,
+▁wor st
+▁teen) ,
+▁studios '
+▁single-player ,
+▁2005 ,
+▁warcraft ,
+▁15 .
+▁reloaded .
+▁support .
+▁rpg .
+▁feel ing
+▁league .
+▁older) .
+▁hu ge
+▁review s,
+▁2004 .
+▁darknes s.
+▁2002 .
+▁2000 ,
+▁2000 .
+▁experience .
+
+▁seem s
+▁expec t
+▁2019 .
+
+▁players .
+▁now ,
+▁gu es
+▁sa fe
+▁yet ?
+
+▁common ly
+▁jo b
+▁fre quent
+▁line up
+▁cour se
+▁subje ct
+c has
+e o
+t s,
+u me
+u ke
+w ar
+▁a vo
+▁p lus
+▁p eo
+▁th ing
+▁th ri
+ti re
+en ce
+▁m at
+▁b ro
+▁b el
+▁the me
+▁an no
+ea l
+▁c are
+▁e as
+ac ular
+ge ther
+▁l uke
+▁<|platforms|> 
+
+▁<|release_year|> 
+
+▁<|developer|> 
+
+▁en ough
+▁en count
+▁en tire
+▁po si
+▁excellent ?
+
+▁<|available_on_steam|> 
+
+▁<|has_mac_release|> 
+
+▁like ?
+
+▁mo d
+▁wor k
+▁con ven
+▁platformer 
+
+▁2014 ?
+
+▁us er
+▁point-and-click 
+
+▁2018 
+
+▁fun ?
+
+▁try ing
+▁support s
+▁ar ound
+▁combat 
+
+▁online .
+▁2012 .
+
+▁doom .
+▁2001 .
+
+▁1994 .
+▁favor it
+▁looking 
+
+▁dog .
+▁corporation ,
+▁division .
+▁too ?
+
+▁alone ?
+
+▁fear ,
+▁2007 .
+
+▁pur chas
+▁element s,
+▁mafia ,
+▁1993 .
+▁genre .
+▁genre s
+▁genre .
+
+▁either .
+▁amaz ing?
+
+▁cities ,
+▁opinion .
+▁interest ing
+▁quality .
+▁disappoint ing
+▁spect acular
+▁surpris ing
+▁cheap 
+
+iest 
+
+▁scary 
+
+▁addictive 
+
+▁balanced 
+
+▁launch ed
+▁ke ep
+▁simulation- strategy
+▁frequent ly
+war m
+▁avo id
+▁peo ple
+▁bel ieve
+▁anno y
+▁luke warm
+▁encount ered
+▁posi tive
+a lent
+l er
+n ed
+p acked
+r ust
+u de
+at ive
+or ough
+▁p ut
+le nd
+▁th orough
+▁m ulti
+▁m is
+▁m id
+▁b lend
+▁d ay
+▁f act
+▁f ps
+▁f rust
+▁o h
+▁play .
+▁and ,
+▁st un
+▁action- packed
+▁to gether
+if ic
+is tic
+▁li k
+▁me ,
+▁me .
+▁me .
+
+▁me ant
+▁me ss
+▁available .
+
+▁driving ,
+▁nintendo ?
+
+▁mature) ?
+
+▁as king
+th ers
+▁platformer .
+
+▁k ing
+▁com pe
+▁entertainment .
+
+▁world .
+▁recommend ?
+
+▁us ,
+▁any thing
+▁4 .
+iv alent
+▁2011 .
+
+▁pre s
+▁vi ,
+▁vi ?
+
+▁pro ba
+▁really ,
+▁simulator s,
+▁dri ve
+▁pinball ?
+
+▁1999 ,
+▁rece ption
+▁se lection
+▁wanted ,
+▁online ,
+▁2009 ,
+▁all .
+▁ass ume
+▁software 's
+▁league ,
+▁2012 ,
+▁catalyst ,
+▁room .
+▁hits ?
+
+▁1994 ?
+
+▁hunt .
+▁crysis ,
+▁some time
+▁too ,
+▁2007 .
+▁element s?
+
+▁payne .
+▁warfare ?
+
+▁disli king
+▁feature .
+
+▁india .
+▁prefer ence
+▁console s.
+▁version .
+
+▁enjoyable ?
+
+▁spec ific
+▁may be
+▁solving .
+▁adventure- shooter
+▁bu y
+▁thri ll
+▁thorough ly
+▁mid d
+▁frust rating
+▁proba bly
+a ve
+d ing
+j or
+l ust
+p th
+t ry
+u mp
+▁a vaila
+▁a mb
+at ing
+▁p acked
+la x
+▁i mp
+ti al
+en s
+▁n eg
+ir ky
+▁d ull
+▁d ifferent
+▁c ol
+es ?
+
+▁re lax
+▁no stal
+▁h old
+▁that ,
+▁action- strategy
+▁good .
+
+▁en try
+▁strategy .
+▁ha pp
+▁ma jor
+▁puzz ler
+ta ctical
+▁un in
+▁real istic
+com p
+are d
+▁al right
+▁conf us
+▁us ed
+▁raider ,
+▁mmorpg .
+▁2017 ,
+▁know ,
+▁one ?
+
+▁comb ine
+▁try .
+▁driver ,
+▁qu irky
+▁tycoon .
+▁bioshock .
+▁2013 .
+
+▁rpg s?
+
+▁2k16 .
+▁go tten
+▁room ,
+▁theory ?
+
+▁skyrim .
+▁some wh
+▁element s.
+
+▁great ?
+
+▁ead .
+▁feature s.
+
+▁interactive .
+▁comp licated
+▁eater .
+▁friend s,
+▁ltd ,
+▁concep ts,
+▁option .
+▁2019 .
+▁prefer red
+▁ce .
+
+▁1986 .
+▁boston ,
+▁console s,
+▁offer ing
+▁2003 .
+▁lack lust
+▁we ird
+▁down right
+▁mediocre .
+▁mediocre ?
+
+▁new est
+▁partic ular
+▁invol ving
+▁fair ly
+▁surpris ed
+▁ago .
+▁special .
+▁pick ed
+▁hel p
+▁function ality
+▁kid s
+▁beauti ful
+▁reg ularly
+▁aspec t
+▁course ,
+▁surprising ly
+▁multi ple
+▁stun n
+▁asking ,
+▁pres ent
+▁amb ivalent
+▁neg ative
+▁somewh at
+▁lacklust er
+- de
+- comp
+a in
+a ir
+b or
+e ther
+f f
+f air
+g l
+h i
+h ap
+i ac
+i ent
+k i
+k en
+n y
+n iac
+p ut
+s om
+w ay
+re ci
+at es
+on gest
+la rating
+la bor
+▁i o
+▁g ory
+▁g oof
+ti ment
+ti cal
+ing ham
+▁m aster
+▁in cre
+▁in -de
+▁in som
+▁b irm
+▁b ased
+▁b last
+▁d one
+▁is ,
+▁you .
+oo se
+▁o thers
+▁e pic
+▁e labor
+▁<|genres|> 
+
+▁re ward
+lat ed
+ter est
+▁l ive
+▁l ong
+▁l ongest
+▁si ll
+▁<|has_multiplayer|> 
+
+▁average ,
+▁adventure s
+▁adventure .
+
+▁ex t
+▁ex hi
+▁released .
+lent ed
+qu e
+ive 
+
+▁wh ether
+▁platform ,
+▁platform s.
+
+▁out .
+▁out ?
+
+▁puzzle s,
+th us
+▁un fair
+ant age
+▁ta lented
+▁ch oose
+▁tactical ,
+▁studios 
+
+▁any way
+▁most ?
+
+ol t
+▁raider .
+▁j ap
+▁2011 
+
+▁le t
+▁one .
+
+▁lo w
+▁lo ki
+▁simulator .
+
+▁rev olt
+▁fun ky
+▁fun ny
+▁2005 ?
+
+▁run ?
+
+▁2010 .
+
+▁driver .
+▁under rated
+▁under rated
+
+▁switch 
+
+▁tycoon ,
+▁combat ,
+▁u gl
+▁2013 ,
+▁all ,
+▁rpg ,
+▁rpg s,
+▁bo ard
+▁team ?
+
+▁room ?
+
+▁doom ?
+
+▁time ,
+▁over rated
+▁over rated
+
+▁over -comp
+▁2001 ,
+▁1994 ,
+▁na use
+▁skyrim ,
+▁red 
+
+▁tetri s.
+▁max is
+▁adv antage
+▁shift ,
+▁corsa .
+▁great .
+
+▁exp ens
+▁well ,
+▁tri ump
+▁payback .
+▁ead ,
+▁up per
+▁sen timent
+▁north .
+▁interactive ,
+▁interactive ?
+
+▁comp ared
+▁vis ually
+▁dynamic 
+
+▁cal m
+▁right ,
+▁design ?
+
+▁1990 .
+▁option ,
+▁either .
+
+▁bad ,
+▁bad ?
+
+▁opinion ?
+
+▁gam er
+▁boston 
+
+▁boston .
+▁concepts 
+
+▁incl ude
+▁lack ing
+▁tokyo 
+
+▁par t
+▁than ks
+▁platformers ,
+▁better .
+▁mediocre .
+
+▁new est
+
+▁mind less
+▁disappoint ing
+
+▁gameplay ?
+
+▁bit .
+▁short 
+
+▁short est
+▁short est
+
+▁so-so .
+▁upcom ing
+
+▁who le
+▁classic 
+
+▁app reci
+▁immersive 
+
+▁old est
+▁old est
+
+▁ac c
+▁beauti ful
+
+▁cri tic
+▁cri tical
+▁chance ?
+
+▁amount .
+▁empower ing
+
+▁frighten ing
+
+▁cheer ful
+▁cheer ful
+
+▁absorb ing
+
+▁challeng ing
+▁challeng ing
+
+▁unusual 
+
+▁tearjerking 
+
+▁bizarre 
+
+▁quick-to-learn 
+
+▁correct ?
+
+▁pla in
+▁bro ken
+▁conven ient
+▁mis s
+▁king s.
+▁availa bility
+▁col or
+▁nostal gic
+▁unin terest
+▁functionality .
+
+▁goof y
+▁in-de pth
+▁insom niac
+▁birm ingham
+▁elabor ate
+▁exhi larating
+▁jap an
+▁over-comp licated
+▁triump h
+' ve
+) ,
+0 +
+1 0+
+a ri
+g n
+g le
+i st
+o t
+p ed
+p os
+s el
+u ff
+y .
+er en
+in dow
+▁a f
+▁a do
+▁a tt
+▁t ea
+or y's
+or ding
+▁s ure
+▁s lated
+le s
+▁th ings
+▁i d
+▁m ix
+▁w ron
+▁w eren
+▁w indow
+▁b as
+▁the ory's
+▁d ate
+▁d ug
+▁2 .
+
+▁c am
+▁f ol
+▁e .
+
+▁e 10+
+ac e
+lo w
+▁h ard
+▁st ore
+▁on es
+▁playstation 's
+▁l uck
+▁games ?
+▁v ,
+▁v .
+platform er
+ble m
+▁action- tactical
+▁ro le
+▁strategy .
+
+▁exc it
+▁r are
+▁me mor
+▁so on
+▁platform s.
+▁played .
+▁ii .
+
+▁perspective s
+▁sup pos
+▁teen) ?
+
+▁com ple
+▁ta kes
+▁any one
+tt ing
+▁2016 ?
+
+▁thin king
+▁think ?
+
+▁pro blem
+▁forest ,
+▁2010 ?
+
+▁switch ?
+
+▁ar ts.
+▁mention ing
+▁mode ?
+
+▁undertale .
+▁2009 ?
+
+▁go ing
+▁say .
+▁shoot ing,
+▁time .
+
+il led
+▁darknes s,
+▁ear ned
+▁ok .
+▁theory .
+▁2002 .
+
+▁carter .
+▁carter ?
+
+▁dog 's
+▁corporation .
+▁tetri s,
+▁alone ,
+▁fear .
+▁showdown ,
+▁ef fort
+▁okay .
+
+▁great .
+▁1993 ,
+▁erathia ,
+▁feature s.
+▁hor ror
+▁interactive .
+
+▁much .
+
+▁montreal .
+▁friend ly
+▁right ?
+▁concep ts.
+▁amaz ing,
+▁frankfurt .
+▁anthem ,
+▁microprose .
+▁tobyfox ,
+▁overall ,
+▁opinion ,
+▁canada ,
+▁canada ?
+
+▁check ed
+▁gam ers
+▁gam ing?
+
+▁now .
+
+▁astronaut s.
+▁however .
+
+▁consider ing
+▁lack s
+▁tokyo .
+▁international ?
+
+▁better .
+
+▁version s.
+
+▁southam 's
+▁disappoint ed
+▁aw are
+▁enjoyable .
+▁system s.
+
+▁system s,
+ces s
+▁addi tion
+▁uni que
+▁montréal .
+▁stand ard
+▁developers ,
+▁hel d
+▁combin ed
+▁capabilities .
+
+▁audiences .
+
+▁1997 .
+▁frighten ing
+▁correct ly,
+▁softwork s.
+▁gra b
+▁gues s.
+▁theme s
+▁entire ly
+▁purchas e
+▁reception .
+▁present ed
+thus i
+▁acc ording
+▁wron g
+▁weren 't
+▁suppos ed
+- f
+- on
+- st
+- ar
+- put
+b el
+d d
+d in
+e mp
+e tting
+g ag
+i ly
+m s
+o f-
+p or
+p leas
+p ai
+t ent
+t unately
+▁ our
+er tain
+er ms
+▁a h,
+on ent
+▁t w
+▁t .
+
+▁t ra
+▁t erms
+or por
+▁p leas
+me d
+la in
+▁s er
+▁s ort
+as ts
+▁th us
+▁g etting
+▁n ame
+▁an gle
+▁d ue
+▁d eal
+▁is ?
+
+ea bility
+▁c ertain
+▁f la
+▁you ng
+▁o wn
+▁e ?
+
+ul t
+ro l
+▁re de
+ri ate
+▁h ea
+▁st uff
+▁v ari
+▁sh ot
+▁for tunately
+▁that .
+
+▁action- shooter
+ut ed
+▁shooter ?
+
+ic ally
+▁do ing
+▁do ?
+
+▁view s
+port ant
+▁en thusi
+▁en gag
+▁strateg ies
+▁strategy ?
+
+▁po ten
+▁ma king
+▁excellent ,
+us h
+▁available ,
+▁have n't
+▁like ,
+ch ed
+▁platform .
+▁platform s?
+
+▁but ,
+▁puzzle s?
+
+▁ii ?
+
+▁wor se
+▁wor ks
+▁as k
+▁un en
+▁un pleas
+▁are ?
+
+▁every thing
+▁al ong
+▁ch ar
+▁la bel
+ad y
+▁us ing
+▁4 ,
+▁4 's
+▁fe w
+▁mmorpg s
+▁mmorpg .
+
+▁le ts
+▁won 't
+ct ed
+▁one ,
+▁one .
+▁simulator ,
+▁15 ?
+
+▁under wh
+▁1999 ?
+
+▁se en
+▁ad ult
+▁2013 ?
+
+▁online ?
+
+▁undertale .
+
+▁all .
+
+▁all ?
+
+▁all -ar
+▁end ed
+▁older .
+
+▁software ?
+
+▁shoot ing?
+
+▁2001 .
+▁2001 ?
+
+▁crysis ?
+
+▁though ?
+
+▁bomberman ,
+▁bomberman .
+▁earlier ,
+▁corporation ?
+
+▁corporation 's
+▁division ,
+▁red 's
+▁osiris .
+▁thought s
+▁rollcage .
+▁12 ,
+▁2007 ,
+▁showdown ?
+
+▁apocalypse .
+to p
+▁konami .
+▁warfare .
+▁corsa ?
+
+▁throne .
+▁great ,
+▁exp lore
+▁exp lain
+▁well .
+▁year ?
+
+▁off -put
+▁mafia .
+▁payback ,
+▁ead .
+
+▁pursuit .
+▁ho me
+▁break ,
+▁north ,
+▁example ,
+▁comp onent
+▁dawn ,
+▁montreal ?
+
+▁tell ing
+▁cu p
+▁friend s.
+▁title .
+▁experience ,
+▁right .
+rop riate
+▁got ta
+▁option s.
+
+▁speaking ,
+▁esrb .
+
+▁2008 .
+▁tobyfox .
+▁tobyfox 's
+▁best .
+▁ce ,
+▁now .
+▁now ?
+
+▁astronaut s,
+▁astronaut s?
+
+▁console .
+▁console s.
+
+▁amazing .
+▁down loaded
+di ble
+di tion
+▁cont rol
+▁tiburon 
+
+▁tiburon ,
+▁disappoint ing?
+
+▁aw ay
+▁ag ain
+▁gameplay .
+▁detail ?
+
+▁azeroth ,
+▁system s
+▁invol ve
+▁im portant
+▁inc .
+▁inc .
+
+▁inc orpor
+▁app ropriate
+▁developers ?
+
+▁sad ly
+▁combin es
+▁simulation- sport
+▁limit ed
+▁empower ing
+▁tearjerking ?
+
+▁per fect
+▁per hap
+▁focus ed
+▁high ly
+▁honest ly
+▁honest ly,
+▁mat ter
+▁mod es.
+▁lik eability
+▁compe tent
+▁sometime s
+▁midd le
+▁happ y
+▁incre dible
+▁nause at
+▁appreci ate
+▁af ter
+▁id ea
+▁window s
+▁bas ically
+▁cam pai
+▁store .
+▁excit ed
+-on ly
+din ary
+▁tra dition
+▁rede fin
+▁engag ing
+▁poten tial
+▁unpleas ant
+▁underwh el
+▁all-ar ound
+▁off-put t
+▁incorpor ates
+▁perhap s
+▁campai gn
+- r
+- releas
+a us
+d ic
+e -
+i p
+i ble
+i ld
+k .
+k er
+l ing
+l se
+l ick
+m o
+m is
+m ore
+m ately
+n a
+n ge
+p t
+p y
+p ie
+p hic
+p top
+s w
+s ion
+t end
+u led
+v id
+v iv
+w d
+y ?
+
+re ady
+at is
+on us
+on na
+▁t ?
+
+▁t -rated
+▁p lan
+▁p ast
+▁s ong
+▁s ound
+ve .
+ve d
+▁g r
+▁g onna
+ti tive
+st and
+▁m one
+▁m ine
+ed ?
+
+▁n on
+▁b oo
+▁b are
+▁b unch
+▁b onus
+▁an sw
+▁d ated
+▁d rop
+▁d elight
+▁c lo
+▁c lear
+▁c aus
+▁c lick
+▁f all
+▁f ig
+▁f ine
+▁f illed
+es .
+
+ation s
+▁o per
+▁o dd
+▁e ,
+▁e vent
+▁e -rated
+▁e lse
+ure d
+ro ve
+ro ss
+ac h
+ri end
+▁h y
+▁h and
+▁h our
+▁action .
+
+▁for ward
+▁to day
+▁was .
+▁was te
+▁ro ad
+▁do ing,
+▁view s.
+
+▁first 
+
+▁sim .
+
+▁sim s.
+▁releas ing
+▁en h
+▁strategy -
+▁su c
+▁role-playing .
+
+qu ate
+▁ma in
+▁r ave
+▁r ace
+▁excellent .
+▁li st
+▁me h
+▁me ?
+
+▁wh ose
+▁available .
+▁nintendo 's
+▁simulation s?
+
+▁so ld
+▁like .
+▁platform ?
+
+▁platform s:
+▁out ,
+▁puzzle s.
+lan ce
+▁perspective s,
+th e-
+▁con st
+▁un less
+▁are ,
+▁platformer ?
+
+ment .
+
+▁teen -rated
+▁2014 's
+▁about ?
+
+▁al mo
+▁al ready
+▁2015 
+
+▁ch ild
+▁la ptop
+▁us .
+
+▁any more
+▁this ,
+▁4 
+
+iv ing
+ally ,
+▁mmorpg s,
+▁turn ed
+▁2017 
+
+▁there ,
+▁there .
+
+▁there ?
+
+▁single-player .
+
+▁soft 
+
+▁soft ,
+▁pro vid
+▁know n
+▁know ?
+
+▁forest .
+▁lo ts
+▁lo vers
+▁simulator s?
+
+▁fun 
+
+▁scroll ing
+▁run ,
+▁run .
+▁try ?
+
+▁2010 
+
+▁2010 's
+▁pinball .
+▁made ?
+
+▁under stand
+▁1999 
+
+▁last 
+
+▁combat ?
+
+▁vehic le
+▁wanted ?
+
+▁2013 
+
+▁10+ ,
+▁10+ .
+
+▁mean ,
+▁wonder 
+
+▁rpg ?
+
+▁ton s
+▁software .
+▁feel s
+▁cat eg
+▁get s
+▁fan s
+▁nightmare ,
+▁older) ,
+▁catalyst .
+▁say ,
+▁say .
+
+▁team 
+
+▁team ,
+▁team .
+
+▁would n't
+▁doom ,
+▁time ?
+
+▁1994 
+
+▁hunt ,
+▁hunt .
+
+▁strange ,
+▁tal k
+▁tal ked
+▁though ,
+▁though .
+▁theory 
+
+▁developer ?
+
+▁cro wd
+▁2002 ?
+
+▁os ?
+
+▁manag ed
+▁enem ies
+▁dog ,
+▁dog .
+
+▁corporation 
+
+▁favorite 
+
+▁red ,
+▁1998 ,
+▁1998 .
+
+▁lines ,
+▁osiris ,
+▁show s
+▁rollcage ,
+▁shift .
+▁okay ?
+
+▁2000 
+
+▁2000 ?
+
+▁warfare ,
+▁warfare ?
+▁throne ,
+▁tri ck
+▁1993 .
+
+▁ead 
+
+▁ead ?
+
+▁ead 's
+▁through out
+▁ho p
+▁break .
+▁north 's
+▁poorly .
+
+▁much .
+▁them .
+▁them .
+
+▁dawn ?
+
+▁montreal ,
+▁studio .
+▁experience ?
+
+▁decent .
+▁design .
+▁design 's
+▁then ,
+▁then ?
+
+▁ltd 
+
+▁ltd .
+▁option s
+▁option ?
+
+▁cities ?
+
+▁2008 ?
+
+▁canad a's
+▁2k19 ?
+
+▁frankfurt ?
+
+▁tobyfox 
+
+▁tobyfox .
+
+▁overall ?
+
+▁back .
+
+▁prefer ?
+
+▁massive ly
+▁opinion .
+
+▁best ,
+▁canada 
+
+▁canada .
+▁could n't
+▁ce 
+
+▁ce .
+▁1986 
+
+▁1986 ,
+▁1986 .
+
+▁turbo .
+▁beenox 
+
+▁beenox ,
+▁beenox .
+
+▁beenox 's
+▁boston 's
+▁psyonix 
+
+▁psyonix ,
+▁exclusive ,
+▁exclusive .
+
+▁typic al
+▁lot ,
+▁lot .
+▁console ,
+▁2003 ,
+▁typically ,
+▁currently ,
+▁tokyo 's
+▁international 
+
+▁international ,
+▁platformers ?
+
+▁quality ,
+▁quality ?
+
+▁lately .
+▁version s
+▁softworks 
+
+▁softworks '
+▁includ ed
+▁southam 
+
+▁barrel s.
+▁bioware 's
+▁tiburon .
+▁tiburon .
+
+▁nice .
+
+▁astronauts 
+
+▁recently ,
+▁gameplay ,
+▁gameplay .
+
+▁sur viv
+▁something .
+▁rat e
+▁content ,
+▁barrels 
+
+▁system ,
+▁system s.
+▁simulazioni 's
+▁yet .
+
+▁ba lance
+▁sol ve.
+▁terrible 
+
+▁terrible ?
+
+▁surpris ing
+
+ab ility
+▁app eal
+▁style .
+▁tower 
+
+▁tower ?
+
+▁addictive ?
+
+▁sawyer 
+
+▁sawyer ,
+▁immersive ?
+
+▁easy 
+
+▁awesome .
+▁family -f
+▁sad 
+
+▁sad ly,
+▁challe nge
+▁launch ing
+▁function .
+
+▁combin ation
+▁ke pt
+▁jo in
+▁ac ross
+▁bor ing
+▁bor ing
+
+▁bor ing?
+
+▁instance ,
+▁limit ing
+
+▁limit ing?
+
+▁users .
+
+▁amount .
+
+▁absorb ing
+▁absorb ing?
+
+▁impress ive
+▁impress ive
+
+▁puzzle- shooter
+▁strong ly
+▁gritty 
+
+▁teenagers .
+▁teenagers .
+
+▁gra phic
+▁expect ations
+▁gues s
+▁mat ch
+▁theme s,
+▁eas iest
+▁eas iest
+
+▁eas ily
+▁work ,
+▁conven ience
+▁favorit es
+▁favorit es.
+▁favorit es?
+
+▁spectacular 
+
+▁spectacular ?
+
+▁annoy ing
+
+▁fact ,
+▁thrill ing
+▁thrill ing
+
+▁frustrating 
+
+▁imp act
+▁imp rove
+▁dull 
+
+▁relax ing
+
+▁realistic 
+
+▁confus ing
+
+▁quirky 
+
+▁complicated 
+
+▁weird est
+▁weird est
+
+▁stunn ing
+▁stunn ing
+
+▁gory 
+
+▁master pie
+▁epic 
+
+▁reward ing
+▁reward ing
+
+▁longest 
+
+▁sill iest
+▁sill iest
+
+▁ext ra
+▁unfair 
+
+▁anyway .
+
+▁revolt ing
+
+▁funky 
+
+▁funny 
+
+▁ugl iest
+▁ugl iest
+
+▁maxis 
+
+▁expens ive
+▁expens ive
+
+▁calm ing
+
+▁mindless 
+
+▁critic s.
+
+▁broken 
+
+▁color ful
+▁color ful
+
+▁nostalgic 
+
+▁uninterest ing
+
+▁goofy 
+
+▁in-depth 
+
+▁elaborate 
+
+▁exhilarating 
+
+▁over-complicated 
+
+sel f
+▁ado re
+▁att emp
+▁mix ed
+▁fol low
+▁soon ?
+
+▁grab b
+of- the-
+▁tw o
+▁pleas e
+▁fla w
+▁young er
+▁hea ven
+▁vari et
+▁fortunately ,
+ush ed
+▁inc. ,
+▁nauseat ing
+
+▁tradition al
+▁redefin ed
+▁underwhel med
+-r pg
+-releas ed
+atis f
+▁bare ly
+▁bonus .
+
+▁answ er
+▁clo se
+▁fig ured
+quate ,
+▁almo st
+▁surviv al
+▁family-f riend
+▁masterpie ce
+▁attemp t
+' ll
+) .
+- e
+- ex
+a it
+a ves
+b t
+c er
+c ri
+c uted
+d id
+e ,
+e ption
+e cuted
+f illed
+g ame
+g ed
+i or
+k ful
+m ain
+n ing
+n ered
+o g
+o il
+p ar
+p s.
+
+s ed
+t y
+t ing
+t .
+
+t s.
+
+u in
+v in
+v ia
+v ing,
+v ated
+w is
+y s
+y .
+
+y led
+z ed
+▁ -
+▁ form
+▁ ulti
+re n
+re t
+re me
+re nd
+▁a de
+at ch
+at ible
+▁t ame
+▁t rend
+or ge
+or dinary
+▁s le
+▁s al
+▁s our
+▁s ched
+▁s atisf
+as te
+ve y
+▁g ea
+▁g ar
+▁g orge
+ti l
+st ep
+▁m ,
+▁m -
+▁m .
+▁m .
+
+▁m ar
+ers .
+ers .
+
+ou bt
+ed .
+▁w ea
+▁w ait
+▁w atch
+▁game 's
+▁in ?
+
+▁in com
+▁in tend
+rat ive
+▁n ear
+▁n ar
+▁n ic
+▁n atur
+▁b ri
+▁b oot
+▁b ought
+▁b ug
+▁b ring
+▁d il
+▁d ist
+▁d oubt
+ea d
+▁f it
+▁f ut
+▁f ur
+▁f ield
+▁f ail
+es tion
+▁you ,
+▁you .
+
+ation ,
+oo th
+▁o bje
+▁o mis
+▁e qu
+pe ,
+ro w
+ro ad
+ro ach
+▁person ?
+
+ac ter
+ac ts
+▁re put
+ri d
+ri ble
+ri cted
+ri ved
+vent ed
+▁of ?
+lo t
+an ic
+▁no vel
+▁h ating
+▁st arted
+ge t
+▁pc -only
+it ing
+platform ing
+▁action .
+▁for get
+ble ,
+▁si ght
+el f
+▁action- platformer
+▁action-adventure .
+▁( but
+▁( th
+▁to p
+▁to ?
+
+▁to pic
+▁was ,
+▁adventure s,
+le- of-the-
+▁do ing.
+
+▁view ed
+▁ex act
+▁sim ,
+▁sim .
+ke y
+▁released ,
+▁released .
+
+▁released ?
+
+un cher
+▁po p
+▁role- player
+▁role-playing ?
+
+▁ma ker
+▁exc pec
+▁exc use
+▁exc eption
+▁be co
+▁me ch
+▁bird -
+▁steam ;
+▁steam ),
+▁driving .
+
+▁simulation s
+▁requ ires
+▁have ?
+
+▁poor .
+▁poor .
+
+▁not .
+▁ne xt
+▁driving/racing ?
+
+▁ever ?
+
+der n
+▁platform ing,
+▁has n't
+▁or dinary
+▁mo dern
+▁out did
+▁ii ?
+and ing
+▁3 .
+
+li ke
+▁con vers
+▁un hap
+▁un til
+▁real iz
+ia nt
+▁everyone ,
+▁everyone .
+
+▁teen s
+▁ab ility
+▁teen) -rated
+▁need ed
+are ntly
+▁al le
+▁what ever
+▁entertain ing
+▁entertain ing?
+
+ra ctive
+▁world ,
+▁world ?
+▁world ?
+
+▁ta king
+▁recommend .
+joy able
+▁enjoy ,
+▁enjoy ?
+
+ifi ed
+▁everyone) ?
+
+▁la me
+▁la uncher
+ad ed
+▁suggest ?
+
+▁war ,
+▁us ual
+▁any ?
+
+▁does ,
+▁real-time ,
+▁sc ore
+sh ing
+▁sm ooth
+▁think ,
+▁pre dic
+▁pre vented
+▁vi .
+
+▁turn s
+▁le g
+▁le ss
+▁le vel
+▁le ave
+▁le aves
+▁2017 's
+▁sing le
+ire d
+▁soft .
+▁soft 's
+▁pro per
+▁want .
+
+▁gen uin
+▁lo aded
+▁simulator ?
+
+▁simulator s.
+
+▁your self
+▁i' ll
+▁2005 's
+▁racing ,
+▁warcraft .
+▁warcraft ?
+
+▁other wis
+▁try ,
+▁try .
+
+▁15 ,
+ill .
+▁sw ap
+▁pinball .
+
+▁switch .
+▁switch ed
+▁1999 -released
+▁support ),
+▁ar rived
+▁rece iving
+▁se es
+▁playing ,
+▁playing .
+
+▁playing ?
+
+▁combat .
+▁sp oil
+▁wanted .
+
+▁ad d
+▁ad ding
+▁tr ust
+▁hit ,
+▁hit s.
+
+▁hit s,
+▁undertale ?
+▁did .
+
+▁wonder ?
+
+▁chaos .
+▁rpg .
+
+▁rpg s.
+
+▁fighting ?
+
+▁end ,
+▁end ?
+▁bo ast
+▁bo asts
+▁find ,
+▁2k16 ?
+▁older .
+▁which ,
+▁software ,
+▁software .
+
+▁love s
+▁feel ings
+▁go .
+▁go es
+▁go .
+
+▁hear ing
+▁league .
+
+▁music -
+▁ele vated
+▁catal og
+▁fan c
+▁fan s.
+▁nightmare s,
+▁review ers.
+▁team .
+▁team 's
+▁would 've
+▁far .
+
+▁port ed
+▁2001 's
+▁2004 ,
+▁skyforge ,
+▁skyforge .
+
+▁ok ,
+▁enjoyed ?
+
+▁theory ,
+▁de c
+▁de p
+▁de v
+▁de ci
+▁developer .
+
+▁cro ss
+▁carter ,
+▁carter .
+
+▁darkness ?
+
+▁dog ?
+
+▁favorite ,
+▁favorite .
+
+▁favorite ?
+
+▁some .
+
+▁some th
+▁1998 ?
+
+▁superhot ?
+
+▁alone .
+
+um er
+▁way .
+▁rest ricted
+▁12 .
+▁bird's -e
+▁remember ?
+
+▁des cri
+▁payne ,
+▁2000 .
+
+▁konami ,
+▁konami 's
+▁corsa ,
+▁great ly
+▁exp anding
+▁well ?
+
+▁val ue
+▁year ,
+▁year .
+▁year .
+
+▁mafia ?
+
+▁pursuit ,
+▁erathia ?
+
+▁feature d
+▁they 've
+▁through ?
+
+▁up .
+▁up ?
+
+▁star t
+▁hor rible
+▁north .
+
+▁poorly .
+▁genre ?
+
+▁starcraft .
+▁revelation ,
+▁example .
+
+▁example ?
+
+▁comp atible
+▁them sel
+▁eater ,
+▁montreal .
+
+▁montreal 's
+▁sacrifice .
+▁sacrifice ?
+
+▁its elf
+▁title ,
+▁title .
+
+▁title s?
+
+▁experience .
+▁decent .
+
+▁decent ly
+▁ltd 's
+▁1990 ,
+▁1990 .
+
+▁1990 ?
+
+▁option s,
+▁either ,
+▁seem s.
+▁tin y
+▁frank ly,
+▁unfortunately .
+
+▁esrb ,
+▁esrb :
+▁esrb ?
+
+▁player .
+▁bad .
+▁bad .
+
+▁2019 ?
+
+▁2008 ,
+▁2008 .
+
+▁frankfurt ,
+▁anthem ?
+
+▁microprose 's
+▁overall .
+
+▁dynamics '
+ful ,
+ful .
+ful ?
+
+▁massive .
+
+ast s.
+▁check ing
+▁gam ing,
+▁beenox ?
+
+▁psyonix .
+
+▁psyonix ?
+
+▁exclusive .
+▁concepts '
+▁releases ,
+▁interest .
+▁norm al
+▁tend s
+▁offer ed
+▁offer .
+
+▁produ ct
+▁produ ced
+▁normally ,
+▁tokyo ,
+▁international 's
+▁par tial
+▁before ,
+▁amazing ly
+▁than kful
+▁more ,
+▁more .
+
+▁version ,
+▁new er
+▁vii .
+▁cont inu
+▁nightshade ,
+▁southam ,
+▁bioware ,
+▁bioware ?
+
+pp ed
+▁nice ,
+▁mind ,
+▁disappoint ment
+ru cted
+▁ag re
+▁make ?
+
+▁detail ,
+▁detail 's
+▁bit ,
+▁bit .
+
+▁allow ing
+▁allow ed
+▁gaming .
+▁gaming .
+
+▁content .
+
+▁system ?
+
+▁simulazioni ,
+▁simulazioni ?
+
+▁sti ck
+▁sol ving,
+▁app roach
+▁app arently
+▁rts -rpg
+▁kind a
+▁scary ?
+
+▁sawyer ?
+
+▁stand s
+▁stand ing
+▁absolut e
+▁ago ,
+si de
+▁developers .
+▁aud ience
+▁sad .
+
+▁hel ps
+▁combin ing
+▁capabilities ,
+▁must -
+▁bor ing,
+▁kid s.
+
+▁kid s,
+▁audiences .
+▁reason ,
+▁reason s
+▁reason ?
+
+▁adventure- platformer
+▁limit ing
+▁choice .
+
+▁users ,
+▁users .
+▁empower ing?
+
+▁unusual ?
+
+▁least .
+
+▁square 's
+▁bizarre ?
+
+▁quick-to-learn ?
+
+▁impress ion
+▁reg ret
+▁story line
+ieve d
+▁puzzle- strategy
+▁puzzle- platforming
+▁aspec ts
+▁softwork s.
+
+▁softwork s,
+▁softwork s?
+
+▁gritty ,
+▁teenagers ,
+▁pla ce
+▁pla ced
+▁gues s,
+▁plus ,
+▁bro thers
+▁mod es?
+
+▁mod es.
+
+▁purchas ing
+▁disappointing .
+▁annoy ing
+▁annoy ing?
+
+▁encountered ?
+
+▁mis step
+▁blend s
+▁day .
+▁oh !
+▁together .
+
+▁lik ely
+▁lik ability
+▁mess ed
+▁king s,
+▁compe te
+▁compe titive
+▁reception .
+
+▁specific ally
+▁adventure-shooter ,
+▁thrill ing?
+
+▁midd ling
+▁midd le-of-the-
+▁frustrating ?
+
+▁dull ?
+
+▁relax ing
+▁hold s
+▁entry ,
+▁happ en
+▁puzzler ,
+▁alright ,
+▁alright .
+▁confus ing?
+
+▁used .
+
+▁beautiful ?
+
+▁aspect .
+▁lackluster ?
+
+▁others ,
+▁others ?
+
+▁ext reme
+▁unfair ?
+
+▁choose .
+
+▁revolt ing?
+
+▁overrated ?
+
+▁nause ating
+▁calm ing
+▁appreci ated
+▁convenient .
+
+▁uninterest ing
+▁birmingham .
+
+▁japan .
+▁over-complicated ?
+
+▁ado red
+▁att ractive
+▁tea ?
+
+▁fol ks
+▁luck .
+
+▁rare ly
+▁memor ies
+▁comple te
+▁gamers .
+
+cess or
+-st yle
+▁ser ies
+▁enthusi asts
+▁enthusi asts.
+▁worse ,
+▁ask ,
+▁unen joyable
+▁char act
+▁char acter
+▁likeability .
+
+▁potential .
+
+▁unpleasant ?
+
+▁off-putt ing?
+
+▁plan ning
+▁gr ou
+▁mone y.
+▁boo k
+▁dated ,
+▁drop ped
+▁delight ful
+▁caus es
+▁event ually
+▁enh anced
+▁strategy- tactical
+▁list en
+▁meh ?
+
+▁const ructed
+▁child ren
+▁anymore .
+
+▁provid es
+▁categ ory
+▁appeal ing?
+
+▁graphic s?
+
+▁extra ordinary
+▁follow ing
+▁grabb ing
+▁two ,
+▁heaven .
+
+▁variet y
+▁family-friend ly
+▁ulti mately
+▁ade quate,
+▁sched uled
+▁satisf y
+aste ful?
+
+▁gea red
+▁gar nered
+▁mar ket
+▁wea k
+▁nar rative
+▁nic ely
+▁dil uted
+▁dist asteful?
+
+▁fut ure
+▁fur ther
+▁omis sion
+▁beco me
+▁mech anic
+▁convers ation
+▁unhap py
+▁predic ta
+▁genuin ely
+▁otherwis e
+▁swap s
+▁spoil s
+▁deci de
+▁bird's-e ye
+▁descri be
+▁themsel ves
+▁thankful ly,
+▁middle-of-the- road
