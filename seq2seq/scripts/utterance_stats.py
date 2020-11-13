@@ -7,7 +7,7 @@ import os
 import pandas as pd
 
 
-def extract_utterances_from_file(input_file_path):
+def extract_utterances_from_file(input_file_path, lowercase=False):
     if input_file_path.endswith('.csv'):
         df_in = pd.read_csv(input_file_path, header=0, encoding='utf8')
         if 'utt' in df_in.columns:
@@ -20,22 +20,31 @@ def extract_utterances_from_file(input_file_path):
         with open(input_file_path, 'r', encoding='utf8') as f_in:
             utterances = [line.strip() for line in f_in]
 
+    if lowercase:
+        utterances = [utt.lower() for utt in utterances]
+
     return utterances
 
 
-def utterance_stats(input_file_path, export_vocab):
-    utterances = extract_utterances_from_file(input_file_path)
+def utterance_stats(input_file_path, export_vocab=False, verbose=False):
+    utterances = extract_utterances_from_file(input_file_path, lowercase=True)
 
     vocab_ctr = Counter(chain.from_iterable(map(word_tokenize, utterances)))
     vocab_dict = OrderedDict(vocab_ctr.most_common())
 
     utt_lengths = [len(utt_tokens) for utt_tokens in map(word_tokenize, utterances)]
 
-    print('>> Vocabulary size:', len(vocab_dict))
-    print('>> Avg. utt. length:', round(sum(utt_lengths) / len(utt_lengths), 2))
+    vocab_size = len(vocab_dict)
+    avg_utt_len = round(sum(utt_lengths) / len(utt_lengths), 2)
+
+    if verbose:
+        print('>> Vocabulary size:', vocab_size)
+        print('>> Avg. utt. length:', avg_utt_len)
+    else:
+        print('{}\t{}'.format(vocab_size, avg_utt_len))
 
     if export_vocab:
-        output_file_path = os.path.splitext(input_file_path)[0] + '_vocab.json'
+        output_file_path = os.path.splitext(input_file_path)[0] + ' [vocab].json'
         with open(output_file_path, 'w', encoding='utf8') as f_out:
             json.dump(vocab_dict, f_out, indent=4, ensure_ascii=False)
 
