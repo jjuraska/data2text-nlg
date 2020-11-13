@@ -1,9 +1,7 @@
 model_name: "facebook/bart-base"
-#model_name: "seq2seq/export/rest_e2e/from_scratch_w_pretrained_tokenizer/bart-base_lr_1e-5_bs_32/epoch_13_step_1315"
 pretrained: True
-#tokenizer_name: "bart-base-rest_e2e-lowercase"
-checkpoint_epoch: 7
-checkpoint_step: 1315
+checkpoint_epoch: 5
+checkpoint_step: 1048
 convert_slot_names: True
 batch_size: 32
 max_seq_length: 128

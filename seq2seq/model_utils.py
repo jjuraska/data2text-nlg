@@ -9,6 +9,46 @@ from transformers.modeling_bart import shift_tokens_right
 import yaml
 
 
+class GPT2LMHeadModelWithTokenTypes(GPT2LMHeadModel):
+    def __init__(self, config):
+        super().__init__(config)
+
+    def prepare_inputs_for_generation(self, input_ids, past=None, expand_token_type_size=1, **kwargs):
+        token_type_ids = kwargs.get("token_type_ids", None)
+        if token_type_ids is not None and expand_token_type_size > 1:
+            expanded_return_idx = (
+                torch.arange(token_type_ids.shape[0]).view(-1, 1).repeat(1, expand_token_type_size).view(-1).to(token_type_ids.device)
+            )
+            token_type_ids = token_type_ids.index_select(0, expanded_return_idx)
+
+        # only last token for inputs_ids if past is defined in kwargs
+        if past:
+            input_ids = input_ids[:, -1].unsqueeze(-1)
+            if token_type_ids is not None:
+                token_type_ids = token_type_ids[:, -1].unsqueeze(-1)
+
+        attention_mask = kwargs.get("attention_mask", None)
+        position_ids = kwargs.get("position_ids", None)
+
+        if attention_mask is not None and position_ids is None:
+            # create position_ids on the fly for batch generation
+            position_ids = attention_mask.long().cumsum(-1) - 1
+            position_ids.masked_fill_(attention_mask == 0, 1)
+            if past:
+                position_ids = position_ids[:, -1].unsqueeze(-1)
+        else:
+            position_ids = None
+
+        return {
+            "input_ids": input_ids,
+            "past_key_values": past,
+            "use_cache": kwargs.get("use_cache"),
+            "position_ids": position_ids,
+            "attention_mask": attention_mask,
+            "token_type_ids": token_type_ids,
+        }
+
+
 def load_config(config_name, dataset_name, task, print_config=False):
     config_path = os.path.join('seq2seq', 'config', dataset_name, task, config_name + '.yaml')
 
@@ -127,11 +167,11 @@ def load_gpt2_model_and_tokenizer(config, special_tokens=None):
 
     if config.pretrained:
         # Load model with pretrained weights
-        model = GPT2LMHeadModel.from_pretrained(config.model_name)
+        model = GPT2LMHeadModelWithTokenTypes.from_pretrained(config.model_name)
     else:
         # Load model without pretrained weights
         config = GPT2Config.from_pretrained(config.model_name)
-        model = GPT2LMHeadModel(config)
+        model = GPT2LMHeadModelWithTokenTypes(config)
 
         model.config.eos_token_id = tokenizer.eos_token_id
 
@@ -170,6 +210,10 @@ def load_t5_model_and_tokenizer(config, special_tokens=None):
         # Load model without pretrained weights
         config = T5Config.from_pretrained(config.model_name, vocab_size=len(tokenizer))
         model = T5ForConditionalGeneration(config)
+
+        model.config.eos_token_id = tokenizer.eos_token_id
+        model.config.pad_token_id = tokenizer.pad_token_id
+        model.config.unk_token_id = tokenizer.unk_token_id
 
         # Resize the model's embedding matrix to accommodate the added special tokens
         # model.resize_token_embeddings(tokenizer.get_vocab_size())
@@ -229,7 +273,7 @@ def save_model(model, model_name, epoch, step):
     torch.save(model.state_dict(), os.path.join(model_dir, file_name))
 
 
-def prepare_batch(config, batch, tokenizer, is_enc_dec):
+def prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False):
     batch_dict = {}
 
     # DEBUG
@@ -241,47 +285,45 @@ def prepare_batch(config, batch, tokenizer, is_enc_dec):
 
     # TODO: Incorporate into the data loader?
     if is_enc_dec:
-        # inputs = tokenizer.prepare_seq2seq_batch(batch[0], batch[1], max_length=config.max_seq_length,
-        #                                          padding=True, truncation=True, return_tensors='pt')
         inputs = tokenizer(batch[0], add_special_tokens=True, max_length=config.max_seq_length,
                            padding=True, truncation=True, return_tensors='pt')
-        targets = tokenizer(batch[1], add_special_tokens=True, max_length=config.max_seq_length,
-                            padding=True, truncation=True, return_tensors='pt')
 
         input_ids = inputs['input_ids']
         input_mask = inputs['attention_mask']
-        label_ids = targets['input_ids'].clone()
-        label_ids[label_ids == tokenizer.pad_token_id] = -100
 
-        if 'bart' in config.model_name:
-            """Prepare decoder inputs manually because BART gets confused by the -100 mask values during
-            automatic generation of decoder inputs from labels, expecting the padding token IDs instead."""
-            decoder_input_ids = shift_tokens_right(targets['input_ids'], tokenizer.pad_token_id)
-            # decoder_mask = targets['attention_mask']
-        else:
-            # Decoder input IDs and mask are inferred automatically from labels
-            decoder_input_ids = None
+        if include_labels:
+            labels = tokenizer(batch[1], add_special_tokens=True, max_length=config.max_seq_length,
+                               padding=True, truncation=True, return_tensors='pt')
 
-        batch_dict['decoder_input_ids'] = decoder_input_ids
+            label_ids = labels['input_ids'].clone()
+            label_ids[label_ids == tokenizer.pad_token_id] = -100
+
+            if 'bart' in config.model_name:
+                """Prepare decoder inputs manually because BART gets confused by the -100 mask values during
+                automatic generation of decoder inputs from labels, expecting the padding token IDs instead. 
+                T5 infers decoder input IDs and mask automatically from labels."""
+                batch_dict['decoder_input_ids'] = shift_tokens_right(labels['input_ids'], tokenizer.pad_token_id)
+                # batch_dict['decoder_mask'] = labels['attention_mask']
     else:
-        # if 'gpt2' in config.model_name:
-        #     tokenizer.padding_side = 'left'
-
-        # TODO: Experiment with the token_type_id parameter.
         inputs = tokenizer(batch[0], add_special_tokens=False, max_length=config.max_seq_length,
                            padding=True, truncation=True, return_tensors='pt')
-        mrs_only = tokenizer(batch[1], add_special_tokens=False, max_length=config.max_seq_length,
-                             padding=True, truncation=True, return_tensors='pt')
 
         input_ids = inputs['input_ids']
         input_mask = inputs['attention_mask']
-        mr_mask = mrs_only['attention_mask']
 
-        label_mask = torch.zeros_like(input_ids)
-        label_mask[:, :mr_mask.shape[1]] = mr_mask
-        label_mask[input_ids == tokenizer.pad_token_id] = 1
+        if 'gpt2' in config.model_name and config.use_token_type_ids:
+            batch_dict['token_type_ids'] = create_token_type_ids(input_ids, tokenizer)
 
-        label_ids = input_ids.masked_fill(label_mask, -100)
+        if include_labels:
+            mrs_only = tokenizer(batch[1], add_special_tokens=False, max_length=config.max_seq_length,
+                                 padding=True, truncation=True, return_tensors='pt')
+
+            mr_mask = mrs_only['attention_mask']
+            label_mask = torch.zeros_like(input_ids)
+            label_mask[:, :mr_mask.shape[1]] = mr_mask
+            label_mask[input_ids == tokenizer.pad_token_id] = 1
+
+            label_ids = input_ids.masked_fill(label_mask, -100)
 
     # DEBUG
     # print()
@@ -289,6 +331,8 @@ def prepare_batch(config, batch, tokenizer, is_enc_dec):
     # print('>> DECODED inputs:\n', tokenizer.decode(input_ids[0]))
     # print()
     # print('>> ENCODED input masks:\n', input_mask)
+    # print()
+    # print('>> Token type IDs:\n', token_type_ids)
     # print()
     # print('>> ENCODED labels:\n', label_ids)
     # print('>> DECODED labels:\n', tokenizer.decode(label_ids[0][label_ids[0] >= 0]))
@@ -298,9 +342,31 @@ def prepare_batch(config, batch, tokenizer, is_enc_dec):
 
     batch_dict['input_ids'] = input_ids
     batch_dict['attention_mask'] = input_mask
-    batch_dict['labels'] = label_ids
+    if include_labels:
+        batch_dict['labels'] = label_ids
 
     return batch_dict
+
+
+def create_token_type_ids(input_ids, tokenizer):
+    special_token_id_set = {val for key, val in tokenizer.get_added_vocab().items()}
+    special_token_id_set.update([tokenizer.bos_token_id, tokenizer.eos_token_id, tokenizer.pad_token_id])
+
+    # DEBUG
+    # print('>> Special token ID set:')
+    # print(special_token_id_set)
+
+    token_type_ids = input_ids.clone()
+
+    for i in range(token_type_ids.shape[0]):
+        prev_special_token = token_type_ids[i][0]
+        for j in range(token_type_ids.shape[1]):
+            if token_type_ids[i][j].item() in special_token_id_set:
+                prev_special_token = token_type_ids[i][j].item()
+            else:
+                token_type_ids[i][j] = prev_special_token
+
+    return token_type_ids
 
 
 def create_label_mask(input_ids, input_mask, label_mask):

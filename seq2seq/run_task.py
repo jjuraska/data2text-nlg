@@ -52,7 +52,8 @@ def train(config, dataset_class, device='cpu'):
         scaler = torch.cuda.amp.GradScaler()
 
     # DEBUG
-    # longest_seq = 0
+    longest_source_seq = 0
+    longest_target_seq = 0
 
     for epoch in range(1, config.num_epochs + 1):
         print()
@@ -62,20 +63,25 @@ def train(config, dataset_class, device='cpu'):
         print()
 
         for step, batch in enumerate(tqdm(train_data_loader, desc='Step'), start=1):
-            batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec)
+            batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=True)
 
             # DEBUG
-            # if batch['input_ids'].size(1) > longest_seq:
-            #     longest_seq = batch['input_ids'].size(1)
+            if batch['input_ids'].size(1) > longest_source_seq:
+                longest_source_seq = batch['input_ids'].size(1)
+            if batch['labels'].size(1) > longest_target_seq:
+                longest_target_seq = batch['labels'].size(1)
 
             input_tensor = batch['input_ids'].to(device)
             mask_tensor = batch['attention_mask'].to(device)
             label_tensor = batch['labels'].to(device)
-            if batch.get('decoder_input_ids') is not None:
-                decoder_input_tensor = batch['decoder_input_ids'].to(device)
-            else:
-                decoder_input_tensor = None
 
+            model_specific_args = {}
+            if batch.get('token_type_ids') is not None:
+                model_specific_args['token_type_ids'] = batch['token_type_ids'].to(device)
+            if batch.get('decoder_input_ids') is not None:
+                model_specific_args['decoder_input_ids'] = batch['decoder_input_ids'].to(device)
+
+            # Set model to training mode
             model.train()
 
             # Clear previously calculated gradients (must perform before a backward pass, unless using RNNs)
@@ -84,13 +90,11 @@ def train(config, dataset_class, device='cpu'):
             if config.fp16:
                 # Forward pass
                 with torch.cuda.amp.autocast():
-                    if is_enc_dec:
-                        loss = model(input_tensor, attention_mask=mask_tensor,
-                                     decoder_input_ids=decoder_input_tensor,
-                                     # decoder_attention_mask=decoder_mask_tensor,
-                                     labels=label_tensor, use_cache=False)[0]
-                    else:
-                        loss = model(input_tensor, attention_mask=mask_tensor, labels=label_tensor)[0]
+                    loss = model(input_tensor,
+                                 attention_mask=mask_tensor,
+                                 labels=label_tensor,
+                                 use_cache=False,
+                                 **model_specific_args)[0]
 
                 # Accumulate the training loss
                 train_loss_sum += loss.item()
@@ -108,13 +112,11 @@ def train(config, dataset_class, device='cpu'):
                 scaler.update()
             else:
                 # Forward pass
-                if is_enc_dec:
-                    loss = model(input_tensor, attention_mask=mask_tensor,
-                                 decoder_input_ids=decoder_input_tensor,
-                                 # decoder_attention_mask=decoder_mask_tensor,
-                                 labels=label_tensor, use_cache=False)[0]
-                else:
-                    loss = model(input_tensor, attention_mask=mask_tensor, labels=label_tensor)[0]
+                loss = model(input_tensor,
+                             attention_mask=mask_tensor,
+                             labels=label_tensor,
+                             use_cache=False,
+                             **model_specific_args)[0]
 
                 # Accumulate the training loss
                 train_loss_sum += loss.item()
@@ -159,9 +161,10 @@ def train(config, dataset_class, device='cpu'):
                 model_utils.save_model(model, config.model_name, epoch, step)
 
         # DEBUG
-        # print()
-        # print('>> Longest sequence:', longest_seq)
-        # print()
+        print()
+        print('>> Longest source sequence:', longest_source_seq)
+        print('>> Longest target sequence:', longest_target_seq)
+        print()
 
     model_dir = os.path.join('seq2seq', 'model', 'final')
     model.save_pretrained(model_dir)
@@ -173,27 +176,29 @@ def validate(config, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
 
     eval_loss_sum = 0.0
 
+    # Set model to evaluation mode
     model.eval()
 
     for batch in tqdm(data_loader, desc='Evaluating'):
-        batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec)
+        batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=True)
 
         input_tensor = batch['input_ids'].to(device)
         mask_tensor = batch['attention_mask'].to(device)
         label_tensor = batch['labels'].to(device)
+
+        model_specific_args = {}
+        if batch.get('token_type_ids') is not None:
+            model_specific_args['token_type_ids'] = batch['token_type_ids'].to(device)
         if batch.get('decoder_input_ids') is not None:
-            decoder_input_tensor = batch['decoder_input_ids'].to(device)
-        else:
-            decoder_input_tensor = None
+            model_specific_args['decoder_input_ids'] = batch['decoder_input_ids'].to(device)
 
         with torch.no_grad():
-            if is_enc_dec:
-                loss = model(input_tensor, attention_mask=mask_tensor,
-                             decoder_input_ids=decoder_input_tensor,
-                             # decoder_attention_mask=decoder_mask_tensor,
-                             labels=label_tensor, use_cache=False)[0]
-            else:
-                loss = model(input_tensor, attention_mask=mask_tensor, labels=label_tensor)[0]
+            # Forward pass
+            loss = model(input_tensor,
+                         attention_mask=mask_tensor,
+                         labels=label_tensor,
+                         use_cache=False,
+                         **model_specific_args)[0]
 
             # Accumulate the evaluation loss
             eval_loss_sum += loss.item()
@@ -239,25 +244,38 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
         tokenizer.padding_side = 'left'
 
     for batch in tqdm(data_loader, desc='Evaluating'):
-        inputs = tokenizer(batch[0], add_special_tokens=True, padding=True, truncation=True, return_tensors='pt')
+        batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False)
+
+        input_tensor = batch['input_ids'].to(device)
+        mask_tensor = batch['attention_mask'].to(device)
+
+        model_specific_args = {}
+        if batch.get('token_type_ids') is not None:
+            model_specific_args['token_type_ids'] = batch['token_type_ids'].to(device)
+            if hasattr(config, 'num_return_sequences'):
+                model_specific_args['expand_token_type_size'] = config.num_return_sequences
 
         # DEBUG
+        # print()
         # print('>> ENCODED inputs:', inputs['input_ids'])
-        # print('>> ENCODED mask:', inputs['attention_mask'])
+        # print('>> DECODED inputs:\n', tokenizer.decode(inputs['input_ids'][0]))
+        # print()
+        # print('>> ENCODED input mask:', inputs['attention_mask'])
+        # print()
 
         if is_validation:
             num_seqs_per_input = 1
-            outputs = model.generate(inputs['input_ids'].to(device),
-                                     attention_mask=inputs['attention_mask'].to(device),
-                                     max_length=config.max_seq_length,
+            outputs = model.generate(input_tensor,
+                                     attention_mask=mask_tensor,
                                      min_length=1,
-                                     )
+                                     max_length=config.max_seq_length,
+                                     **model_specific_args)
         else:
             num_seqs_per_input = config.num_return_sequences
-            outputs = model.generate(inputs['input_ids'].to(device),
-                                     attention_mask=inputs['attention_mask'].to(device),
-                                     max_length=config.max_seq_length,
+            outputs = model.generate(input_tensor,
+                                     attention_mask=mask_tensor,
                                      min_length=1,
+                                     max_length=config.max_seq_length,
                                      num_beams=config.num_beams,
                                      early_stopping=config.early_stopping,
                                      no_repeat_ngram_size=config.no_repeat_ngram_size,
@@ -268,7 +286,7 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
                                      repetition_penalty=config.repetition_penalty,
                                      length_penalty=config.length_penalty,
                                      num_return_sequences=config.num_return_sequences,
-                                     )
+                                     **model_specific_args)
 
         generated_sequences.extend(decode_model_outputs(outputs, num_seqs_per_input, tokenizer, is_enc_dec))
 
@@ -309,6 +327,7 @@ def test(config, dataset_class, device='cpu'):
     is_enc_dec = model.config.is_encoder_decoder
     model = model.to(device)
 
+    # Set model to evaluation mode
     model.eval()
 
     # Load test data

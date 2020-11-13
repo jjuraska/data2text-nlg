@@ -1,12 +1,10 @@
-#model_name: "gpt2"
-model_name: "seq2seq/export/video_game/finetuned/gpt2_lr_2e-5_bs_16_wus_100_run4/epoch_9_step_319"
-#tokenizer_name: "gpt2-video_game-lowercase"
+model_name: "gpt2"
 pretrained: True
-#checkpoint_epoch: 11
-#checkpoint_step: 319
+checkpoint_epoch: 13
+checkpoint_step: 2104
 convert_slot_names: True
-batch_size: 16
-max_seq_length: 160
+batch_size: 20
+max_seq_length: 128
 num_beams: 10
 beam_search_early_stopping: True
 do_sample: False

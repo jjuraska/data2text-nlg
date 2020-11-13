@@ -13,6 +13,7 @@ class TaskConfig(object):
         self.batch_size = config.get('batch_size', 1)
         self.max_seq_length = config.get('max_seq_length', 512)
         self.convert_slot_names = config.get('convert_slot_names', False)
+        self.use_token_type_ids = config.get('use_token_type_ids', False)
 
 
 class TrainingConfig(TaskConfig):
