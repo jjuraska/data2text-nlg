@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AdamW, get_linear_schedule_with_warmup
 
-from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, ViggoDataset
+from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, ViggoDataset, ViggoWithE2EDataset
 import seq2seq.eval_utils as eval_utils
 import seq2seq.model_utils as model_utils
 from seq2seq.task_config import TestConfig, TrainingConfig
@@ -389,8 +389,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--config', required=True,
                         help='Training/test config name')
-    parser.add_argument('-d', '--dataset', required=True, choices=['rest_e2e', 'rest_e2e_cleaned', 'video_game'],
-                        help='Dataset name')
+    parser.add_argument('-d', '--dataset', required=True, choices=[
+        'rest_e2e', 'rest_e2e_cleaned', 'video_game', 'video_game_with_rest_e2e'], help='Dataset name')
     parser.add_argument('-t', '--task', required=True, choices=['train', 'test'],
                         help='Task (train or test)')
     args = parser.parse_args()
@@ -402,6 +402,9 @@ def main():
         dataset_class = E2ECleanedDataset
     elif args.dataset == 'video_game':
         dataset_class = ViggoDataset
+    elif args.dataset == 'video_game_with_rest_e2e':
+        dataset_class = ViggoWithE2EDataset
+        args.dataset = 'video_game'
     else:
         print('Error: dataset "{}" not recognized'.format(args.dataset))
         sys.exit()

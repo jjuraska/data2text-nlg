@@ -376,3 +376,25 @@ class ViggoDataset(MRToTextDataset):
         return dataset_path
 
 
+class ViggoWithE2EDataset(MRToTextDataset):
+    """The ViGGO dataset with the training set merged with that of the E2E dataset."""
+    name = 'video_game'
+    delimiters = {
+        'da_beg': '(',
+        'da_end': ')',
+        'slot_sep': ', ',
+        'val_beg': '[',
+        'val_end': ']'
+    }
+
+    @staticmethod
+    def get_data_file_path(partition):
+        dataset_dir = os.path.join('seq2seq', 'data', 'video_game')
+        if partition == 'valid':
+            dataset_path = os.path.join(dataset_dir, 'valid.csv')
+        elif partition == 'test':
+            dataset_path = os.path.join(dataset_dir, 'test.csv')
+        else:
+            dataset_path = os.path.join(dataset_dir, 'train_with_e2e.csv')
+
+        return dataset_path
