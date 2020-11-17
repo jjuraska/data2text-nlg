@@ -376,25 +376,31 @@ class ViggoDataset(MRToTextDataset):
         return dataset_path
 
 
-class ViggoWithE2EDataset(MRToTextDataset):
+class ViggoWithE2EDataset(ViggoDataset):
     """The ViGGO dataset with the training set merged with that of the E2E dataset."""
     name = 'video_game'
-    delimiters = {
-        'da_beg': '(',
-        'da_end': ')',
-        'slot_sep': ', ',
-        'val_beg': '[',
-        'val_end': ']'
-    }
 
     @staticmethod
     def get_data_file_path(partition):
         dataset_dir = os.path.join('seq2seq', 'data', 'video_game')
-        if partition == 'valid':
-            dataset_path = os.path.join(dataset_dir, 'valid.csv')
-        elif partition == 'test':
-            dataset_path = os.path.join(dataset_dir, 'test.csv')
-        else:
+        if partition == 'train':
             dataset_path = os.path.join(dataset_dir, 'train_with_e2e.csv')
+        else:
+            dataset_path = super(ViggoWithE2EDataset, ViggoWithE2EDataset).get_data_file_path(partition)
+
+        return dataset_path
+
+
+class Viggo20Dataset(ViggoDataset):
+    """A 20% sample of the ViGGO dataset."""
+    name = 'video_game_20'
+
+    @staticmethod
+    def get_data_file_path(partition):
+        dataset_dir = os.path.join('seq2seq', 'data', 'video_game')
+        if partition == 'train':
+            dataset_path = os.path.join(dataset_dir, 'train_sampled_0.2.csv')
+        else:
+            dataset_path = super(Viggo20Dataset, Viggo20Dataset).get_data_file_path(partition)
 
         return dataset_path
