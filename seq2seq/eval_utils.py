@@ -1,6 +1,7 @@
 from itertools import chain
 import os
 import pandas as pd
+import re
 # from rouge_score import rouge_scorer, scoring
 from sacrebleu import corpus_bleu
 from tqdm import tqdm
@@ -96,6 +97,7 @@ def execute_e2e_evaluation_script(config, test_set, eval_configurations):
 
     Metrics the utterances are evaluated on: BLEU, NIST, METEOR, ROUGE-L, CIDEr.
     """
+    scores = {}
 
     # Make sure the output directory exists for the given dataset
     predictions_dir = os.path.join('seq2seq', 'predictions', test_set.name)
@@ -126,7 +128,80 @@ def execute_e2e_evaluation_script(config, test_set, eval_configurations):
                 f_out.write(prediction + '\n')
 
         # Run the metrics script provided by the E2E NLG Challenge
-        os.system(metrics_script + ' ' + reference_file + ' ' + predictions_file)
+        print('Running E2E evaluation script...')
+        script_output = os.popen(metrics_script + ' ' + reference_file + ' ' + predictions_file).read()
+        scores_key = 'reranked' if reranked else 'not_reranked'
+        scores[scores_key] = parse_scores_from_e2e_script_output(script_output)
+
+        # Print the scores
+        print()
+        print('\n'.join([f'{metric}: {score}' for metric, score in scores[scores_key]]))
+        print()
+
+    return scores
+
+
+def parse_scores_from_e2e_script_output(script_output):
+    """Extracts the individual metric scores from the E2E NLG Challenge evaluation script's output.
+
+    Returns:
+        A list of (metric_name: str, score: float) tuples.
+    """
+    match = re.search(r'BLEU: (?P<BLEU>\d+\.\d+)\s+NIST: (?P<NIST>\d+\.\d+)\s+METEOR: (?P<METEOR>\d+\.\d+)\s+'
+                      r'ROUGE_L: (?P<ROUGE_L>\d+\.\d+)\s+CIDEr: (?P<CIDEr>\d+\.\d+)', script_output)
+
+    scores = [(metric, float(match.group(metric))) for metric in ['BLEU', 'METEOR', 'ROUGE_L', 'CIDEr']]
+
+    return scores
+
+
+def update_test_scores(scores_dict, new_scores_dict):
+    """Appends scores of a test run with a new test configuration to the scores from all previous runs."""
+    for key in scores_dict:
+        scores_dict[key].append(new_scores_dict[key])
+
+
+def print_test_scores(scores_dict, output_dir=None):
+    """Prints the final summary of scores from all test runs as a table."""
+    scores_str = ''
+
+    print()
+    print(' ************************ ')
+    print('**  TEST SCORE SUMMARY  **')
+    print(' ************************ ')
+    print()
+
+    for key in ['not_reranked', 'reranked']:
+        if scores_dict.get(key):
+            scores_str += f'---- {key} ----\n'
+            scores_str += '\t'.join([metric for metric, val in scores_dict[key][0]]) + '\n'
+            scores_str += '\n'.join(['\t'.join([f'{val:.4f}' for metric, val in score_list])
+                                     for score_list in scores_dict[key]]) + '\n\n'
+
+    print(scores_str, end='')
+
+    if output_dir is not None:
+        with open(os.path.join(output_dir, 'test_scores.txt'), 'a') as f_out:
+            f_out.write(scores_str)
+
+
+def print_best_checkpoints(checkpoints):
+    print()
+    print(' ********************** ')
+    print('**  BEST CHECKPOINTS  **')
+    print(' ********************** ')
+    print()
+
+    best_checkpoint_str = ''
+    for metric in ['loss', 'perplexity', 'BLEU', 'BLEU (multi-ref)']:
+        best_checkpoint_str += '>> Validation {}: {:.4f} (epoch {}, step {})'.format(
+            metric, checkpoints[metric][2], checkpoints[metric][0], checkpoints[metric][1]) + '\n'
+
+    print(best_checkpoint_str, end='')
+
+    model_dir = os.path.join('seq2seq', 'model')
+    with open(os.path.join(model_dir, 'best_checkpoints.txt'), 'a') as f_out:
+        f_out.write(best_checkpoint_str)
 
 
 def compose_output_file_name(config, reranked=False):

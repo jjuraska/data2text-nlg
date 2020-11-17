@@ -18,6 +18,16 @@ from seq2seq.task_config import TestConfig, TrainingConfig
 def train(config, dataset_class, device='cpu'):
     train_loss_sum = 0.0
     steps_since_last_eval = 0
+    best_checkpoints = {
+        'loss': (-1, -1, np.inf),
+        'perplexity': (-1, -1, np.inf),
+        'BLEU': (-1, -1, 0.0),
+        'BLEU (multi-ref)': (-1, -1, 0.0),
+    }
+
+    # DEBUG
+    longest_source_seq = 0
+    longest_target_seq = 0
 
     # Load model and the corresponding tokenizer
     special_tokens = dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names)
@@ -51,10 +61,10 @@ def train(config, dataset_class, device='cpu'):
     if config.fp16:
         scaler = torch.cuda.amp.GradScaler()
 
-    # DEBUG
-    longest_source_seq = 0
-    longest_target_seq = 0
+    # Save the training config in the model output folder
+    model_utils.save_training_config(config)
 
+    # Training loop
     for epoch in range(1, config.num_epochs + 1):
         print()
         print(' ******************* ')
@@ -150,11 +160,18 @@ def train(config, dataset_class, device='cpu'):
                                                 is_enc_dec, device=device)
                     metrics = {**scores, **scores_bleu}
 
+                    # Print validation metrics, and keep track of the best checkpoints based on each metric
                     print()
-                    print('>> Validation loss: {0:.4f}'.format(metrics.get('loss').item()))
-                    print('>> Validation PPL: {0:.4f}'.format(metrics.get('perplexity').item()))
-                    print('>> Validation BLEU: {0:.4f}'.format(metrics.get('bleu').item()))
-                    print('>> Validation BLEU (multi-ref): {0:.4f}'.format(metrics.get('bleu_multiref').item()))
+                    for metric in ['loss', 'perplexity', 'BLEU', 'BLEU (multi-ref)']:
+                        metric_val = metrics.get(metric).item()
+                        print('>> Validation {}: {:.4f}'.format(metric, metric_val))
+
+                        if metric in ['loss', 'perplexity']:
+                            if metric_val < best_checkpoints[metric][2]:
+                                best_checkpoints[metric] = (epoch, step, metric_val)
+                        else:
+                            if metric_val > best_checkpoints[metric][2]:
+                                best_checkpoints[metric] = (epoch, step, metric_val)
                     print()
 
                 # Save a model checkpoint
@@ -169,6 +186,9 @@ def train(config, dataset_class, device='cpu'):
     model_dir = os.path.join('seq2seq', 'model', 'final')
     model.save_pretrained(model_dir)
     tokenizer.save_pretrained(model_dir)
+
+    # Print an overview of the best checkpoints by metric
+    eval_utils.print_best_checkpoints(best_checkpoints)
 
 
 def validate(config, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
@@ -229,8 +249,8 @@ def validate_bleu(config, dataset, data_loader, tokenizer, model, is_enc_dec, de
     bleu_multiref = eval_utils.calculate_multiref_bleu(dataset, generated_utterances_flat)
 
     result = {
-        'bleu': torch.tensor(bleu),
-        'bleu_multiref': torch.tensor(bleu_multiref)
+        'BLEU': torch.tensor(bleu),
+        'BLEU (multi-ref)': torch.tensor(bleu_multiref)
     }
 
     return result
@@ -318,8 +338,28 @@ def decode_model_outputs(sequences, num_seqs_per_input, tokenizer, is_enc_dec):
     return outputs_decoded
 
 
-def test(config, dataset_class, device='cpu'):
+def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
     eval_configurations = []
+
+    # Generate decoded utterances
+    predictions = generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, device=device)
+
+    if config.semantic_reranking:
+        # Rerank generated beams based on semantic accuracy
+        predictions_reranked = eval_utils.rerank_beams(predictions, test_set.get_mrs_as_dicts())
+        predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
+        eval_configurations.append((predictions_reranked, True))
+
+    # For the evaluation of non-reranked predictions select the top candidate from the generated pool
+    predictions = [pred_beam[0] for pred_beam in predictions]
+    eval_configurations.insert(0, (predictions, False))
+
+    # Run reference-based evaluation of the generated utterances
+    return eval_utils.execute_e2e_evaluation_script(config, test_set, eval_configurations)
+
+
+def batch_test(config, dataset_class, device='cpu'):
+    test_scores = {'not_reranked': [], 'reranked': []}
 
     # Load model and the corresponding tokenizer
     special_tokens = dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names)
@@ -335,21 +375,28 @@ def test(config, dataset_class, device='cpu'):
                              group_by_mr=True, no_target=True, separate_source_and_target=is_enc_dec)
     test_data_loader = DataLoader(test_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
-    # Generate decoded utterances
-    predictions = generate_and_decode(config, test_data_loader, tokenizer, model, is_enc_dec, device=device)
+    if isinstance(config.length_penalty, list):
+        # Batch test with different length penalty values
+        param_values = copy.deepcopy(config.length_penalty)
+        for val in param_values:
+            # Update the parameter value in the configuration and re-run testing
+            config.length_penalty = val
+            scores = test(config, test_set, test_data_loader, tokenizer, model, is_enc_dec, device=device)
+            eval_utils.update_test_scores(test_scores, scores)
+    elif isinstance(config.top_p, list):
+        # Batch test with different p values for nucleus sampling
+        param_values = copy.deepcopy(config.top_p)
+        for val in param_values:
+            # Update the parameter value in the configuration and re-run testing
+            config.top_p = val
+            scores = test(config, test_set, test_data_loader, tokenizer, model, is_enc_dec, device=device)
+            eval_utils.update_test_scores(test_scores, scores)
+    else:
+        # Test with a single configuration
+        scores = test(config, test_set, test_data_loader, tokenizer, model, is_enc_dec, device=device)
+        eval_utils.update_test_scores(test_scores, scores)
 
-    if config.semantic_reranking:
-        # Rerank generated beams based on semantic accuracy
-        predictions_reranked = eval_utils.rerank_beams(predictions, test_set.get_mrs_as_dicts())
-        predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
-        eval_configurations.append((predictions_reranked, True))
-
-    # For the evaluation of non-reranked predictions select the top candidate from the generated pool
-    predictions = [pred_beam[0] for pred_beam in predictions]
-    eval_configurations.insert(0, (predictions, False))
-
-    # Run reference-based evaluation of the generated utterances
-    eval_utils.execute_e2e_evaluation_script(config, test_set, eval_configurations)
+    eval_utils.print_test_scores(test_scores, output_dir=os.path.join('seq2seq', 'predictions', test_set.name))
 
 
 def generate_from_input(input_str, config, dataset_class, device='cpu'):
@@ -428,32 +475,13 @@ def main():
 
     # Run the corresponding task
     if args.task == 'train':
-        model_utils.save_training_config(config)
         train(TrainingConfig(config), dataset_class, device=device)
     elif args.task == 'test':
-        test_config = TestConfig(config)
-        if isinstance(test_config.length_penalty, list):
-            # Batch test with different length penalty values
-            param_values = copy.deepcopy(test_config.length_penalty)
-            for val in param_values:
-                # Update the parameter value in the configuration and re-run testing
-                test_config.length_penalty = val
-                test(test_config, dataset_class, device=device)
-        elif isinstance(test_config.top_p, list):
-            # Batch test with different p values for nucleus sampling
-            param_values = copy.deepcopy(test_config.top_p)
-            for val in param_values:
-                # Update the parameter value in the configuration and re-run testing
-                test_config.top_p = val
-                test(test_config, dataset_class, device=device)
-        else:
-            # Test with a single configuration
-            test(test_config, dataset_class, device=device)
+        batch_test(TestConfig(config), dataset_class, device=device)
     elif args.task == 'generate':
         input_str = '<|name|> alimentum <|area|> city centre <|familyfriendly|> no <|begoftext|>'
         generate_from_input(input_str, TestConfig(config), dataset_class, device=device)
 
 
 if __name__ == '__main__':
-    # torch.cuda.empty_cache()
     main()
