@@ -1,6 +1,8 @@
 from collections import OrderedDict
 import os
 import pandas as pd
+import re
+import regex
 from torch.utils.data import Dataset
 
 
@@ -29,6 +31,7 @@ class MRToTextDataset(Dataset):
 
         self.mrs = []
         self.mrs_dict = []
+        self.mrs_as_list = []
         self.mrs_raw = []
         self.utterances = []
 
@@ -73,8 +76,9 @@ class MRToTextDataset(Dataset):
             self.lowercase_data()
 
         # Perform dataset-specific preprocessing of the MRs
-        self.mrs_dict = [self.preprocess_mr(mr) for mr in self.mrs]
-        self.mrs = [self.convert_mr_dict_to_str(mr_dict) for mr_dict in self.mrs_dict]
+        self.mrs_dict, self.mrs_as_list = zip(*[self.preprocess_mr(mr) for mr in self.mrs])
+        # self.mrs = [self.convert_mr_dict_to_str(mr_dict) for mr_dict in self.mrs_dict]
+        self.mrs = [self.convert_mr_list_to_str(mr_as_list) for mr_as_list in self.mrs_as_list]
 
         # DEBUG
         # print('>> MRs:\n{}'.format('\n'.join(self.mrs[:50])))
@@ -136,6 +140,7 @@ class MRToTextDataset(Dataset):
 
     def preprocess_mr(self, mr_str):
         mr_dict = OrderedDict()
+        mr_list = []
 
         mr_str = self.preprocess_da_in_mr(mr_str)
 
@@ -149,41 +154,68 @@ class MRToTextDataset(Dataset):
             if self.convert_slot_names:
                 slot = self.convert_slot_name(slot)
 
-            mr_dict[slot] = value
+            # if slot in mr_dict:
+            #     slot_new = slot
+            #     slot_ctr = 1
+            #     while slot_new in mr_dict:
+            #         slot_new = slot + str(slot_ctr)
+            #         slot_ctr += 1
+            #     slot = slot_new
 
-        return mr_dict
+            mr_dict[slot] = value
+            mr_list.append((slot, value))
+
+        return mr_dict, mr_list
 
     @staticmethod
     def convert_mr_dict_to_str(mr_dict):
         return ' '.join(['{0}{1}'.format(slot, ' ' + val if val else '') for slot, val in mr_dict.items()])
 
+    @staticmethod
+    def convert_mr_list_to_str(mr_list):
+        return ' '.join(['{0}{1}'.format(slot, ' ' + val if val else '') for slot, val in mr_list])
+
     @classmethod
     def preprocess_da_in_mr(cls, mr):
-        """Transforms the MR to list the DA type as the first slot, if its indication is present in the MR."""
+        """Converts the DA type indication(s) in the MR to the slot-and-value format."""
 
-        # If no DA indication is expected in the data, return the MR unchanged
+        # If no DA type indication is expected in the data, return the MR unchanged
         if cls.delimiters.get('da_beg') is None:
             return mr
 
-        # Verify if DA type is indicated at the beginning of the MR
-        da_sep_idx = mr.find(cls.delimiters['da_beg'])
-        slot_sep_idx = mr.find(cls.delimiters['slot_sep'])
-        val_sep_idx = mr.find(cls.delimiters['val_beg'])
-        if da_sep_idx < 0 or 0 <= slot_sep_idx < da_sep_idx or 0 <= val_sep_idx < da_sep_idx:
+        mr_new = ''
+
+        if cls.delimiters.get('da_sep') is None:
+            # Parse a single DA with its slots and values
+            match = regex.match(r'(\S+){0}(.*?){1}$'.format(
+                re.escape(cls.delimiters['da_beg']), re.escape(cls.delimiters['da_end'])), mr)
+        else:
+            # Parse multiple DAs with their respective slots and values
+            match = regex.match(r'(\S+){0}(.*?){1}(?:{2}(\S+){0}(.*?){1})*'.format(
+                re.escape(cls.delimiters['da_beg']), re.escape(cls.delimiters['da_end']),
+                re.escape(cls.delimiters['da_sep'])), mr)
+
+        if not match:
+            print(f'Warning: Unexpected format of the following MR:\n{mr}')
             return mr
 
-        # Extract the DA type from the beginning of the MR
-        da_type = mr[:da_sep_idx].lstrip('?')      # Strip the '?' symbol present in Laptop and TV datasets
-        slot_value_pairs = mr[da_sep_idx + 1:]
-        if cls.delimiters.get('da_end') is not None:
-            slot_value_pairs = slot_value_pairs.rstrip(cls.delimiters['da_end'])
+        for i in range(1, len(match.groups()) + 1, 2):
+            if match.group(i) is None:
+                break
 
-        # Convert the extracted DA to the slot-value form and prepend it to the remainder of the MR
-        mr_new = 'da' + cls.delimiters['val_beg'] + da_type
-        if cls.delimiters.get('val_end') is not None:
-            mr_new += cls.delimiters['val_end']
-        if len(slot_value_pairs) > 0:
-            mr_new += cls.delimiters['slot_sep'] + slot_value_pairs
+            for j in range(len(match.captures(i))):
+                da_type = match.captures(i)[j]
+                slot_value_pairs = match.captures(i + 1)[j]
+
+                if i > 1:
+                    mr_new += cls.delimiters['da_sep']
+
+                # Convert the extracted DA type to the slot-value form and prepend it to the DA's slots and values
+                mr_new += 'da' + cls.delimiters['val_beg'] + da_type
+                if cls.delimiters.get('val_end') is not None:
+                    mr_new += cls.delimiters['val_end']
+                if len(slot_value_pairs) > 0:
+                    mr_new += cls.delimiters['slot_sep'] + slot_value_pairs
 
         return mr_new
 
@@ -317,6 +349,7 @@ class E2EDataset(MRToTextDataset):
     delimiters = {
         'da_beg': None,
         'da_end': None,
+        'da_sep': None,
         'slot_sep': ', ',
         'val_beg': '[',
         'val_end': ']'
@@ -352,12 +385,38 @@ class E2ECleanedDataset(E2EDataset):
         return dataset_path
 
 
+class MultiWOZDataset(MRToTextDataset):
+    """A multi-domain dataset of task-oriented dialogues."""
+    name = 'multiwoz'
+    delimiters = {
+        'da_beg': '(',
+        'da_end': ')',
+        'da_sep': ', ',
+        'slot_sep': ', ',
+        'val_beg': '[',
+        'val_end': ']'
+    }
+
+    @staticmethod
+    def get_data_file_path(partition):
+        dataset_dir = os.path.join('seq2seq', 'data', 'multiwoz')
+        if partition == 'valid':
+            dataset_path = os.path.join(dataset_dir, 'valid.csv')
+        elif partition == 'test':
+            dataset_path = os.path.join(dataset_dir, 'test.csv')
+        else:
+            dataset_path = os.path.join(dataset_dir, 'train.csv')
+
+        return dataset_path
+
+
 class ViggoDataset(MRToTextDataset):
     """An MR-to-text dataset in the video game domain."""
     name = 'video_game'
     delimiters = {
         'da_beg': '(',
         'da_end': ')',
+        'da_sep': None,
         'slot_sep': ', ',
         'val_beg': '[',
         'val_end': ']'

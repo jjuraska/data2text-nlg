@@ -158,7 +158,8 @@ def parse_scores_from_e2e_script_output(script_output):
 def update_test_scores(scores_dict, new_scores_dict):
     """Appends scores of a test run with a new test configuration to the scores from all previous runs."""
     for key in scores_dict:
-        scores_dict[key].append(new_scores_dict[key])
+        if key in new_scores_dict:
+            scores_dict[key].append(new_scores_dict[key])
 
 
 def print_test_scores(scores_dict, output_dir=None):

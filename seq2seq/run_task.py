@@ -9,7 +9,10 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AdamW, get_linear_schedule_with_warmup
 
-from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, ViggoDataset, ViggoWithE2EDataset, Viggo20Dataset
+from seq2seq.data_loader import (
+    E2EDataset, E2ECleanedDataset,
+    MultiWOZDataset,
+    ViggoDataset, ViggoWithE2EDataset, Viggo20Dataset)
 import seq2seq.eval_utils as eval_utils
 import seq2seq.model_utils as model_utils
 from seq2seq.task_config import TestConfig, TrainingConfig
@@ -350,6 +353,13 @@ def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cp
         predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
         eval_configurations.append((predictions_reranked, True))
 
+    if test_set.name == 'multiwoz':
+        generated_utterances_flat = list(chain.from_iterable(predictions))
+        bleu = eval_utils.calculate_singleref_bleu(test_set, generated_utterances_flat)
+        print()
+        print(f'BLEU (single-ref): {bleu:.4f}')
+        print()
+
     # For the evaluation of non-reranked predictions select the top candidate from the generated pool
     predictions = [pred_beam[0] for pred_beam in predictions]
     eval_configurations.insert(0, (predictions, False))
@@ -437,7 +447,7 @@ def main():
     parser.add_argument('-c', '--config', required=True,
                         help='Training/test config name')
     parser.add_argument('-d', '--dataset', required=True, choices=[
-        'rest_e2e', 'rest_e2e_cleaned', 'video_game', 'video_game_with_rest_e2e', 'video_game_20'],
+        'rest_e2e', 'rest_e2e_cleaned', 'multiwoz', 'video_game', 'video_game_with_rest_e2e', 'video_game_20'],
                         help='Dataset name')
     parser.add_argument('-t', '--task', required=True, choices=['train', 'test'],
                         help='Task (train or test)')
@@ -448,6 +458,8 @@ def main():
         dataset_class = E2EDataset
     elif args.dataset == 'rest_e2e_cleaned':
         dataset_class = E2ECleanedDataset
+    elif args.dataset == 'multiwoz':
+        dataset_class = MultiWOZDataset
     elif args.dataset == 'video_game':
         dataset_class = ViggoDataset
     elif args.dataset == 'video_game_with_rest_e2e':
