@@ -385,6 +385,16 @@ def batch_test(config, dataset_class, device='cpu'):
                              group_by_mr=True, no_target=True, separate_source_and_target=is_enc_dec)
     test_data_loader = DataLoader(test_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
+    test_set_ppl = dataset_class(tokenizer, 'test', lowercase=True, convert_slot_names=config.convert_slot_names,
+                                 separate_source_and_target=is_enc_dec)
+    test_data_loader_ppl = DataLoader(test_set_ppl, batch_size=config.batch_size, shuffle=False, num_workers=0)
+
+    # Evaluate the model's perplexity
+    scores = validate(config, test_data_loader_ppl, tokenizer, model, is_enc_dec, device=device)
+    print()
+    print('>> Test perplexity: {:.4f}'.format(scores.get('perplexity').item()))
+    print()
+
     if isinstance(config.length_penalty, list):
         # Batch test with different length penalty values
         param_values = copy.deepcopy(config.length_penalty)
