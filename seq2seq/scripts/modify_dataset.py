@@ -117,13 +117,16 @@ def convert_multiwoz_dataset_to_csv():
 
             mr_str = da_sep.join(da_strings)
 
+            # Replace any sequence of whitespace characters with a single space in the utterance
+            utt_processed = ' '.join(utt.split())
+
             if conv_id in validation_ids:
                 partition = 'valid'
             elif conv_id in test_ids:
                 partition = 'test'
             else:
                 partition = 'train'
-            data[partition].append((mr_str, utt.strip()))
+            data[partition].append((mr_str, utt_processed))
 
     for partition in ['train', 'valid', 'test']:
         df_data = pd.DataFrame(data[partition], columns=['mr', 'ref'])

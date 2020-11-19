@@ -77,7 +77,6 @@ class MRToTextDataset(Dataset):
 
         # Perform dataset-specific preprocessing of the MRs
         self.mrs_dict, self.mrs_as_list = zip(*[self.preprocess_mr(mr) for mr in self.mrs])
-        # self.mrs = [self.convert_mr_dict_to_str(mr_dict) for mr_dict in self.mrs_dict]
         self.mrs = [self.convert_mr_list_to_str(mr_as_list) for mr_as_list in self.mrs_as_list]
 
         # DEBUG
@@ -286,15 +285,13 @@ class MRToTextDataset(Dataset):
         out_file = os.path.join(eval_dir, 'test_references_{}.txt'.format(self.name))
 
         with open(out_file, 'w', encoding='utf8') as f_out:
-            if isinstance(self.utterances[0], str):
-                for i in range(len(self.mrs_raw)):
-                    if i > 0 and self.mrs_raw[i] != self.mrs_raw[i - 1]:
-                        f_out.write('\n')
-                    f_out.write(self.utterances[i] + '\n')
-            elif isinstance(self.utterances[0], list):
+            if isinstance(self.utterances[0], list):
                 for i in range(len(self.utterances)):
                     f_out.write('\n'.join(self.utterances[i]))
                     f_out.write('\n\n')
+            elif isinstance(self.utterances[0], str):
+                f_out.write('\n\n'.join(self.utterances))
+                f_out.write('\n')
 
     def get_mrs(self, raw=False, lowercased=False):
         mrs = self.mrs_raw if raw else self.mrs

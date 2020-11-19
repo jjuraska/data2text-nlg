@@ -12,17 +12,22 @@ from seq2seq.slot_aligner.slot_alignment import score_alignment
 def calculate_singleref_bleu(dataset, predictions):
     """Calculates the corpus BLEU score with a single reference per generated utterance.
 
-    Assumes the dataset to be grouped by MR, and to thus have a list of reference utterances for each MR. This method
-    flattens the references and multiplies the generated predictions as necessary to match corresponding references.
+    If the dataset is grouped by MR, and thus has a list of reference utterances for each MR, this method flattens the
+    references and multiplies the generated predictions as necessary to match corresponding references. Otherwise, it
+    uses the predictions and references as-is.
     """
     references = dataset.get_utterances(lowercased=True)
 
-    # Multiply generated utterances depending on the number of corresponding references, and then flatten references
-    predictions_multiplied = list(chain.from_iterable(
-        [pred] * len(ref_list) for pred, ref_list in zip(predictions, references)))
-    references_flat = list(chain.from_iterable(references))
+    if isinstance(references[0], list):
+        # Multiply generated utterances depending on the number of corresponding references, and then flatten references
+        predictions_extended = list(chain.from_iterable(
+            [pred] * len(ref_list) for pred, ref_list in zip(predictions, references)))
+        references_flat = list(chain.from_iterable(references))
+    else:
+        predictions_extended = predictions
+        references_flat = references
 
-    return corpus_bleu(predictions_multiplied, [references_flat]).score
+    return corpus_bleu(predictions_extended, [references_flat]).score
 
 
 def calculate_multiref_bleu(dataset, predictions):
