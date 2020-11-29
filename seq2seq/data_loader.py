@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 import os
 import pandas as pd
 import re
@@ -77,7 +77,8 @@ class MRToTextDataset(Dataset):
 
         # Perform dataset-specific preprocessing of the MRs
         self.mrs_dict, self.mrs_as_list = zip(*[self.preprocess_mr(mr) for mr in self.mrs])
-        self.mrs = [self.convert_mr_list_to_str(mr_as_list) for mr_as_list in self.mrs_as_list]
+        self.mrs = [self.convert_mr_list_to_str(mr_as_list, add_separators=(not self.convert_slot_names))
+                    for mr_as_list in self.mrs_as_list]
 
         # DEBUG
         # print('>> MRs:\n{}'.format('\n'.join(self.mrs[:50])))
@@ -152,6 +153,12 @@ class MRToTextDataset(Dataset):
             slot, value = self.parse_slot_and_value(slot_value_pair)
             if self.convert_slot_names:
                 slot = self.convert_slot_name(slot)
+            else:
+                if slot == 'da':
+                    slot = 'intent'
+                    value = self.verbalize_da_name(value)
+                else:
+                    slot = self.verbalize_slot_name(slot)
 
             # if slot in mr_dict:
             #     slot_new = slot
@@ -171,8 +178,11 @@ class MRToTextDataset(Dataset):
         return ' '.join(['{0}{1}'.format(slot, ' ' + val if val else '') for slot, val in mr_dict.items()])
 
     @staticmethod
-    def convert_mr_list_to_str(mr_list):
-        return ' '.join(['{0}{1}'.format(slot, ' ' + val if val else '') for slot, val in mr_list])
+    def convert_mr_list_to_str(mr_list, add_separators=False):
+        slot_sep = ' | ' if add_separators else ' '
+        val_sep = ' = ' if add_separators else ' '
+
+        return slot_sep.join(['{0}{1}'.format(slot, val_sep + val if val else '') for slot, val in mr_list])
 
     @classmethod
     def preprocess_da_in_mr(cls, mr):
@@ -239,10 +249,9 @@ class MRToTextDataset(Dataset):
             # Set the value to the empty string
             value = ''
 
-        slot_processed = slot.replace(' ', '').lower()
         value = value.replace(COMMA_PLACEHOLDER, ',')
 
-        return slot_processed, value
+        return slot, value
 
     @staticmethod
     def replace_commas_in_slot_values(mr, val_sep, val_sep_end):
@@ -310,6 +319,27 @@ class MRToTextDataset(Dataset):
             return self.utterances[:]
 
     @classmethod
+    def get_ontology(cls):
+        ontology = defaultdict(set)
+
+        train_set_path = cls.get_data_file_path('train')
+        df_data = pd.read_csv(train_set_path, header=0, encoding='utf8')
+
+        for mr_str in df_data[df_data.columns[0]]:
+            mr_str = cls.preprocess_da_in_mr(mr_str)
+
+            # Replace commas in values if comma is the slot separator
+            if cls.delimiters['slot_sep'].strip() == ',' and cls.delimiters.get('val_end') is not None:
+                mr_str = cls.replace_commas_in_slot_values(mr_str, cls.delimiters['val_beg'],
+                                                           cls.delimiters['val_end'])
+
+            for slot_value_pair in mr_str.split(cls.delimiters['slot_sep']):
+                slot, value = cls.parse_slot_and_value(slot_value_pair)
+                ontology[slot].add(value)
+
+        return ontology
+
+    @classmethod
     def get_special_tokens(cls, convert_slot_names=False):
         slot_tokens = set()
 
@@ -335,9 +365,17 @@ class MRToTextDataset(Dataset):
         return sorted(list(slot_tokens))
 
     @staticmethod
+    def verbalize_da_name(da_name):
+        raise NotImplementedError('method \'verbalize_da_name\' must be defined by subclass')
+
+    @staticmethod
+    def verbalize_slot_name(slot_name):
+        raise NotImplementedError('method \'verbalize_slot_name\' must be defined by subclass')
+
+    @staticmethod
     def convert_slot_name(slot_name):
         """Converts a slot name to a special token."""
-        return f'<|{slot_name}|>'
+        return '<|{}|>'.format(slot_name.replace(' ', '').lower())
 
 
 class E2EDataset(MRToTextDataset):
@@ -363,6 +401,21 @@ class E2EDataset(MRToTextDataset):
             dataset_path = os.path.join(dataset_dir, 'trainset.csv')
 
         return dataset_path
+
+    @staticmethod
+    def verbalize_slot_name(slot_name):
+        slots_to_override = {
+            'eatType': 'eatery type',
+            'familyFriendly': 'family-friendly',
+            'priceRange': 'price range',
+        }
+
+        if slot_name in slots_to_override:
+            slot_name_verbalized = slots_to_override[slot_name]
+        else:
+            slot_name_verbalized = slot_name
+
+        return slot_name_verbalized
 
 
 class E2ECleanedDataset(E2EDataset):
@@ -430,6 +483,26 @@ class ViggoDataset(MRToTextDataset):
             dataset_path = os.path.join(dataset_dir, 'train.csv')
 
         return dataset_path
+
+    @staticmethod
+    def verbalize_da_name(da_name):
+        return da_name.replace('_', ' ')
+
+    @staticmethod
+    def verbalize_slot_name(slot_name):
+        slots_to_override = {
+            'esrb': 'ESRB rating',
+            'exp_release_date': 'expected release date',
+        }
+
+        if slot_name in slots_to_override:
+            slot_name_verbalized = slots_to_override[slot_name]
+        else:
+            slot_name_verbalized = slot_name.replace('_', ' ')
+            for tok in ['linux', 'mac', 'steam']:
+                slot_name_verbalized = re.sub(r'\b{}\b'.format(re.escape(tok)), tok.capitalize(), slot_name_verbalized)
+
+        return slot_name_verbalized
 
 
 class ViggoWithE2EDataset(ViggoDataset):

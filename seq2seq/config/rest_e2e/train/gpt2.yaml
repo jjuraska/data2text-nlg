@@ -1,12 +1,13 @@
 model_name: "gpt2"
 pretrained: True
-convert_slot_names: True
+lowercase: False
+convert_slot_names: False
 num_epochs: 15
-batch_size: 20
-max_seq_length: 128
+batch_size: 16
+max_seq_length: 160
 num_warmup_steps: 500
 lr: 2.0e-5
 max_grad_norm: 1.0
 eval_times_per_epoch: 1
 fp16: True
-use_token_type_ids: True
+#use_token_type_ids: True

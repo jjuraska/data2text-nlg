@@ -1,7 +1,8 @@
 model_name: "facebook/bart-base"
 pretrained: True
-convert_slot_names: True
-num_epochs: 15
+lowercase: False
+convert_slot_names: False
+num_epochs: 20
 batch_size: 32
 max_seq_length: 128
 num_warmup_steps: 500

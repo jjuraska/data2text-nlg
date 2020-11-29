@@ -1,8 +1,11 @@
+from collections import Counter, OrderedDict
 import json
 import os
 import pandas as pd
 import re
 import sys
+
+from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, ViggoDataset
 
 
 def parse_da(mr, delimiters):
@@ -87,6 +90,8 @@ def convert_multiwoz_dataset_to_csv():
     with open(test_ids_file, 'r', encoding='utf-8') as f_test_ids:
         test_ids = {line.strip() for line in f_test_ids.readlines()}
 
+    invalid_mrs = Counter()
+
     for conv_id, conv in conversations.items():
         conv_id_root = re.sub('\.json$', '', conv_id)
         # conv_turns = [turn['text'] for turn in conv['log'] if turn.get('metadata')]
@@ -101,12 +106,30 @@ def convert_multiwoz_dataset_to_csv():
             if str(i) not in conv_mrs:
                 print(f'Warning: MR for system turn #{i} of conversation {conv_id_root} not found.')
                 # print(json.dumps(conv['log'], indent=4))
+
+                if conv_id in validation_ids:
+                    partition = 'valid'
+                elif conv_id in test_ids:
+                    partition = 'test'
+                else:
+                    partition = 'train'
+                invalid_mrs.update([partition])
+
                 continue
 
             # Find the MR corresponding to the conversation turn
             mr = conv_mrs[str(i)]
             if not isinstance(mr, dict):
                 print(f'Warning: System turn #{i} of conversation {conv_id_root} not annotated.')
+
+                if conv_id in validation_ids:
+                    partition = 'valid'
+                elif conv_id in test_ids:
+                    partition = 'test'
+                else:
+                    partition = 'train'
+                invalid_mrs.update([partition])
+
                 continue
 
             for da, slots in mr.items():
@@ -128,6 +151,10 @@ def convert_multiwoz_dataset_to_csv():
                 partition = 'train'
             data[partition].append((mr_str, utt_processed))
 
+    print()
+    print('>> Invalid MRs:')
+    print(invalid_mrs)
+
     for partition in ['train', 'valid', 'test']:
         df_data = pd.DataFrame(data[partition], columns=['mr', 'ref'])
         print(f'>> {partition} set size: {len(df_data)}')
@@ -137,6 +164,23 @@ def convert_multiwoz_dataset_to_csv():
 
         # Save to a CSV file (with UTF-8-BOM encoding)
         df_data.to_csv(out_file_path, index=False, encoding='utf-8-sig')
+
+
+def export_dataset_ontology(dataset_class):
+    ontology = dataset_class.get_ontology()
+
+    # Sort both slots and their value sets alphabetically
+    ontology = OrderedDict({slot: sorted(value_set) for slot, value_set in sorted(ontology.items(), key=lambda x: x[0])})
+
+    # Compose the output file path
+    out_dir = os.path.dirname(dataset_class.get_data_file_path('train'))
+    out_file_path = os.path.join(out_dir, 'ontology.json')
+
+    # Save to a JSON file
+    with open(out_file_path, 'w', encoding='utf-8') as f_out:
+        json.dump(ontology, f_out, indent=4, ensure_ascii=False)
+
+    print(f'>> Dataset ontology exported to "{out_file_path}"')
 
 
 if __name__ == '__main__':
@@ -160,4 +204,6 @@ if __name__ == '__main__':
     #
     # undersample_dataset(dataset, delimiters, 0.5, trainset_only=True)
 
-    convert_multiwoz_dataset_to_csv()
+    # convert_multiwoz_dataset_to_csv()
+
+    export_dataset_ontology(E2ECleanedDataset)
