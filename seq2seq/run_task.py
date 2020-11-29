@@ -39,17 +39,28 @@ def train(config, dataset_class, device='cpu'):
     model = model.to(device)
 
     # Load training and validation data
-    train_set = dataset_class(tokenizer, 'train', lowercase=True, convert_slot_names=config.convert_slot_names,
+    train_set = dataset_class(tokenizer,
+                              'train',
+                              lowercase=config.lowercase,
+                              convert_slot_names=config.convert_slot_names,
                               separate_source_and_target=is_enc_dec)
     train_data_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=0)
 
-    valid_set = dataset_class(tokenizer, 'valid', lowercase=True, convert_slot_names=config.convert_slot_names,
+    valid_set = dataset_class(tokenizer,
+                              'valid',
+                              lowercase=config.lowercase,
+                              convert_slot_names=config.convert_slot_names,
                               separate_source_and_target=is_enc_dec)
     valid_data_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
-    valid_set_grouped = dataset_class(tokenizer, 'valid', lowercase=True, convert_slot_names=config.convert_slot_names,
-                                      group_by_mr=True, no_target=True, separate_source_and_target=is_enc_dec)
-    valid_grouped_data_loader = DataLoader(valid_set_grouped, batch_size=config.batch_size, shuffle=False, num_workers=0)
+    group_by_mr = False if dataset_class.name in {'multiwoz'} else True
+    valid_set_bleu = dataset_class(tokenizer, 'valid',
+                                   lowercase=config.lowercase,
+                                   convert_slot_names=config.convert_slot_names,
+                                   group_by_mr=group_by_mr,
+                                   no_target=True,
+                                   separate_source_and_target=is_enc_dec)
+    valid_bleu_data_loader = DataLoader(valid_set_bleu, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
     # Determine the training steps at which validation should be performed in each epoch
     eval_steps = np.delete(np.linspace(0, len(train_data_loader), config.eval_times_per_epoch + 1, dtype=int), 0)
@@ -159,7 +170,7 @@ def train(config, dataset_class, device='cpu'):
                 if epoch % config.eval_every_n_epochs == 0:
                     # Validation
                     scores = validate(config, valid_data_loader, tokenizer, model, is_enc_dec, device=device)
-                    scores_bleu = validate_bleu(config, valid_set_grouped, valid_grouped_data_loader, tokenizer, model,
+                    scores_bleu = validate_bleu(config, valid_set_bleu, valid_bleu_data_loader, tokenizer, model,
                                                 is_enc_dec, device=device)
                     metrics = {**scores, **scores_bleu}
 
@@ -249,7 +260,11 @@ def validate_bleu(config, dataset, data_loader, tokenizer, model, is_enc_dec, de
     # print('\n'.join(generated_utterances[:50]))
 
     bleu = eval_utils.calculate_singleref_bleu(dataset, generated_utterances_flat)
-    bleu_multiref = eval_utils.calculate_multiref_bleu(dataset, generated_utterances_flat)
+    # TODO: add a flag to the Dataset class indicating whether the dataset has multiple references or not
+    if dataset.name not in {'multiwoz'}:
+        bleu_multiref = eval_utils.calculate_multiref_bleu(dataset, generated_utterances_flat)
+    else:
+        bleu_multiref = bleu
 
     result = {
         'BLEU': torch.tensor(bleu),
@@ -353,16 +368,16 @@ def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cp
         predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
         eval_configurations.append((predictions_reranked, True))
 
-    if test_set.name == 'multiwoz':
-        generated_utterances_flat = list(chain.from_iterable(predictions))
-        bleu = eval_utils.calculate_singleref_bleu(test_set, generated_utterances_flat)
-        print()
-        print(f'BLEU (single-ref): {bleu:.4f}')
-        print()
-
     # For the evaluation of non-reranked predictions select the top candidate from the generated pool
     predictions = [pred_beam[0] for pred_beam in predictions]
     eval_configurations.insert(0, (predictions, False))
+
+    if test_set.name == 'multiwoz':
+        # Evaluate the generated utterances on the BLEU metric with just single references
+        bleu = eval_utils.calculate_singleref_bleu(test_set, predictions)
+        print()
+        print(f'BLEU (single-ref): {bleu:.4f}')
+        print()
 
     # Run reference-based evaluation of the generated utterances
     return eval_utils.execute_e2e_evaluation_script(config, test_set, eval_configurations)
@@ -381,11 +396,20 @@ def batch_test(config, dataset_class, device='cpu'):
     model.eval()
 
     # Load test data
-    test_set = dataset_class(tokenizer, 'test', lowercase=True, convert_slot_names=config.convert_slot_names,
-                             group_by_mr=True, no_target=True, separate_source_and_target=is_enc_dec)
+    group_by_mr = False if dataset_class.name in {'multiwoz'} else True
+    test_set = dataset_class(tokenizer,
+                             'test',
+                             lowercase=config.lowercase,
+                             convert_slot_names=config.convert_slot_names,
+                             group_by_mr=group_by_mr,
+                             no_target=True,
+                             separate_source_and_target=is_enc_dec)
     test_data_loader = DataLoader(test_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
-    test_set_ppl = dataset_class(tokenizer, 'test', lowercase=True, convert_slot_names=config.convert_slot_names,
+    test_set_ppl = dataset_class(tokenizer,
+                                 'test',
+                                 lowercase=config.lowercase,
+                                 convert_slot_names=config.convert_slot_names,
                                  separate_source_and_target=is_enc_dec)
     test_data_loader_ppl = DataLoader(test_set_ppl, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
