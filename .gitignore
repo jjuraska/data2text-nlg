@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Output directories
+seq2seq/export/
+seq2seq/model/
+seq2seq/predictions/
+seq2seq/predictions_baselines/
