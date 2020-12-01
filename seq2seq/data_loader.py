@@ -75,7 +75,7 @@ class MRToTextDataset(Dataset):
         self.mrs_raw, self.utterances = self.read_data_from_dataframe(df_data, group_by_mr=self.group_by_mr)
 
         # Convert MRs to an intermediate format of lists of tuples
-        self.mrs_raw_as_lists = [self.parse_mr_to_list_of_tuples(mr) for mr in self.mrs_raw]
+        self.mrs_raw_as_lists = [self.convert_mr_from_str_to_list(mr) for mr in self.mrs_raw]
 
         # Perform dataset-specific preprocessing of the MRs, and convert them back to strings
         self.mrs = self.get_mrs(lowercase=self.convert_to_lowercase, convert_slot_names=self.convert_slot_names)
@@ -98,6 +98,44 @@ class MRToTextDataset(Dataset):
         # self.mrs_raw = self.mrs_raw[:10]
         # self.mrs_as_lists = self.mrs_as_lists[:10]
         # self.utterances = self.utterances[:10]
+
+    def get_mrs(self, raw=False, as_lists=False, lowercase=False, convert_slot_names=False):
+        if raw:
+            mrs = self.mrs_raw
+            if as_lists or lowercase:
+                print('Warning: raw MRs are returned as strings with original letter case.')
+        else:
+            mrs = [self.preprocess_slot_names_in_mr(mr, convert_slot_names=convert_slot_names)
+                   for mr in self.mrs_raw_as_lists]
+            if lowercase:
+                mrs = self.lowercase_mrs(mrs)
+            if not as_lists:
+                mrs = [self.convert_mr_from_list_to_str(mr, add_separators=(not convert_slot_names)) for mr in mrs]
+
+        return mrs
+
+    def get_utterances(self, lowercase=False):
+        if lowercase:
+            return self.lowercase_utterances(self.utterances)
+        else:
+            return self.utterances
+
+    def create_reference_file_for_testing(self):
+        """Creates a text file with groups of utterances corresponding to one MR separated by an empty line.
+
+        A file with reference utterances in this format is necessary for the E2E NLG Challenge evaluation script.
+        """
+        eval_dir = os.path.join('seq2seq', 'eval')
+        out_file = os.path.join(eval_dir, 'test_references_{}.txt'.format(self.name))
+
+        with open(out_file, 'w', encoding='utf8') as f_out:
+            if isinstance(self.utterances[0], list):
+                for i in range(len(self.utterances)):
+                    f_out.write('\n'.join(self.utterances[i]))
+                    f_out.write('\n\n')
+            elif isinstance(self.utterances[0], str):
+                f_out.write('\n\n'.join(self.utterances))
+                f_out.write('\n')
 
     @staticmethod
     def get_data_file_path(partition):
@@ -129,62 +167,33 @@ class MRToTextDataset(Dataset):
 
         return mrs, utterances
 
-    def parse_mr_to_list_of_tuples(self, mr_as_str):
-        mr_as_list = []
+    @classmethod
+    def convert_mr_from_str_to_list(cls, mr_as_str):
+        """Converts an MR string to an intermediate format: a list of slot/value pairs.
 
-        mr_as_str = self.preprocess_da_in_mr(mr_as_str)
-
-        # Replace commas in values if comma is the slot separator
-        if self.delimiters['slot_sep'].strip() == ',' and self.delimiters.get('val_end') is not None:
-            mr_as_str = self.replace_commas_in_slot_values(
-                mr_as_str, self.delimiters['val_beg'], self.delimiters['val_end'])
-
-        # Extract the sequence of slots and their corresponding values
-        for slot_value_pair in mr_as_str.split(self.delimiters['slot_sep']):
-            slot, value = self.parse_slot_and_value(slot_value_pair)
-            mr_as_list.append((slot, value))
+        Any DA indications are first converted to the slot-and-value format. The original order of slots (and DAs) is
+        preserved.
+        """
+        mr_as_str = cls.preprocess_da_in_mr(mr_as_str)
+        mr_as_list = cls.parse_slot_and_value_pairs(mr_as_str)
 
         return mr_as_list
 
-    def preprocess_slot_names_in_mr(self, mr_as_list, convert_slot_names=False):
-        mr_processed = []
-
-        for slot, value in mr_as_list:
-            if convert_slot_names:
-                slot = self.convert_slot_name_to_special_token(slot)
-            else:
-                if slot == 'da':
-                    slot = 'intent'
-                    value = self.verbalize_da_name(value)
-                else:
-                    slot = self.verbalize_slot_name(slot)
-
-            # if slot in mr_dict:
-            #     slot_new = slot
-            #     slot_ctr = 1
-            #     while slot_new in mr_dict:
-            #         slot_new = slot + str(slot_ctr)
-            #         slot_ctr += 1
-            #     slot = slot_new
-
-            mr_processed.append((slot, value))
-
-        return mr_processed
-
     @staticmethod
-    def convert_mr_dict_to_str(mr_dict):
-        return ' '.join(['{0}{1}'.format(slot, ' ' + val if val else '') for slot, val in mr_dict.items()])
+    def convert_mr_from_list_to_str(mr_as_list, add_separators=False):
+        """Converts an MR from its intermediate format to a string intended as input to a model.
 
-    @staticmethod
-    def convert_mr_list_to_str(mr_list, add_separators=False):
+        The order of slots in the list is preserved. Special separators are added between slot/value pairs, as well as
+        between a slot and its value, if add_separators is set to True.
+        """
         slot_sep = ' | ' if add_separators else ' '
         val_sep = ' = ' if add_separators else ' '
 
-        return slot_sep.join(['{0}{1}'.format(slot, val_sep + val if val else '') for slot, val in mr_list])
+        return slot_sep.join(['{0}{1}'.format(slot, val_sep + val if val else '') for slot, val in mr_as_list])
 
     @classmethod
     def preprocess_da_in_mr(cls, mr):
-        """Converts the DA type indication(s) in the MR to the slot-and-value format."""
+        """Converts the DA type indication(s) in the MR (as a string) to the slot-and-value format."""
 
         # If no DA type indication is expected in the data, return the MR unchanged
         if cls.delimiters.get('da_beg') is None:
@@ -227,55 +236,59 @@ class MRToTextDataset(Dataset):
         return mr_new
 
     @classmethod
-    def parse_slot_and_value(cls, slot_value_pair_str):
-        """Parses out the slot name and the slot value from a string representing this pair."""
-        delim_idx = slot_value_pair_str.find(cls.delimiters['val_beg'])
-        if delim_idx > -1:
-            # Parse the slot
-            slot = slot_value_pair_str[:delim_idx].strip()
-            # Parse the value
-            if cls.delimiters.get('val_end') is not None:
-                value = slot_value_pair_str[delim_idx + 1:-1].strip()
+    def parse_slot_and_value_pairs(cls, mr):
+        """Extracts the sequence of slots and their corresponding values from the MR string as a list of tuples."""
+
+        slots_and_values = []
+
+        # Parse slots and their values
+        match = regex.match(r'(.+?){0}(.*?){1}(?:{2}(.+?){0}(.*?){1})*'.format(
+            re.escape(cls.delimiters['val_beg']), re.escape(cls.delimiters['val_end']),
+            re.escape(cls.delimiters['slot_sep'])), mr)
+
+        if not match:
+            print(f'Warning: Unexpected format of the following MR:\n{mr}')
+            return mr
+
+        for i in range(1, len(match.groups()) + 1, 2):
+            if match.group(i) is None:
+                break
+
+            for j in range(len(match.captures(i))):
+                # Save the slot/value pair
+                slot = match.captures(i)[j].strip()
+                value = match.captures(i + 1)[j].strip()
+                slots_and_values.append((slot, value))
+
+        return slots_and_values
+
+    @classmethod
+    def preprocess_slot_names_in_mr(cls, mr_as_list, convert_slot_names=False):
+        mr_processed = []
+
+        for slot, value in mr_as_list:
+            if convert_slot_names:
+                slot = cls.convert_slot_name_to_special_token(slot)
             else:
-                value = slot_value_pair_str[delim_idx + 1:].strip()
-        else:
-            # Parse the slot
-            if cls.delimiters.get('val_end') is not None:
-                slot = slot_value_pair_str[:-1].strip()
-            else:
-                slot = slot_value_pair_str.strip()
-            # Set the value to the empty string
-            value = ''
+                if slot == 'da':
+                    slot = 'intent'
+                    value = cls.verbalize_da_name(value)
+                else:
+                    slot = cls.verbalize_slot_name(slot)
 
-        value = value.replace(COMMA_PLACEHOLDER, ',')
+            # Append a number to the slot name if a slot with the same name has already been encountered in the MR
+            # slot_names = {slot_name for slot_name, value in mr_as_list}
+            # if slot in slot_names:
+            #     slot_new = slot
+            #     slot_ctr = 1
+            #     while slot_new in slot_names:
+            #         slot_new = slot + str(slot_ctr)
+            #         slot_ctr += 1
+            #     slot = slot_new
 
-        return slot, value
+            mr_processed.append((slot, value))
 
-    @staticmethod
-    def replace_commas_in_slot_values(mr, val_sep, val_sep_end):
-        mr_new = ''
-        val_beg_cnt = 0
-        val_end_cnt = 0
-
-        for c in mr:
-            # If comma inside a value, replace the comma with placeholder
-            if c == ',' and val_beg_cnt > val_end_cnt:
-                mr_new += COMMA_PLACEHOLDER
-                continue
-
-            # Keep track of value beginning and end
-            if c == val_sep:
-                val_beg_cnt += 1
-            elif c == val_sep_end:
-                val_end_cnt += 1
-
-            mr_new += c
-
-        return mr_new
-
-    @staticmethod
-    def put_back_commas_in_mr_values(mrs):
-        return [mr.replace(COMMA_PLACEHOLDER, ',') for mr in mrs]
+        return mr_processed
 
     @staticmethod
     def lowercase_mrs(mrs):
@@ -297,58 +310,20 @@ class MRToTextDataset(Dataset):
         else:
             raise TypeError('Utterances must be strings, or lists of strings.')
 
-    def create_reference_file_for_testing(self):
-        """Creates a text file with groups of utterances corresponding to one MR separated by an empty line."""
-        eval_dir = os.path.join('seq2seq', 'eval')
-        out_file = os.path.join(eval_dir, 'test_references_{}.txt'.format(self.name))
-
-        with open(out_file, 'w', encoding='utf8') as f_out:
-            if isinstance(self.utterances[0], list):
-                for i in range(len(self.utterances)):
-                    f_out.write('\n'.join(self.utterances[i]))
-                    f_out.write('\n\n')
-            elif isinstance(self.utterances[0], str):
-                f_out.write('\n\n'.join(self.utterances))
-                f_out.write('\n')
-
-    def get_mrs(self, raw=False, as_lists=False, lowercase=False, convert_slot_names=False):
-        if raw:
-            mrs = self.mrs_raw
-            if as_lists or lowercase:
-                print('Warning: raw MRs are returned as strings with original letter case.')
-        else:
-            mrs = [self.preprocess_slot_names_in_mr(mr, convert_slot_names=convert_slot_names)
-                   for mr in self.mrs_raw_as_lists]
-            if lowercase:
-                mrs = self.lowercase_mrs(mrs)
-            if not as_lists:
-                mrs = [self.convert_mr_list_to_str(mr, add_separators=(not convert_slot_names)) for mr in mrs]
-
-        return mrs
-
-    def get_utterances(self, lowercase=False):
-        if lowercase:
-            return self.lowercase_utterances(self.utterances)
-        else:
-            return self.utterances
-
     @classmethod
     def get_ontology(cls):
+        """Creates an ontology of the dataset, listing all possible values for each slot.
+
+        The ontology is created based on the training set only.
+        """
         ontology = defaultdict(set)
 
         train_set_path = cls.get_data_file_path('train')
         df_data = pd.read_csv(train_set_path, header=0, encoding='utf8')
 
-        for mr_str in df_data[df_data.columns[0]]:
-            mr_str = cls.preprocess_da_in_mr(mr_str)
-
-            # Replace commas in values if comma is the slot separator
-            if cls.delimiters['slot_sep'].strip() == ',' and cls.delimiters.get('val_end') is not None:
-                mr_str = cls.replace_commas_in_slot_values(mr_str, cls.delimiters['val_beg'],
-                                                           cls.delimiters['val_end'])
-
-            for slot_value_pair in mr_str.split(cls.delimiters['slot_sep']):
-                slot, value = cls.parse_slot_and_value(slot_value_pair)
+        for mr_as_str in df_data[df_data.columns[0]]:
+            mr_as_list = cls.convert_mr_from_str_to_list(mr_as_str)
+            for slot, value in mr_as_list:
                 ontology[slot].add(value)
 
         return ontology
@@ -361,22 +336,18 @@ class MRToTextDataset(Dataset):
             train_set_path = cls.get_data_file_path('train')
             df_data = pd.read_csv(train_set_path, header=0, encoding='utf8')
 
-            for mr_str in df_data[df_data.columns[0]]:
-                mr_str = cls.preprocess_da_in_mr(mr_str)
-
-                # Replace commas in values if comma is the slot separator
-                if cls.delimiters['slot_sep'].strip() == ',' and cls.delimiters.get('val_end') is not None:
-                    mr_str = cls.replace_commas_in_slot_values(mr_str, cls.delimiters['val_beg'], cls.delimiters['val_end'])
-
-                for slot_value_pair in mr_str.split(cls.delimiters['slot_sep']):
-                    slot, _ = cls.parse_slot_and_value(slot_value_pair)
+            for mr_as_str in df_data[df_data.columns[0]]:
+                mr_as_list = cls.convert_mr_from_str_to_list(mr_as_str)
+                for slot, value in mr_as_list:
                     slot = cls.convert_slot_name_to_special_token(slot)
                     slot_tokens.add(slot)
 
-        # DEBUG
-        # print('>> slot_tokens:', slot_tokens)
-
         return sorted(list(slot_tokens))
+
+    @staticmethod
+    def convert_slot_name_to_special_token(slot_name):
+        """Converts a slot name to a special token."""
+        return '<|{}|>'.format(slot_name.replace(' ', '').lower())
 
     @staticmethod
     def verbalize_da_name(da_name):
@@ -385,11 +356,6 @@ class MRToTextDataset(Dataset):
     @staticmethod
     def verbalize_slot_name(slot_name):
         raise NotImplementedError('method \'verbalize_slot_name\' must be defined by subclass')
-
-    @staticmethod
-    def convert_slot_name_to_special_token(slot_name):
-        """Converts a slot name to a special token."""
-        return '<|{}|>'.format(slot_name.replace(' ', '').lower())
 
 
 class E2EDataset(MRToTextDataset):
