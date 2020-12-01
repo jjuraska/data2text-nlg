@@ -412,7 +412,7 @@ def score_alignment(utt, mr, scoring='default+over-class'):
     utt, utt_tok = __preprocess_utterance(utt)
     delex_placeholders = extract_delex_placeholders(utt)
 
-    for slot, value in mr.items():
+    for slot, value in mr:
         if slot.startswith('<|'):
             slot = re.match(r'<\|(.*?)\|>', slot).group(1)
             slot = slot.replace('_', '')
@@ -454,7 +454,7 @@ def count_errors(utt, mr):
     utt, utt_tok = __preprocess_utterance(utt)
 
     # For each slot find its realization in the utterance
-    for slot, value in mr.items():
+    for slot, value in mr:
         slot_root = slot.rstrip(string.digits)
         value = value.lower()
 
@@ -467,7 +467,7 @@ def count_errors(utt, mr):
             slots_hallucinated.add(slot)
 
     # Identify slots that were realized incorrectly or not mentioned at all in the utterance
-    incorrect_slots = [slot for slot in mr if slot not in slots_found]
+    incorrect_slots = [slot for slot, value in mr if slot not in slots_found]
 
     num_errors = len(incorrect_slots) + len(slots_hallucinated) + len(delex_placeholders)
 

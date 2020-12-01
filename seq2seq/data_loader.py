@@ -1,4 +1,4 @@
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 import os
 import pandas as pd
 import re
@@ -29,10 +29,10 @@ class MRToTextDataset(Dataset):
         self.no_target = no_target
         self.separate_source_and_target = separate_source_and_target
 
-        self.mrs = []
-        self.mrs_dict = []
-        self.mrs_as_list = []
         self.mrs_raw = []
+        self.mrs_raw_as_lists = []
+        self.mrs = []
+        self.mrs_as_lists = []
         self.utterances = []
 
         self.load_data()
@@ -71,14 +71,17 @@ class MRToTextDataset(Dataset):
         dataset_path = self.get_data_file_path(self.partition)
         df_data = pd.read_csv(dataset_path, header=0, encoding='utf8')
 
-        self.read_data_from_dataframe(df_data)
-        if self.convert_to_lowercase:
-            self.lowercase_data()
+        # Read the MRs and utterances from the file
+        self.mrs_raw, self.utterances = self.read_data_from_dataframe(df_data, group_by_mr=self.group_by_mr)
 
-        # Perform dataset-specific preprocessing of the MRs
-        self.mrs_dict, self.mrs_as_list = zip(*[self.preprocess_mr(mr) for mr in self.mrs])
-        self.mrs = [self.convert_mr_list_to_str(mr_as_list, add_separators=(not self.convert_slot_names))
-                    for mr_as_list in self.mrs_as_list]
+        # Convert MRs to an intermediate format of lists of tuples
+        self.mrs_raw_as_lists = [self.parse_mr_to_list_of_tuples(mr) for mr in self.mrs_raw]
+
+        # Perform dataset-specific preprocessing of the MRs, and convert them back to strings
+        self.mrs = self.get_mrs(lowercase=self.convert_to_lowercase, convert_slot_names=self.convert_slot_names)
+
+        # Lowercase utterances if needed
+        self.utterances = self.get_utterances(lowercase=self.convert_to_lowercase)
 
         # DEBUG
         # print('>> MRs:\n{}'.format('\n'.join(self.mrs[:50])))
@@ -93,66 +96,62 @@ class MRToTextDataset(Dataset):
         # DEBUG
         # self.mrs = self.mrs[:10]
         # self.mrs_raw = self.mrs_raw[:10]
-        # self.mrs_dict = self.mrs_dict[:10]
+        # self.mrs_as_lists = self.mrs_as_lists[:10]
         # self.utterances = self.utterances[:10]
 
     @staticmethod
     def get_data_file_path(partition):
         raise NotImplementedError('method \'get_data_file_path\' must be defined by subclass')
 
-    def read_data_from_dataframe(self, df_data):
+    @staticmethod
+    def read_data_from_dataframe(df_data, group_by_mr=False):
         # Extract the column names
         mr_col_name = df_data.columns[0]
         utt_col_name = df_data.columns[1] if df_data.shape[1] > 1 else None
 
         # Save the MRs and the utterances as lists (repeated MRs are collapsed for test data)
-        if self.group_by_mr:
+        if group_by_mr:
             # If utterances are present in the data
             if df_data.shape[1] > 1:
                 # Group by MR, and aggregate utterances into lists
                 df_grouped_by_mr = df_data.groupby(mr_col_name, sort=False)[utt_col_name].apply(list).reset_index()
-                self.mrs = df_grouped_by_mr[mr_col_name].tolist()
-                self.utterances = df_grouped_by_mr[utt_col_name].tolist()
-
-                # mr_list = df_data[mr_col_name].tolist()
-                # utt_list = df_data[utt_col_name].tolist()
-                # cur_utt_group = []
-                #
-                # for i in range(len(mr_list)):
-                #     if i > 0 and mr_list[i] != mr_list[i - 1]:
-                #         self.mrs.append(mr_list[i - 1])
-                #         self.utterances.append(cur_utt_group)
-                #         cur_utt_group = []
-                #     cur_utt_group.append(utt_list[i])
-                # self.mrs.append(mr_list[-1])
-                # self.utterances.append(cur_utt_group)
+                mrs = df_grouped_by_mr[mr_col_name].tolist()
+                utterances = df_grouped_by_mr[utt_col_name].tolist()
             else:
-                self.mrs = df_data[mr_col_name].tolist()
+                mrs = df_data[mr_col_name].tolist()
+                utterances = []
         else:
-            self.mrs = df_data[mr_col_name].tolist()
+            mrs = df_data[mr_col_name].tolist()
             if df_data.shape[1] > 1:
-                self.utterances = df_data[utt_col_name].tolist()
+                utterances = df_data[utt_col_name].tolist()
             else:
                 raise ValueError('Training and validation input data are expected to have two columns')
 
-        # Store original MRs (before any preprocessing)
-        self.mrs_raw = self.mrs[:]
+        return mrs, utterances
 
-    def preprocess_mr(self, mr_str):
-        mr_dict = OrderedDict()
-        mr_list = []
+    def parse_mr_to_list_of_tuples(self, mr_as_str):
+        mr_as_list = []
 
-        mr_str = self.preprocess_da_in_mr(mr_str)
+        mr_as_str = self.preprocess_da_in_mr(mr_as_str)
 
         # Replace commas in values if comma is the slot separator
         if self.delimiters['slot_sep'].strip() == ',' and self.delimiters.get('val_end') is not None:
-            mr_str = self.replace_commas_in_slot_values(mr_str, self.delimiters['val_beg'], self.delimiters['val_end'])
+            mr_as_str = self.replace_commas_in_slot_values(
+                mr_as_str, self.delimiters['val_beg'], self.delimiters['val_end'])
 
         # Extract the sequence of slots and their corresponding values
-        for slot_value_pair in mr_str.split(self.delimiters['slot_sep']):
+        for slot_value_pair in mr_as_str.split(self.delimiters['slot_sep']):
             slot, value = self.parse_slot_and_value(slot_value_pair)
-            if self.convert_slot_names:
-                slot = self.convert_slot_name(slot)
+            mr_as_list.append((slot, value))
+
+        return mr_as_list
+
+    def preprocess_slot_names_in_mr(self, mr_as_list, convert_slot_names=False):
+        mr_processed = []
+
+        for slot, value in mr_as_list:
+            if convert_slot_names:
+                slot = self.convert_slot_name_to_special_token(slot)
             else:
                 if slot == 'da':
                     slot = 'intent'
@@ -168,10 +167,9 @@ class MRToTextDataset(Dataset):
             #         slot_ctr += 1
             #     slot = slot_new
 
-            mr_dict[slot] = value
-            mr_list.append((slot, value))
+            mr_processed.append((slot, value))
 
-        return mr_dict, mr_list
+        return mr_processed
 
     @staticmethod
     def convert_mr_dict_to_str(mr_dict):
@@ -279,14 +277,25 @@ class MRToTextDataset(Dataset):
     def put_back_commas_in_mr_values(mrs):
         return [mr.replace(COMMA_PLACEHOLDER, ',') for mr in mrs]
 
-    def lowercase_data(self):
-        """Lowercases all MRs and utterances."""
-        self.mrs = [mr.lower() for mr in self.mrs]
-        if self.utterances:
-            if isinstance(self.utterances[0], str):
-                self.utterances = [utt.lower() for utt in self.utterances]
-            elif isinstance(self.utterances[0], list):
-                self.utterances = [[utt.lower() for utt in utt_list] for utt_list in self.utterances]
+    @staticmethod
+    def lowercase_mrs(mrs):
+        """Lowercases the given MRs."""
+        if isinstance(mrs[0], list):
+            return [[(slot.lower(), value.lower()) for slot, value in mr_as_list] for mr_as_list in mrs]
+        elif isinstance(mrs[0], str):
+            return [mr_as_str.lower() for mr_as_str in mrs]
+        else:
+            raise TypeError('MRs must be strings, or lists of slot-and-value tuples.')
+
+    @staticmethod
+    def lowercase_utterances(utterances):
+        """Lowercases the given utterances."""
+        if isinstance(utterances[0], str):
+            return [utt.lower() for utt in utterances]
+        elif isinstance(utterances[0], list):
+            return [[utt.lower() for utt in utt_list] for utt_list in utterances]
+        else:
+            raise TypeError('Utterances must be strings, or lists of strings.')
 
     def create_reference_file_for_testing(self):
         """Creates a text file with groups of utterances corresponding to one MR separated by an empty line."""
@@ -302,21 +311,26 @@ class MRToTextDataset(Dataset):
                 f_out.write('\n\n'.join(self.utterances))
                 f_out.write('\n')
 
-    def get_mrs(self, raw=False, lowercased=False):
-        mrs = self.mrs_raw if raw else self.mrs
-        return [mr.lower() for mr in mrs] if lowercased else mrs[:]
-
-    def get_mrs_as_dicts(self, lowercased=False):
-        return [mr_dict.lower() for mr_dict in self.mrs_dict] if lowercased else self.mrs_dict[:]
-
-    def get_utterances(self, lowercased=False):
-        if lowercased:
-            if self.group_by_mr:
-                return [[utt.lower() for utt in utt_list] for utt_list in self.utterances]
-            else:
-                return [utt.lower() for utt in self.utterances]
+    def get_mrs(self, raw=False, as_lists=False, lowercase=False, convert_slot_names=False):
+        if raw:
+            mrs = self.mrs_raw
+            if as_lists or lowercase:
+                print('Warning: raw MRs are returned as strings with original letter case.')
         else:
-            return self.utterances[:]
+            mrs = [self.preprocess_slot_names_in_mr(mr, convert_slot_names=convert_slot_names)
+                   for mr in self.mrs_raw_as_lists]
+            if lowercase:
+                mrs = self.lowercase_mrs(mrs)
+            if not as_lists:
+                mrs = [self.convert_mr_list_to_str(mr, add_separators=(not convert_slot_names)) for mr in mrs]
+
+        return mrs
+
+    def get_utterances(self, lowercase=False):
+        if lowercase:
+            return self.lowercase_utterances(self.utterances)
+        else:
+            return self.utterances
 
     @classmethod
     def get_ontology(cls):
@@ -356,7 +370,7 @@ class MRToTextDataset(Dataset):
 
                 for slot_value_pair in mr_str.split(cls.delimiters['slot_sep']):
                     slot, _ = cls.parse_slot_and_value(slot_value_pair)
-                    slot = cls.convert_slot_name(slot)
+                    slot = cls.convert_slot_name_to_special_token(slot)
                     slot_tokens.add(slot)
 
         # DEBUG
@@ -373,7 +387,7 @@ class MRToTextDataset(Dataset):
         raise NotImplementedError('method \'verbalize_slot_name\' must be defined by subclass')
 
     @staticmethod
-    def convert_slot_name(slot_name):
+    def convert_slot_name_to_special_token(slot_name):
         """Converts a slot name to a special token."""
         return '<|{}|>'.format(slot_name.replace(' ', '').lower())
 

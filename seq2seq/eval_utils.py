@@ -16,7 +16,7 @@ def calculate_singleref_bleu(dataset, predictions):
     references and multiplies the generated predictions as necessary to match corresponding references. Otherwise, it
     uses the predictions and references as-is.
     """
-    references = dataset.get_utterances(lowercased=True)
+    references = dataset.get_utterances(lowercase=True)
     predictions = [pred.lower() for pred in predictions]
 
     if isinstance(references[0], list):
@@ -38,7 +38,7 @@ def calculate_multiref_bleu(dataset, predictions):
     generated utterances to have been produced from unique inputs, and hence to be a flat list. This method transposes
     the nested list of reference utterances to conform with the format sacreblue's corpus_bleu method expects.
     """
-    references = dataset.get_utterances(lowercased=True)
+    references = dataset.get_utterances(lowercase=True)
     predictions = [pred.lower() for pred in predictions]
 
     # Only works if the number of references is the same for each input

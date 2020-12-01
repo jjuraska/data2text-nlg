@@ -57,8 +57,8 @@ def train_tokenizer(datasets, pretrained_model_name, vocab_size=1000, lowercase=
                                   convert_slot_names=convert_slot_names,
                                   separate_source_and_target=config_pretrained.is_encoder_decoder)
 
-        train_data.extend(train_set.get_mrs())
-        train_data.extend(train_set.get_utterances())
+        train_data.extend(train_set.get_mrs(lowercase=lowercase, convert_slot_names=convert_slot_names))
+        train_data.extend(train_set.get_utterances(lowercase=lowercase))
 
         special_tokens.extend(train_set.get_special_tokens(convert_slot_names=convert_slot_names))
 
