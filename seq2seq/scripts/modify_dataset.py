@@ -5,7 +5,7 @@ import pandas as pd
 import re
 import sys
 
-from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, ViggoDataset
+from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, MultiWOZDataset, ViggoDataset
 
 
 def parse_da(mr, delimiters):
@@ -77,61 +77,57 @@ def convert_multiwoz_dataset_to_csv():
 
     dataset_dir = os.path.join('..', 'data', 'multiwoz')
     conversation_file = os.path.join(dataset_dir, 'data.json')
-    mr_file = os.path.join(dataset_dir, 'dialogue_acts.json')
-    validation_ids_file = os.path.join(dataset_dir, 'valListFile.json')
-    test_ids_file = os.path.join(dataset_dir, 'testListFile.json')
+    validation_ids_file = os.path.join(dataset_dir, 'valListFile.txt')
+    test_ids_file = os.path.join(dataset_dir, 'testListFile.txt')
 
     with open(conversation_file, 'r', encoding='utf-8') as f_conversations:
         conversations = json.load(f_conversations)
-    with open(mr_file, 'r', encoding='utf-8') as f_mrs:
-        mrs = json.load(f_mrs)
     with open(validation_ids_file, 'r', encoding='utf-8') as f_validation_ids:
         validation_ids = {line.strip() for line in f_validation_ids.readlines()}
     with open(test_ids_file, 'r', encoding='utf-8') as f_test_ids:
         test_ids = {line.strip() for line in f_test_ids.readlines()}
 
-    invalid_mrs = Counter()
+    invalid_mr_ctr = Counter()
 
     for conv_id, conv in conversations.items():
         conv_id_root = re.sub('\.json$', '', conv_id)
-        # conv_turns = [turn['text'] for turn in conv['log'] if turn.get('metadata')]
-        conv_turns = [turn['text'] for i, turn in enumerate(conv['log']) if i % 2 != 0]
-        conv_mrs = mrs[conv_id_root]
-        if not conv_mrs:
-            print(f'Warning: No MRs found for conversation {conv_id_root}.')
-            continue
 
-        for i, utt in enumerate(conv_turns, start=1):
+        for i, turn in enumerate(conv['log']):
+            # Skip user turns
+            # if not turn.get('metadata'):
+            if i % 2 == 0:
+                continue
+
+            if turn.get('dialog_act'):
+                if not isinstance(turn['dialog_act'], dict):
+                    print(f'Warning: (system) turn #{i} of conversation {conv_id_root} not annotated.')
+
+                    if conv_id in validation_ids:
+                        partition = 'valid'
+                    elif conv_id in test_ids:
+                        partition = 'test'
+                    else:
+                        partition = 'train'
+                    invalid_mr_ctr.update([partition])
+
+                    continue
+
+                mr = turn['dialog_act']
+                utt = turn['text']
+            else:
+                print(f'Warning: MR for (system) turn #{i} of conversation {conv_id_root} not found.')
+
+                if conv_id in validation_ids:
+                    partition = 'valid'
+                elif conv_id in test_ids:
+                    partition = 'test'
+                else:
+                    partition = 'train'
+                invalid_mr_ctr.update([partition])
+
+                continue
+
             da_strings = []
-            if str(i) not in conv_mrs:
-                print(f'Warning: MR for system turn #{i} of conversation {conv_id_root} not found.')
-                # print(json.dumps(conv['log'], indent=4))
-
-                if conv_id in validation_ids:
-                    partition = 'valid'
-                elif conv_id in test_ids:
-                    partition = 'test'
-                else:
-                    partition = 'train'
-                invalid_mrs.update([partition])
-
-                continue
-
-            # Find the MR corresponding to the conversation turn
-            mr = conv_mrs[str(i)]
-            if not isinstance(mr, dict):
-                print(f'Warning: System turn #{i} of conversation {conv_id_root} not annotated.')
-
-                if conv_id in validation_ids:
-                    partition = 'valid'
-                elif conv_id in test_ids:
-                    partition = 'test'
-                else:
-                    partition = 'train'
-                invalid_mrs.update([partition])
-
-                continue
-
             for da, slots in mr.items():
                 slots_str = slot_sep.join(
                     ['{0}[{1}]'.format(re.sub(r'\s+', '_', slot[0].strip()), slot[1].strip()) for slot in slots
@@ -153,7 +149,7 @@ def convert_multiwoz_dataset_to_csv():
 
     print()
     print('>> Invalid MRs:')
-    print(invalid_mrs)
+    print(invalid_mr_ctr)
 
     for partition in ['train', 'valid', 'test']:
         df_data = pd.DataFrame(data[partition], columns=['mr', 'ref'])
@@ -204,6 +200,6 @@ if __name__ == '__main__':
     #
     # undersample_dataset(dataset, delimiters, 0.5, trainset_only=True)
 
-    # convert_multiwoz_dataset_to_csv()
+    convert_multiwoz_dataset_to_csv()
 
-    export_dataset_ontology(E2ECleanedDataset)
+    # export_dataset_ontology(MultiWOZDataset)
