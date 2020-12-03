@@ -98,6 +98,8 @@ class MRToTextDataset(Dataset):
         # self.mrs_raw = self.mrs_raw[:10]
         # self.mrs_as_lists = self.mrs_as_lists[:10]
         # self.utterances = self.utterances[:10]
+        # df_mrs = pd.DataFrame({'mr_orig': self.mrs_raw, 'mr': self.mrs})
+        # df_mrs.to_csv(os.path.splitext(dataset_path)[0] + '_mrs.csv', index=False, encoding='utf-8-sig')
 
     def get_mrs(self, raw=False, as_lists=False, lowercase=False, convert_slot_names=False):
         if raw:
@@ -258,6 +260,8 @@ class MRToTextDataset(Dataset):
                 # Save the slot/value pair
                 slot = match.captures(i)[j].strip()
                 value = match.captures(i + 1)[j].strip()
+                if value == '?':
+                    value = ''
                 slots_and_values.append((slot, value))
 
         return slots_and_values
@@ -271,6 +275,11 @@ class MRToTextDataset(Dataset):
                 slot = cls.convert_slot_name_to_special_token(slot)
             else:
                 if slot == 'da':
+                    if '-' in value:
+                        domain_slot_name = 'topic'
+                        domain_value = cls.verbalize_domain_name(value)
+                        mr_processed.append((domain_slot_name, domain_value))
+
                     slot = 'intent'
                     value = cls.verbalize_da_name(value)
                 else:
@@ -352,6 +361,10 @@ class MRToTextDataset(Dataset):
     @staticmethod
     def verbalize_da_name(da_name):
         raise NotImplementedError('method \'verbalize_da_name\' must be defined by subclass')
+
+    @staticmethod
+    def verbalize_domain_name(da_name):
+        raise NotImplementedError('method \'verbalize_domain_name\' must be defined by subclass')
 
     @staticmethod
     def verbalize_slot_name(slot_name):
@@ -438,6 +451,56 @@ class MultiWOZDataset(MRToTextDataset):
             dataset_path = os.path.join(dataset_dir, 'train.csv')
 
         return dataset_path
+
+    @staticmethod
+    def verbalize_da_name(da_name):
+        das_to_override = {
+            'reqmore': 'request more',
+        }
+
+        # Parse the DA name from the domain+DA indication
+        da_name = re.match(r'(?:\w+)-(\w+)', da_name).group(1)
+
+        if da_name in das_to_override:
+            da_name_verbalized = das_to_override[da_name]
+        else:
+            if re.match(r'^[A-Z]', da_name):
+                da_name_verbalized = ' '.join([tok.lower() for tok in re.findall('[A-Z][^A-Z]*', da_name)])
+            else:
+                da_name_verbalized = da_name.lower()
+
+        return da_name_verbalized
+
+    @staticmethod
+    def verbalize_domain_name(domain_name):
+        # Parse the domain name from the domain+DA indication
+        domain_name = re.match(r'(\w+)-(?:\w+)', domain_name).group(1)
+
+        return domain_name.lower()
+
+    @staticmethod
+    def verbalize_slot_name(slot_name):
+        slots_to_override = {
+            'Addr': 'address',
+            'Dest': 'destination',
+            'Id': 'ID',
+            'Internet': 'Internet',
+            'People': 'number of people',
+            'Phone': 'phone number',
+            'Post': 'postcode',
+            'Price': 'price range',
+            'Ref': 'reference number',
+            'Stars': 'rating',
+            'Stay': 'length of stay',
+            'Ticket': 'ticket price',
+        }
+
+        if slot_name in slots_to_override:
+            slot_name_verbalized = slots_to_override[slot_name]
+        else:
+            slot_name_verbalized = slot_name.lower()
+
+        return slot_name_verbalized
 
 
 class ViggoDataset(MRToTextDataset):
