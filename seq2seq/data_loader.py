@@ -107,10 +107,16 @@ class MRToTextDataset(Dataset):
             if as_lists or lowercase:
                 print('Warning: raw MRs are returned as strings with original letter case.')
         else:
+            # Preprocess slot names
             mrs = [self.preprocess_slot_names_in_mr(mr, convert_slot_names=convert_slot_names)
                    for mr in self.mrs_raw_as_lists]
+
+            # Preprocess slot values
+            mrs = self.preprocess_slot_values_in_mrs(mrs)
+
             if lowercase:
                 mrs = self.lowercase_mrs(mrs)
+
             if not as_lists:
                 mrs = [self.convert_mr_from_list_to_str(mr, add_separators=(not convert_slot_names)) for mr in mrs]
 
@@ -298,6 +304,10 @@ class MRToTextDataset(Dataset):
             mr_processed.append((slot, value))
 
         return mr_processed
+
+    @classmethod
+    def preprocess_slot_values_in_mrs(cls, mrs):
+        return mrs
 
     @staticmethod
     def lowercase_mrs(mrs):
@@ -501,6 +511,18 @@ class MultiWOZDataset(MRToTextDataset):
             slot_name_verbalized = slot_name.lower()
 
         return slot_name_verbalized
+
+    @classmethod
+    def preprocess_slot_values_in_mrs(cls, mrs):
+        from sacremoses import MosesDetokenizer
+
+        # Detokenize slot values
+        detokenizer = MosesDetokenizer()
+        return [cls.detokenize_slot_values(mr, detokenizer) for mr in mrs]
+
+    @staticmethod
+    def detokenize_slot_values(mr_as_list, detokenizer):
+        return [(slot, detokenizer.detokenize(value.split())) for slot, value in mr_as_list]
 
 
 class ViggoDataset(MRToTextDataset):
