@@ -32,7 +32,6 @@ class MRToTextDataset(Dataset):
         self.mrs_raw = []
         self.mrs_raw_as_lists = []
         self.mrs = []
-        self.mrs_as_lists = []
         self.utterances = []
 
         self.load_data()
@@ -74,9 +73,6 @@ class MRToTextDataset(Dataset):
         # Read the MRs and utterances from the file
         self.mrs_raw, self.utterances = self.read_data_from_dataframe(df_data, group_by_mr=self.group_by_mr)
 
-        # Convert MRs to an intermediate format of lists of tuples
-        self.mrs_raw_as_lists = [self.convert_mr_from_str_to_list(mr) for mr in self.mrs_raw]
-
         # Perform dataset-specific preprocessing of the MRs, and convert them back to strings
         self.mrs = self.get_mrs(lowercase=self.convert_to_lowercase, convert_slot_names=self.convert_slot_names)
 
@@ -96,7 +92,7 @@ class MRToTextDataset(Dataset):
         # DEBUG
         # self.mrs = self.mrs[:10]
         # self.mrs_raw = self.mrs_raw[:10]
-        # self.mrs_as_lists = self.mrs_as_lists[:10]
+        # self.mrs_raw_as_lists = self.mrs_raw_as_lists[:10]
         # self.utterances = self.utterances[:10]
         # df_mrs = pd.DataFrame({'mr_orig': self.mrs_raw, 'mr': self.mrs})
         # df_mrs.to_csv(os.path.splitext(dataset_path)[0] + '_mrs.csv', index=False, encoding='utf-8-sig')
@@ -107,18 +103,12 @@ class MRToTextDataset(Dataset):
             if as_lists or lowercase:
                 print('Warning: raw MRs are returned as strings with original letter case.')
         else:
-            # Preprocess slot names
-            mrs = [self.preprocess_slot_names_in_mr(mr, convert_slot_names=convert_slot_names)
-                   for mr in self.mrs_raw_as_lists]
+            # Convert MRs to an intermediate format of lists of tuples, and cache the outputs
+            if not self.mrs_raw_as_lists:
+                self.mrs_raw_as_lists = [self.convert_mr_from_str_to_list(mr) for mr in self.mrs_raw]
 
-            # Preprocess slot values
-            mrs = self.preprocess_slot_values_in_mrs(mrs)
-
-            if lowercase:
-                mrs = self.lowercase_mrs(mrs)
-
-            if not as_lists:
-                mrs = [self.convert_mr_from_list_to_str(mr, add_separators=(not convert_slot_names)) for mr in mrs]
+            mrs = self.preprocess_mrs_from_intermediate_format(
+                self.mrs_raw_as_lists, as_lists=as_lists, lowercase=lowercase, convert_slot_names=convert_slot_names)
 
         return mrs
 
@@ -198,6 +188,42 @@ class MRToTextDataset(Dataset):
         val_sep = ' = ' if add_separators else ' '
 
         return slot_sep.join(['{0}{1}'.format(slot, val_sep + val if val else '') for slot, val in mr_as_list])
+
+    @classmethod
+    def preprocess_mrs_from_intermediate_format(cls, mrs, as_lists=False, lowercase=False, convert_slot_names=False):
+        """Performs a series of preprocessing actions on MRs in the intermediate list-of-tuples format.
+
+        Depending on the as_lists parameter, it returns the MRs either in the intermediate format or as strings.
+        """
+        # Preprocess slot names
+        mrs = [cls.preprocess_slot_names_in_mr(mr, convert_slot_names=convert_slot_names)
+               for mr in mrs]
+
+        # Preprocess slot values
+        mrs = cls.preprocess_slot_values_in_mrs(mrs)
+
+        if lowercase:
+            # Convert slots and values to lowercase
+            mrs = cls.lowercase_mrs(mrs)
+
+        if not as_lists:
+            # Convert MRs to strings
+            mrs = [cls.convert_mr_from_list_to_str(mr, add_separators=(not convert_slot_names)) for mr in mrs]
+
+        return mrs
+
+    @classmethod
+    def preprocess_mrs(cls, mrs, as_lists=False, lowercase=False, convert_slot_names=False):
+        """Performs dataset-specific preprocessing of the given MRs."""
+
+        # Convert MRs to an intermediate format of lists of tuples
+        mrs_as_lists = [cls.convert_mr_from_str_to_list(mr) for mr in mrs]
+
+        # Perform dataset-specific preprocessing of the MRs, and convert them back to strings
+        mrs_preprocessed = cls.preprocess_mrs_from_intermediate_format(
+            mrs_as_lists, as_lists=as_lists, lowercase=lowercase, convert_slot_names=convert_slot_names)
+
+        return mrs_preprocessed
 
     @classmethod
     def preprocess_da_in_mr(cls, mr):
@@ -518,11 +544,14 @@ class MultiWOZDataset(MRToTextDataset):
 
         # Detokenize slot values
         detokenizer = MosesDetokenizer()
-        return [cls.detokenize_slot_values(mr, detokenizer) for mr in mrs]
+        return [[(slot, cls.detokenize_slot_value(value, detokenizer)) for slot, value in mr] for mr in mrs]
 
     @staticmethod
-    def detokenize_slot_values(mr_as_list, detokenizer):
-        return [(slot, detokenizer.detokenize(value.split())) for slot, value in mr_as_list]
+    def detokenize_slot_value(value, detokenizer):
+        value_detok = detokenizer.detokenize(value.split())
+        value_detok = value_detok.replace(" - ", "-").replace(" n't", "n't").replace("I ' m", "I'm")
+
+        return value_detok
 
 
 class ViggoDataset(MRToTextDataset):
