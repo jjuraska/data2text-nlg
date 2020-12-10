@@ -63,7 +63,10 @@ class MRToTextDataset(Dataset):
             # When MR and utterance are concatenated as source, use the target string as an auxiliary variable
             target_str = mr + self.bos_token
 
-        return source_str, target_str
+        # The following is required when using slot name verbalization along with token type IDs in the GPT-2 model
+        token_type_seq = self.get_token_type_sequence(idx)
+
+        return source_str, target_str, token_type_seq
 
     def load_data(self):
         # Load the data file
@@ -134,6 +137,19 @@ class MRToTextDataset(Dataset):
             elif isinstance(self.utterances[0], str):
                 f_out.write('\n\n'.join(self.utterances))
                 f_out.write('\n')
+
+    def get_token_type_sequence(self, idx):
+        """Pre-calculates token type sequences using dataset-specific mapping of slot names to salient tokens.
+
+        Required when using slot name verbalization along with token type IDs in the GPT-2 model.
+        """
+        if not self.convert_slot_names:
+            token_type_seq = [self.get_single_word_slot_representation(slot[0]) for slot in self.mrs_raw_as_lists[idx]]
+            token_type_seq.append(self.bos_token)
+
+            return ' '.join(token_type_seq)
+        else:
+            return ''
 
     @staticmethod
     def get_data_file_path(partition):
@@ -406,6 +422,10 @@ class MRToTextDataset(Dataset):
     def verbalize_slot_name(slot_name):
         raise NotImplementedError('method \'verbalize_slot_name\' must be defined by subclass')
 
+    @staticmethod
+    def get_single_word_slot_representation(slot_name):
+        raise NotImplementedError('method \'get_single_word_slot_representation\' must be defined by subclass')
+
 
 class E2EDataset(MRToTextDataset):
     """An MR-to-text dataset in the restaurant domain (provided as part of the E2E NLG Challenge)."""
@@ -445,6 +465,17 @@ class E2EDataset(MRToTextDataset):
             slot_name_verbalized = slot_name
 
         return slot_name_verbalized
+
+    @staticmethod
+    def get_single_word_slot_representation(slot_name):
+        single_word_slot_repr = {
+            'customer rating': 'rating',
+            'eatType': 'type',
+            'familyFriendly': 'family',
+            'priceRange': 'price',
+        }
+
+        return single_word_slot_repr.get(slot_name, slot_name)
 
 
 class E2ECleanedDataset(E2EDataset):
@@ -597,6 +628,23 @@ class ViggoDataset(MRToTextDataset):
                 slot_name_verbalized = re.sub(r'\b{}\b'.format(re.escape(tok)), tok.capitalize(), slot_name_verbalized)
 
         return slot_name_verbalized
+
+    @staticmethod
+    def get_single_word_slot_representation(slot_name):
+        single_word_slot_repr = {
+            'available_on_steam': 'Steam',
+            'da': 'intent',
+            'esrb': 'content',
+            'exp_release_date': 'expected',
+            'has_linux_release': 'Linux',
+            'has_mac_release': 'Mac',
+            'has_multiplayer': 'multiplayer',
+            'player_perspective': 'perspective',
+            'release_year': 'year',
+            'specifier': 'specify',
+        }
+
+        return single_word_slot_repr.get(slot_name, slot_name)
 
 
 class ViggoWithE2EDataset(ViggoDataset):

@@ -1,5 +1,5 @@
 #model_name: "gpt2"
-model_name: "seq2seq/export/video_game/finetuned_verbalized_slots/gpt2_lr_2e-5_bs_16_wus_100_run2/epoch_10_step_319"
+model_name: "seq2seq/export/video_game/finetuned_verbalized_slots/gpt2_lr_2e-5_bs_16_wus_100_run6/epoch_14_step_319"
 #tokenizer_name: "gpt2-video_game-lowercase"
 pretrained: True
 #checkpoint_epoch: 11
@@ -17,4 +17,4 @@ do_sample: False
 length_penalty: 1.0
 #num_return_sequences: 1
 semantic_reranking: True
-#use_token_type_ids: True
+use_token_type_ids: True

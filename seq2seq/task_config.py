@@ -15,6 +15,9 @@ class TaskConfig(object):
         self.lowercase = config.get('lowercase', False)
         self.convert_slot_names = config.get('convert_slot_names', False)
         self.use_token_type_ids = config.get('use_token_type_ids', False)
+        # if self.use_token_type_ids and not self.convert_slot_names:
+        #     print('Error: the "use_token_type_ids" parameter can only be True when "convert_slot_names" is True.')
+        #     sys.exit()
 
 
 class TrainingConfig(TaskConfig):
@@ -56,5 +59,5 @@ class TestConfig(TaskConfig):
             self.checkpoint_epoch = int(epoch)
             self.checkpoint_step = int(step)
         except AttributeError:
-            print('Error: checkpoint epoch or step neither provided in the task configuration, nor found in the model name')
+            print('Error: checkpoint epoch or step neither provided in the task configuration, nor found in the model name.')
             sys.exit()

@@ -1,5 +1,5 @@
 #model_name: "gpt2"
-model_name: "seq2seq/export/rest_e2e_cleaned/finetuned_verbalized_slots/gpt2_lr_2e-5_bs_16_wus_500_run2/epoch_13_step_2096"
+model_name: "seq2seq/export/rest_e2e_cleaned/finetuned_verbalized_slots/gpt2_lr_2e-5_bs_16_wus_500_run2/epoch_8_step_2096"
 pretrained: True
 #checkpoint_epoch: 10
 #checkpoint_step: 1677
@@ -16,4 +16,4 @@ do_sample: False
 length_penalty: 1.0
 #num_return_sequences: 1
 semantic_reranking: True
-#use_token_type_ids: True
+use_token_type_ids: True

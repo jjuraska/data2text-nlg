@@ -10,4 +10,4 @@ lr: 2.0e-5
 max_grad_norm: 1.0
 eval_times_per_epoch: 1
 fp16: True
-#use_token_type_ids: True
+use_token_type_ids: True

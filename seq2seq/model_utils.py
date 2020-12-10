@@ -312,7 +312,7 @@ def prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False):
         input_mask = inputs['attention_mask']
 
         if 'gpt2' in config.model_name and config.use_token_type_ids:
-            batch_dict['token_type_ids'] = create_token_type_ids(input_ids, tokenizer)
+            batch_dict['token_type_ids'] = create_token_type_ids(input_ids, batch[2], tokenizer)
 
         if include_labels:
             mrs_only = tokenizer(batch[1], add_special_tokens=False, max_length=config.max_seq_length,
@@ -332,7 +332,7 @@ def prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False):
     # print()
     # print('>> ENCODED input masks:\n', input_mask)
     # print()
-    # print('>> Token type IDs:\n', token_type_ids)
+    # print('>> Token type IDs:\n', batch_dict['token_type_ids'])
     # print()
     # print('>> ENCODED labels:\n', label_ids)
     # print('>> DECODED labels:\n', tokenizer.decode(label_ids[0][label_ids[0] >= 0]))
@@ -348,25 +348,60 @@ def prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False):
     return batch_dict
 
 
-def create_token_type_ids(input_ids, tokenizer):
-    special_token_id_set = {val for key, val in tokenizer.get_added_vocab().items()}
-    special_token_id_set.update([tokenizer.bos_token_id, tokenizer.eos_token_id, tokenizer.pad_token_id])
+def create_token_type_ids(input_id_batch, token_type_seq_batch, tokenizer):
+    """Creates a token type ID tensor for the given batch of input IDs. (Only works with the GPT-2 model.)
 
-    # DEBUG
-    # print('>> Special token ID set:')
-    # print(special_token_id_set)
+    If slot names are converted to special tokens, the token types are calculated by carrying over the ID of the most
+    recent special token in the input sequence (e.g., a slot name or the BOS token). If slot names are not converted to
+    special tokens (and can thus comprise multiple tokens), token type sequences pre-calculated using dataset-specific
+    mapping of slot names to salient tokens are used instead.
+    """
+    token_type_id_batch = input_id_batch.clone()
 
-    token_type_ids = input_ids.clone()
+    if not token_type_seq_batch[0]:
+        # Prepare the special token ID set containing tokenizer's special tokens, plus slot names (as special tokens)
+        special_token_id_set = {val for key, val in tokenizer.get_added_vocab().items()}
+        special_token_id_set.update([tokenizer.bos_token_id, tokenizer.eos_token_id, tokenizer.pad_token_id])
 
-    for i in range(token_type_ids.shape[0]):
-        prev_special_token = token_type_ids[i][0]
-        for j in range(token_type_ids.shape[1]):
-            if token_type_ids[i][j].item() in special_token_id_set:
-                prev_special_token = token_type_ids[i][j].item()
-            else:
-                token_type_ids[i][j] = prev_special_token
+        # DEBUG
+        # print('>> Special token ID set:')
+        # print(special_token_id_set)
 
-    return token_type_ids
+        for i in range(token_type_id_batch.shape[0]):
+            prev_special_token = token_type_id_batch[i][0]
+            for j in range(1, token_type_id_batch.shape[1]):
+                if token_type_id_batch[i][j].item() in special_token_id_set or j == 0:
+                    # Set the current token as the most recent special token
+                    prev_special_token = token_type_id_batch[i][j].item()
+                else:
+                    # Carry over the most recent special token
+                    token_type_id_batch[i][j] = prev_special_token
+    else:
+        # Get the ID of the slot separator token used in the input sequences
+        slot_sep_id = tokenizer(' |')['input_ids'][0]
+
+        for i in range(token_type_id_batch.shape[0]):
+            cur_token_type_idx = 0
+            token_types = tokenizer(token_type_seq_batch[i], add_special_tokens=False)['input_ids']
+
+            assert len(token_types) == len(token_type_seq_batch[i].split())
+
+            # Skip padding tokens (if input IDs padded from the left)
+            first_non_pad_idx = 0
+            while token_type_id_batch[i][first_non_pad_idx].item() == tokenizer.pad_token_id:
+                first_non_pad_idx += 1
+
+            for j in range(first_non_pad_idx, token_type_id_batch.shape[1]):
+                if token_type_id_batch[i][j].item() == tokenizer.eos_token_id:
+                    break
+                elif token_type_id_batch[i][j].item() in [slot_sep_id, tokenizer.bos_token_id]:
+                    # Set the token type to the next salient token in the pre-calculated sequence
+                    cur_token_type_idx += 1
+
+                # Carry over the token type until the next slot separator is encountered in the input sequence
+                token_type_id_batch[i][j] = token_types[cur_token_type_idx]
+
+    return token_type_id_batch
 
 
 def create_label_mask(input_ids, input_mask, label_mask):
