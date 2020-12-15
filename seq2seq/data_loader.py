@@ -15,7 +15,7 @@ class MRToTextDataset(Dataset):
     delimiters = {}
 
     def __init__(self, tokenizer, partition='train', lowercase=False, convert_slot_names=False, group_by_mr=False,
-                 no_target=False, separate_source_and_target=False):
+                 no_target=False, separate_source_and_target=False, sort_by_length=False, prepare_token_types=False):
         super().__init__()
 
         self.tokenizer = tokenizer
@@ -28,6 +28,8 @@ class MRToTextDataset(Dataset):
         self.group_by_mr = group_by_mr
         self.no_target = no_target
         self.separate_source_and_target = separate_source_and_target
+        self.sort_by_length = sort_by_length
+        self.prepare_token_types = prepare_token_types
 
         self.mrs_raw = []
         self.mrs_raw_as_lists = []
@@ -63,10 +65,12 @@ class MRToTextDataset(Dataset):
             # When MR and utterance are concatenated as source, use the target string as an auxiliary variable
             target_str = mr + self.bos_token
 
-        # The following is required when using slot name verbalization along with token type IDs in the GPT-2 model
-        token_type_seq = self.get_token_type_sequence(idx)
-
-        return source_str, target_str, token_type_seq
+        if self.prepare_token_types:
+            # The following is required when using slot name verbalization along with token type IDs in the GPT-2 model
+            token_type_seq = self.get_token_type_sequence(idx)
+            return source_str, target_str, token_type_seq
+        else:
+            return source_str, target_str
 
     def load_data(self):
         # Load the data file
@@ -91,6 +95,9 @@ class MRToTextDataset(Dataset):
 
         if self.utterances:
             assert len(self.mrs) == len(self.utterances)
+
+        if self.sort_by_length:
+            self.mrs, self.utterances = self.sort_data(self.mrs, self.utterances, reverse=True)
 
         # DEBUG
         # self.mrs = self.mrs[:10]
@@ -145,7 +152,8 @@ class MRToTextDataset(Dataset):
         """
         if not self.convert_slot_names:
             token_type_seq = [self.get_single_word_slot_representation(slot[0]) for slot in self.mrs_raw_as_lists[idx]]
-            token_type_seq.append(self.bos_token)
+            if self.bos_token:
+                token_type_seq.append(self.bos_token)
 
             return ' '.join(token_type_seq)
         else:
@@ -370,6 +378,20 @@ class MRToTextDataset(Dataset):
             return [[utt.lower() for utt in utt_list] for utt_list in utterances]
         else:
             raise TypeError('Utterances must be strings, or lists of strings.')
+
+    @staticmethod
+    def sort_data(mrs, utterances, reverse=False):
+        if utterances:
+            mrs, utterances = zip(*sorted(zip(mrs, utterances), key=lambda x: len(x[0].split()), reverse=reverse))
+            mrs, utterances = list(mrs), list(utterances)
+        else:
+            mrs = sorted(mrs, key=lambda x: len(x.split), reverse=reverse)
+
+        # DEBUG
+        # print('>> MR length samples:', [len(mrs[idx].split()) for idx in range(0, len(mrs), len(mrs) // 50)])
+        # print()
+
+        return mrs, utterances
 
     @classmethod
     def get_ontology(cls):

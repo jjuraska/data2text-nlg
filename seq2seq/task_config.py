@@ -28,6 +28,7 @@ class TrainingConfig(TaskConfig):
         self.num_warmup_steps = config.get('num_warmup_steps', 100)
         self.lr = config.get('lr', 5e-5)
         self.max_grad_norm = config.get('max_grad_norm', 1.0)
+        self.eval_batch_size = config.get('eval_batch_size', self.batch_size)
         self.eval_times_per_epoch = config.get('eval_times_per_epoch', 1)
         self.eval_every_n_epochs = config.get('eval_every_n_epochs', 1)
         self.fp16 = config.get('fp16', False)

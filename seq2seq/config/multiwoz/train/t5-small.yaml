@@ -4,6 +4,7 @@ lowercase: False
 convert_slot_names: False
 num_epochs: 30
 batch_size: 64
+eval_batch_size: 512
 max_seq_length: 160
 num_warmup_steps: 200
 lr: 2.0e-4

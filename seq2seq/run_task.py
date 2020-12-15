@@ -38,29 +38,37 @@ def train(config, dataset_class, device='cpu'):
     is_enc_dec = model.config.is_encoder_decoder
     model = model.to(device)
 
+    prepare_token_types = True if 'gpt2' in config.model_name else False
+    group_by_mr = False if dataset_class.name in {'multiwoz'} else True
+
     # Load training and validation data
     train_set = dataset_class(tokenizer,
                               'train',
                               lowercase=config.lowercase,
                               convert_slot_names=config.convert_slot_names,
-                              separate_source_and_target=is_enc_dec)
+                              separate_source_and_target=is_enc_dec,
+                              prepare_token_types=prepare_token_types)
     train_data_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=0)
 
     valid_set = dataset_class(tokenizer,
                               'valid',
                               lowercase=config.lowercase,
                               convert_slot_names=config.convert_slot_names,
-                              separate_source_and_target=is_enc_dec)
+                              separate_source_and_target=is_enc_dec,
+                              sort_by_length=True,
+                              prepare_token_types=prepare_token_types)
     valid_data_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
-    group_by_mr = False if dataset_class.name in {'multiwoz'} else True
-    valid_set_bleu = dataset_class(tokenizer, 'valid',
+    valid_set_bleu = dataset_class(tokenizer,
+                                   'valid',
                                    lowercase=config.lowercase,
                                    convert_slot_names=config.convert_slot_names,
                                    group_by_mr=group_by_mr,
                                    no_target=True,
-                                   separate_source_and_target=is_enc_dec)
-    valid_bleu_data_loader = DataLoader(valid_set_bleu, batch_size=config.batch_size, shuffle=False, num_workers=0)
+                                   separate_source_and_target=is_enc_dec,
+                                   sort_by_length=True,
+                                   prepare_token_types=prepare_token_types)
+    valid_bleu_data_loader = DataLoader(valid_set_bleu, batch_size=config.eval_batch_size, shuffle=False, num_workers=0)
 
     # Determine the training steps at which validation should be performed in each epoch
     eval_steps = np.delete(np.linspace(0, len(train_data_loader), config.eval_times_per_epoch + 1, dtype=int), 0)
@@ -281,7 +289,7 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
         # Set the tokenizer to padding input sequences on the left side in order to enable batch inference
         tokenizer.padding_side = 'left'
 
-    for batch in tqdm(data_loader, desc='Evaluating'):
+    for batch in tqdm(data_loader, desc='Generating'):
         batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False)
 
         input_tensor = batch['input_ids'].to(device)
@@ -396,22 +404,26 @@ def batch_test(config, dataset_class, device='cpu'):
     # Set model to evaluation mode
     model.eval()
 
-    # Load test data
+    prepare_token_types = True if 'gpt2' in config.model_name else False
     group_by_mr = False if dataset_class.name in {'multiwoz'} else True
+
+    # Load test data
     test_set = dataset_class(tokenizer,
                              'test',
                              lowercase=config.lowercase,
                              convert_slot_names=config.convert_slot_names,
                              group_by_mr=group_by_mr,
                              no_target=True,
-                             separate_source_and_target=is_enc_dec)
+                             separate_source_and_target=is_enc_dec,
+                             prepare_token_types=prepare_token_types)
     test_data_loader = DataLoader(test_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
     test_set_ppl = dataset_class(tokenizer,
                                  'test',
                                  lowercase=config.lowercase,
                                  convert_slot_names=config.convert_slot_names,
-                                 separate_source_and_target=is_enc_dec)
+                                 separate_source_and_target=is_enc_dec,
+                                 prepare_token_types=prepare_token_types)
     test_data_loader_ppl = DataLoader(test_set_ppl, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
     # Evaluate the model's perplexity
