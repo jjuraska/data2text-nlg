@@ -197,17 +197,13 @@ def train(config, dataset_class, device='cpu'):
                     print()
 
                 # Save a model checkpoint
-                model_utils.save_model(model, config.model_name, epoch, step)
+                model_utils.save_model(model, tokenizer, epoch, step)
 
         # DEBUG
         print()
         print('>> Longest source sequence:', longest_source_seq)
         print('>> Longest target sequence:', longest_target_seq)
         print()
-
-    model_dir = os.path.join('seq2seq', 'model', 'final')
-    model.save_pretrained(model_dir)
-    tokenizer.save_pretrained(model_dir)
 
     # Print an overview of the best checkpoints by metric
     eval_utils.print_best_checkpoints(best_checkpoints)

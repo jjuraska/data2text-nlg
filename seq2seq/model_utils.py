@@ -261,7 +261,15 @@ def save_training_config(config):
         yaml.dump(config, f_out, default_flow_style=False)
 
 
-def save_model(model, model_name, epoch, step):
+def save_model(model, tokenizer, epoch, step):
+    model_dir = os.path.join('seq2seq', 'model', f'epoch_{epoch}_step_{step}')
+    os.makedirs(model_dir)
+
+    model.save_pretrained(model_dir)
+    tokenizer.save_pretrained(model_dir)
+
+
+def save_model_checkpoint(model, model_name, epoch, step):
     model_dir = os.path.join('seq2seq', 'model')
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
