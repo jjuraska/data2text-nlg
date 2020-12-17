@@ -1,19 +1,17 @@
-# -*- coding: utf-8 -*-
-
-import os
+from collections import Counter, OrderedDict
 import io
-import string
-import re
 import itertools
-from collections import OrderedDict
 from nltk.tokenize import word_tokenize, sent_tokenize
+import os
+import re
+import string
 
-from seq2seq.slot_aligner.alignment.utils import find_first_in_list
 from seq2seq.slot_aligner.alignment.boolean_slot import align_boolean_slot
+from seq2seq.slot_aligner.alignment.categorical_slots import align_categorical_slot, foodSlot
 from seq2seq.slot_aligner.alignment.list_slot import align_list_slot, align_list_with_conjunctions_slot
 from seq2seq.slot_aligner.alignment.numeric_slot import align_numeric_slot_with_unit, align_year_slot
 from seq2seq.slot_aligner.alignment.scalar_slot import align_scalar_slot
-from seq2seq.slot_aligner.alignment.categorical_slots import align_categorical_slot, foodSlot
+from seq2seq.slot_aligner.alignment.utils import find_first_in_list
 
 
 DELEX_PREFIX = '__slot_'
@@ -77,17 +75,6 @@ def none_realization(text, slot, soft_match=False):
                     return True
     
     return False
-
-
-def check_delex_slots(slot, delex_slots):
-    if delex_slots is None:
-        return None
-
-    for delex_slot in delex_slots:
-        if slot in delex_slot:
-            return delex_slot
-
-    return None
 
 
 # TODO: merge with the boolean slot stem map and load from a file
@@ -154,167 +141,104 @@ def get_scalar_slots():
     }
 
 
-def find_slot_realization(text, text_tok, slot, value_orig, delex_slot_placeholders,
-                          soft_align=False, match_name_ref=False):
+def find_slot_realization(text, text_tok, slot, value, soft_align=False, match_name_ref=False):
     pos = -1
-    is_hallucinated = False
+    is_duplicated = False
 
-    value = re.sub(r'[-/]', ' ', value_orig)
+    slot = slot.rstrip(string.digits)
+    value = re.sub(r'[-/]', ' ', value.lower())
 
-    # TODO: remove auxiliary slots ('da' and '__.*?__') beforehand
-    if slot == 'da':
-        pos = 0
-    elif re.match(r'__.*?__', slot):
-        pos = 0
-    else:
-        delex_slot = check_delex_slots(slot, delex_slot_placeholders)
-        if delex_slot is not None:
-            pos = text.find(delex_slot)
-            delex_slot_placeholders.remove(delex_slot)
+    # Universal slot values
+    if value == 'dontcare':
+        if dontcare_realization(text, slot, soft_match=True):
+            # TODO: get the actual position
+            pos = 0
+            for slot_stem in reduce_slot_name(slot):
+                slot_cnt = text.count(slot_stem)
+                if slot_cnt > 1:
+                    is_duplicated = True
+    elif value == 'none':
+        if none_realization(text, slot, soft_match=True):
+            # TODO: get the actual position
+            pos = 0
+            for slot_stem in reduce_slot_name(slot):
+                slot_cnt = text.count(slot_stem)
+                if slot_cnt > 1:
+                    is_duplicated = True
+    elif value == '':
+        for slot_stem in reduce_slot_name(slot):
+            pos = text.find(slot_stem)
+            if pos >= 0:
+                slot_cnt = text.count(slot_stem)
+                if slot_cnt > 1:
+                    is_duplicated = True
+                break
+    elif slot == 'name' and match_name_ref:
+        pos = text.find(value)
+        if pos < 0:
+            for pronoun in ['it', 'its', 'they', 'their', 'this']:
+                _, pos = find_first_in_list(pronoun, text_tok)
+                if pos >= 0:
+                    break
 
-            # Find hallucinations of the delexed slot
-            slot_cnt = text.count(delex_slot)
-            if slot_cnt > 1:
-                print('HALLUCINATED SLOT:', slot)
-                is_hallucinated = True
-        else:
-            # Universal slot values
-            if value == 'dontcare':
-                if dontcare_realization(text, slot, soft_match=True):
-                    # TODO: get the actual position
-                    pos = 0
-                    for slot_stem in reduce_slot_name(slot):
-                        slot_cnt = text.count(slot_stem)
-                        if slot_cnt > 1:
-                            print('HALLUCINATED SLOT:', slot)
-                            is_hallucinated = True
-            elif value == 'none':
-                if none_realization(text, slot, soft_match=True):
-                    # TODO: get the actual position
-                    pos = 0
-                    for slot_stem in reduce_slot_name(slot):
-                        slot_cnt = text.count(slot_stem)
-                        if slot_cnt > 1:
-                            print('HALLUCINATED SLOT:', slot)
-                            is_hallucinated = True
-            elif value == '':
-                for slot_stem in reduce_slot_name(slot):
-                    pos = text.find(slot_stem)
-                    if pos >= 0:
-                        slot_cnt = text.count(slot_stem)
-                        if slot_cnt > 1:
-                            print('HALLUCINATED SLOT:', slot)
-                            is_hallucinated = True
-                        break
+    # E2E restaurant dataset slots
+    elif slot == 'familyfriendly':
+        pos = align_boolean_slot(text, text_tok, slot, value)
+    elif slot == 'food':
+        pos = foodSlot(text, text_tok, value)
+    elif slot in ['area', 'eattype']:
+        match_mode = 'first_word' if soft_align else 'exact_match'
+        pos = align_categorical_slot(text, text_tok, slot, value, mode=match_mode)
+    elif slot == 'pricerange':
+        pos = align_scalar_slot(text, text_tok, slot, value, slot_stem_only=soft_align)
+    elif slot == 'customerrating':
+        pos = align_scalar_slot(text, text_tok, slot, value,
+                                slot_mapping=customerrating_mapping['slot'],
+                                value_mapping=customerrating_mapping['values'],
+                                slot_stem_only=soft_align)
 
-            elif slot == 'name' and match_name_ref:
-                pos = text.find(value)
-                if pos < 0:
-                    for pronoun in ['it', 'its', 'they', 'their', 'this']:
-                        _, pos = find_first_in_list(pronoun, text_tok)
-                        if pos >= 0:
-                            break
+    # TV dataset slots
+    elif slot == 'type':
+        match_mode = 'first_word' if soft_align else 'exact_match'
+        pos = align_categorical_slot(text, text_tok, slot, value, mode=match_mode)
+    elif slot == 'hasusbport':
+        pos = align_boolean_slot(text, text_tok, slot, value, true_val='true', false_val='false')
+    elif slot in ['powerconsumption', 'price', 'screensize']:
+        pos = align_numeric_slot_with_unit(text, text_tok, slot, value)
+    elif slot in ['accessories', 'color']:
+        pos = align_list_with_conjunctions_slot(text, text_tok, slot, value, match_all=(not soft_align))
 
-            # E2E restaurant dataset slots
-            elif slot == 'familyfriendly':
-                pos = align_boolean_slot(text, text_tok, slot, value)
-            elif slot == 'food':
-                pos = foodSlot(text, text_tok, value)
-            elif slot in ['area', 'eattype']:
-                if soft_align:
-                    pos = align_categorical_slot(text, text_tok, slot, value,
-                                                 mode='first_word')
-                else:
-                    pos = align_categorical_slot(text, text_tok, slot, value,
-                                                 mode='exact_match')
-            elif slot == 'pricerange':
-                if soft_align:
-                    pos = align_scalar_slot(text, text_tok, slot, value,
-                                            slot_stem_only=True)
-                else:
-                    pos = align_scalar_slot(text, text_tok, slot, value,
-                                            slot_stem_only=False)
-            elif slot == 'customerrating':
-                if soft_align:
-                    pos = align_scalar_slot(text, text_tok, slot, value,
-                                            slot_mapping=customerrating_mapping['slot'],
-                                            value_mapping=customerrating_mapping['values'],
-                                            slot_stem_only=True)
-                else:
-                    pos = align_scalar_slot(text, text_tok, slot, value,
-                                            slot_mapping=customerrating_mapping['slot'],
-                                            value_mapping=customerrating_mapping['values'],
-                                            slot_stem_only=False)
+    # Laptop dataset slots
+    elif slot in ['battery', 'dimension', 'drive', 'weight']:
+        pos = align_numeric_slot_with_unit(text, text_tok, slot, value)
+    elif slot in ['design', 'utility']:
+        pos = align_list_with_conjunctions_slot(text, text_tok, slot, value, match_all=(not soft_align))
+    elif slot == 'isforbusinesscomputing':
+        pos = align_boolean_slot(text, text_tok, slot, value, true_val='true', false_val='false')
 
-            # TV dataset slots
-            elif slot == 'type':
-                if soft_align:
-                    pos = align_categorical_slot(text, text_tok, slot, value,
-                                                 mode='first_word')
-                else:
-                    pos = align_categorical_slot(text, text_tok, slot, value,
-                                                 mode='exact_match')
-            elif slot == 'hasusbport':
-                pos = align_boolean_slot(text, text_tok, slot, value,
-                                         true_val='true', false_val='false')
-            elif slot in ['screensize', 'price', 'powerconsumption']:
-                pos = align_numeric_slot_with_unit(text, text_tok, slot, value)
-            elif slot in ['color', 'accessories']:
-                if soft_align:
-                    pos = align_list_with_conjunctions_slot(text, text_tok, slot, value,
-                                                            match_all=False)
-                else:
-                    pos = align_list_with_conjunctions_slot(text, text_tok, slot, value)
+    # Video game dataset slots
+    elif slot in ['platforms', 'player_perspective']:
+        pos = align_list_slot(text, text_tok, slot, value, match_all=(not soft_align), mode='first_word')
+    elif slot == 'genres':
+        pos = align_list_slot(text, text_tok, slot, value, match_all=(not soft_align), mode='exact_match')
+    elif slot == 'release_year':
+        pos = align_year_slot(text, text_tok, slot, value)
+    elif slot in ['esrb', 'rating']:
+        pos = align_scalar_slot(text, text_tok, slot, value, slot_stem_only=False)
+    elif slot in ['available_on_steam', 'has_linux_release', 'has_mac_release', 'has_multiplayer']:
+        pos = align_boolean_slot(text, text_tok, slot, value)
 
-            # Laptop dataset slots
-            elif slot in ['weight', 'battery', 'drive', 'dimension']:
-                pos = align_numeric_slot_with_unit(text, text_tok, slot, value)
-            elif slot in ['design', 'utility']:
-                if soft_align:
-                    pos = align_list_with_conjunctions_slot(text, text_tok, slot, value,
-                                                            match_all=False)
-                else:
-                    pos = align_list_with_conjunctions_slot(text, text_tok, slot, value)
-            elif slot == 'isforbusinesscomputing':
-                pos = align_boolean_slot(text, text_tok, slot, value,
-                                         true_val='true', false_val='false')
+    # Fall back to finding a verbatim slot mention
+    elif value in text:
+        pattern = re.compile(fr'\b{re.escape(value)}\b')
+        matches = pattern.findall(text)
+        if len(matches) > 0:
+            pos = pattern.search(text).start()
+            # Check if the slot is mentioned multiple times
+            if len(matches) > 1:
+                is_duplicated = True
 
-            # Video game dataset slots
-            elif slot in ['playerperspective', 'platforms']:
-                if soft_align:
-                    pos = align_list_slot(text, text_tok, slot, value,
-                                          match_all=False, mode='first_word')
-                else:
-                    pos = align_list_slot(text, text_tok, slot, value,
-                                          mode='first_word')
-            elif slot == 'genres':
-                if soft_align:
-                    pos = align_list_slot(text, text_tok, slot, value,
-                                          match_all=False, mode='exact_match')
-                else:
-                    pos = align_list_slot(text, text_tok, slot, value,
-                                          mode='exact_match')
-            elif slot == 'releaseyear':
-                pos = align_year_slot(text, text_tok, slot, value)
-            elif slot in ['esrb', 'rating']:
-                pos = align_scalar_slot(text, text_tok, slot, value,
-                                        slot_stem_only=False)
-            elif slot in ['hasmultiplayer', 'availableonsteam', 'haslinuxrelease', 'hasmacrelease']:
-                pos = align_boolean_slot(text, text_tok, slot, value)
-
-            # Fall back to finding verbatim slot realization
-            elif value in text:
-                if len(value) > 4 or ' ' in value:
-                    pos = text.find(value)
-                else:
-                    _, pos = find_first_in_list(value, text_tok)
-
-                # value_cnt = text.count(value)
-                # if value_cnt > 1:
-                #     print('HALLUCINATED SLOT:', slot, value)
-                #     is_hallucinated = True
-
-    return pos, is_hallucinated
+    return pos, is_duplicated
 
 
 # TODO: use delexed utterances for splitting
@@ -401,77 +325,34 @@ def split_content(old_mrs, old_utterances, filename, permute=False, denoise_only
     return new_mrs, new_utterances
 
 
-def score_alignment(utt, mr, scoring='default+over-class'):
-    """Scores a delexicalized utterance based on the rate of slots that were unrealized, not mentioned,
-    or hallucinated.
-    """
+def count_errors(utt, mr, verbose=False):
+    """Counts slots not mentioned in the utterance and duplicate slot mentions."""
 
-    slots_found = set()
-    slots_hallucinated = set()
+    slots_found = Counter()
+    slots_duplicated = set()
 
-    utt, utt_tok = __preprocess_utterance(utt)
-    delex_placeholders = extract_delex_placeholders(utt)
-
-    for slot, value in mr:
-        if slot.startswith('<|'):
-            slot = re.match(r'<\|(.*?)\|>', slot).group(1)
-            slot = slot.replace('_', '')
-        slot_root = slot.rstrip(string.digits)
-        value = value.lower()
-
-        pos, is_hallucinated = find_slot_realization(utt, utt_tok, slot_root, value, delex_placeholders)
-
-        if pos >= 0:
-            slots_found.add(slot)
-
-        if is_hallucinated:
-            slots_hallucinated.add(slot)
-
-    # if scoring == 'default':
-    #    return len(slots_found) / len(mr)
-    # elif scoring == 'default+over-class':
-    #    return (len(slots_found) / len(mr)) / (len(matches) + 1)
-
-    # if scoring == 'default':
-    #    return len(slots_found) / len(mr)
-    # elif scoring == 'default+over-class':
-    #    return (len(slots_found) - len(matches) + 1) / (len(mr) + 1)
-
-    if scoring == 'default':
-        return 1 / (len(mr) - len(slots_found) + len(slots_hallucinated) + 1)
-    elif scoring == 'default+over-class':
-        return 1 / (len(mr) - len(slots_found) + len(slots_hallucinated) + 1) / (len(delex_placeholders) + 1)
-
-
-def count_errors(utt, mr):
-    """Counts unrealized and hallucinated slots in an utterance."""
-
-    slots_found = set()
-    slots_hallucinated = set()
-
-    # Extract delexicalized placeholders, and tokenize the utterance
-    delex_placeholders = extract_delex_placeholders(utt)
+    # Preprocess the MR and the utterance
+    mr = __preprocess_mr(mr)
     utt, utt_tok = __preprocess_utterance(utt)
 
     # For each slot find its realization in the utterance
     for slot, value in mr:
-        slot_root = slot.rstrip(string.digits)
-        value = value.lower()
-
-        pos, is_hallucinated = find_slot_realization(utt, utt_tok, slot_root, value, delex_placeholders)
-
+        pos, is_hallucinated = find_slot_realization(utt, utt_tok, slot, value)
         if pos >= 0:
-            slots_found.add(slot)
-
+            slots_found.update([slot])
         if is_hallucinated:
-            slots_hallucinated.add(slot)
+            if verbose:
+                print(f'>> Duplicate slot mention: {slot} = {value}')
+            slots_duplicated.add(slot)
 
     # Identify slots that were realized incorrectly or not mentioned at all in the utterance
-    incorrect_slots = [slot for slot, value in mr if slot not in slots_found]
+    mr_slot_counts = Counter(map(lambda x: x[0], mr))
+    incorrect_slots = mr_slot_counts - slots_found
 
-    num_errors = len(incorrect_slots) + len(slots_hallucinated) + len(delex_placeholders)
+    num_errors = sum(incorrect_slots.values()) + len(slots_duplicated)
+    num_content_slots = len(mr)
 
-    return num_errors, incorrect_slots
+    return num_errors, list(incorrect_slots), num_content_slots
 
 
 def find_alignment(utt, mr):
@@ -497,14 +378,6 @@ def find_alignment(utt, mr):
     return alignment
 
 
-def extract_delex_placeholders(utt):
-    """Extracts delexicalized placeholders from the utterance."""
-
-    pattern = DELEX_PREFIX + '.*?' + DELEX_SUFFIX
-
-    return set(re.findall(pattern, utt))
-
-
 def __pop_delex_placeholders(utt):
     """Extracts and removes delexicalized placeholders from the utterance."""
 
@@ -515,6 +388,22 @@ def __pop_delex_placeholders(utt):
     utt_stripped = re.sub('\s+', ' ', utt_stripped)
 
     return matches, utt_stripped
+
+
+def __preprocess_mr(mr_as_list):
+    mr_processed = []
+    for slot, val in mr_as_list:
+        # Ignore abstract slots
+        if slot in ['da', 'intent', 'topic']:
+            continue
+
+        match = re.match(r'<\|(?P<slot_name>.*?)\|>', slot)
+        if match:
+            slot = match.group('slot_name')
+
+        mr_processed.append((slot, val))
+
+    return mr_processed
 
 
 def __preprocess_utterance(utt):

@@ -2,9 +2,10 @@ import os
 import pandas as pd
 from collections import Counter, OrderedDict
 
-import config
-import data_loader
-from slot_aligner.slot_alignment import find_alignment, count_errors, score_alignment
+# import config
+# import data_loader
+from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, MultiWOZDataset, ViggoDataset
+from seq2seq.slot_aligner.slot_alignment import count_errors, find_alignment
 
 
 def align_slots(dataset, filename):
@@ -21,7 +22,7 @@ def align_slots(dataset, filename):
     _, _, slot_sep, val_sep, val_sep_end = data_cont['separators']
 
     # Preprocess the MRs and the utterances
-    mrs = [data_loader.preprocess_mr(mr, data_cont['separators']) for mr in mrs_orig]
+    mrs = [data_loader.convert_mr_from_str_to_list(mr, data_cont['separators']) for mr in mrs_orig]
     utterances = [data_loader.preprocess_utterance(utt) for utt in utterances_orig]
 
     for i, mr in enumerate(mrs):
@@ -46,66 +47,45 @@ def align_slots(dataset, filename):
     new_df.to_csv(os.path.join(config.DATA_DIR, dataset, filename_out), index=False, encoding='utf8')
 
 
-def score_slot_realizations(path, filename):
+def score_slot_realizations(data_dir, predictions_file, dataset_class, slot_level=False, verbose=False):
     """Analyzes unrealized and hallucinated slot mentions in the utterances."""
 
-    errors = []
+    error_counts = []
     incorrect_slots = []
-    # slot_cnt = 0
+    total_content_slots = 0
 
-    print('Analyzing missing slot realizations and hallucinations in ' + str(filename))
+    # Load the input MRs and output utterances
+    df_data = pd.read_csv(os.path.join(data_dir, predictions_file), header=0)
+    mrs_raw = df_data.iloc[:, 0].to_list()
+    mrs_processed = dataset_class.preprocess_mrs(mrs_raw, as_lists=True, lowercase=False, convert_slot_names=True)
+    predictions = df_data.iloc[:, 1].to_list()
 
-    # Read in the data
-    data_cont = data_loader.init_test_data(os.path.join(path, filename))
-    dataset_name = data_cont['dataset_name']
-    mrs_orig, utterances_orig = data_cont['data']
-    _, _, slot_sep, val_sep, val_sep_end = data_cont['separators']
-
-    # Preprocess the MRs and the utterances
-    mrs = [data_loader.preprocess_mr(mr, data_cont['separators']) for mr in mrs_orig]
-    utterances = [data_loader.preprocess_utterance(utt) for utt in utterances_orig]
-
-    # DEBUG PRINT
-    # print('\n'.join([mr1 + '\n' + mr2 + '\n' for mr1, mr2 in zip(mrs_orig, mrs)]))
-
-    for i, mr in enumerate(mrs):
-        mr_dict = OrderedDict()
-
-        # Extract the slot-value pairs into a dictionary
-        for slot_value in mr.split(slot_sep):
-            slot, value, _, _ = data_loader.parse_slot_and_value(slot_value, val_sep, val_sep_end)
-            mr_dict[slot] = value
-
-            # Count auxiliary slots
-            # if not re.match(r'<!.*?>', slot):
-            #     slot_cnt += 1
-
-        # TODO: get rid of this hack
-        # Move the food-slot to the end of the dict (because of delexing)
-        if 'food' in mr_dict:
-            food_val = mr_dict['food']
-            del(mr_dict['food'])
-            mr_dict['food'] = food_val
-
-        # Delexicalize the MR and the utterance
-        utterances[i] = data_loader.delex_sample(mr_dict, utterances[i], dataset=dataset_name)
-
+    for mr_as_list, utt in zip(mrs_processed, predictions):
         # Count the missing and hallucinated slots in the utterance
-        cur_errors, cur_incorrect_slots = count_errors(utterances[i], mr_dict)
-        errors.append(cur_errors)
+        num_errors, cur_incorrect_slots, num_content_slots = count_errors(utt, mr_as_list, verbose=verbose)
+        error_counts.append(num_errors)
         incorrect_slots.append(', '.join(cur_incorrect_slots))
+        total_content_slots += num_content_slots
 
-    # DEBUG PRINT
-    # print(slot_cnt)
+    # Save the utterances along with their slot error indications to a CSV file
+    df_data['errors'] = error_counts
+    df_data['incorrect'] = incorrect_slots
+    out_file_path = os.path.splitext(os.path.join(data_dir, predictions_file))[0] + ' [errors].csv'
+    df_data.to_csv(out_file_path, index=False, encoding='utf-8-sig')
 
-    new_df = pd.DataFrame(columns=['mr', 'ref', 'errors', 'incorrect slots'])
-    new_df['mr'] = mrs_orig
-    new_df['ref'] = utterances_orig
-    new_df['errors'] = errors
-    new_df['incorrect slots'] = incorrect_slots
+    # Calculate the slot-level or utterance-level SER
+    if slot_level:
+        ser = sum(error_counts) / total_content_slots
+    else:
+        ser = sum([num_errs > 0 for num_errs in error_counts]) / len(predictions)
 
-    filename_out = os.path.splitext(filename)[0] + ' [errors].csv'
-    new_df.to_csv(os.path.join(path, filename_out), index=False, encoding='utf8')
+    # Print the SER
+    if verbose:
+        print(f'>> Slot error rate: {round(100 * ser, 2)}%')
+    else:
+        print(f'{round(100 * ser, 2)}%')
+
+    return ser
 
 
 def score_emphasis(dataset, filename):
@@ -123,7 +103,7 @@ def score_emphasis(dataset, filename):
     _, _, slot_sep, val_sep, val_sep_end = data_cont['separators']
 
     # Preprocess the MRs and the utterances
-    mrs = [data_loader.preprocess_mr(mr, data_cont['separators']) for mr in mrs_orig]
+    mrs = [data_loader.convert_mr_from_str_to_list(mr, data_cont['separators']) for mr in mrs_orig]
     utterances = [data_loader.preprocess_utterance(utt) for utt in utterances_orig]
 
     for i, mr in enumerate(mrs):
@@ -194,7 +174,7 @@ def score_contrast(dataset, filename):
     _, _, slot_sep, val_sep, val_sep_end = data_cont['separators']
 
     # Preprocess the MRs and the utterances
-    mrs = [data_loader.preprocess_mr(mr, data_cont['separators']) for mr in mrs_orig]
+    mrs = [data_loader.convert_mr_from_str_to_list(mr, data_cont['separators']) for mr in mrs_orig]
     utterances = [data_loader.preprocess_utterance(utt) for utt in utterances_orig]
 
     for i, mr in enumerate(mrs):
@@ -287,7 +267,7 @@ def analyze_contrast_relations(dataset, filename):
     _, _, slot_sep, val_sep, val_sep_end = data_cont['separators']
 
     # Preprocess the MRs
-    mrs = [data_loader.preprocess_mr(mr, data_cont['separators']) for mr in mrs_orig]
+    mrs = [data_loader.convert_mr_from_str_to_list(mr, data_cont['separators']) for mr in mrs_orig]
 
     for mr, utt in zip(mrs, utterances_orig):
         mr_dict = OrderedDict()
@@ -355,8 +335,10 @@ if __name__ == '__main__':
 
     # score_slot_realizations(config.E2E_DATA_DIR, 'devset_e2e.csv')
     # score_slot_realizations(config.LAPTOP_DATA_DIR, 'test.json')
-    score_slot_realizations(os.path.join(config.EVAL_DIR, 'predictions rest_e2e (GPT-2, FP16)'),
-                            'gpt2_epoch_2_step_2104_nucleus_sampling_0.8.csv')
+    # score_slot_realizations(os.path.join(config.EVAL_DIR, 'predictions rest_e2e (GPT-2, FP16)'),
+    #                         'gpt2_epoch_2_step_2104_nucleus_sampling_0.8.csv')
+    score_slot_realizations(r'd:\Git\viggo\seq2seq\predictions_baselines\TGen+\rest_e2e_cleaned',
+                            'tgen-plus.run4.csv', E2ECleanedDataset, slot_level=True)
 
     # ----
 

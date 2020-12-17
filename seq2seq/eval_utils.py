@@ -6,7 +6,7 @@ import re
 from sacrebleu import corpus_bleu
 from tqdm import tqdm
 
-from seq2seq.slot_aligner.slot_alignment import score_alignment
+from seq2seq.slot_aligner.slot_alignment import count_errors
 
 
 def calculate_singleref_bleu(dataset, predictions):
@@ -73,7 +73,8 @@ def rerank_beams(beams, mrs, keep_n=None, keep_least_errors_only=False):
 
         for utt in beams[idx]:
             # Calculate the slot error score
-            score = score_alignment(utt, mr)
+            num_errors, _, _ = count_errors(utt, mr)
+            score = 1 / (num_errors + 1)
             beam_scored.append((utt, score))
 
         # Rerank utterances by slot error score (the higher the better)

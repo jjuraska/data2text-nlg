@@ -3,9 +3,11 @@ import os
 from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, MultiWOZDataset, ViggoDataset
 from seq2seq.scripts.slot_error_rate import calculate_slot_error_rate
 from seq2seq.scripts.utterance_stats import utterance_stats
+from seq2seq.slot_aligner.data_analysis import score_slot_realizations
 
 
-def batch_calculate_slot_error_rate(input_dir, checkpoint_name, class_method, verbose=False):
+def batch_calculate_slot_error_rate(input_dir, checkpoint_name, dataset_class, exact_matching=False, slot_level=False,
+                                    verbose=False):
     files_processed = []
     ser_list = []
 
@@ -14,7 +16,7 @@ def batch_calculate_slot_error_rate(input_dir, checkpoint_name, class_method, ve
         '_beam_search',
         # '_nucleus_sampling',
     ]
-    was_reranking_used = False
+    was_reranking_used = True
     if 'gpt2' in os.path.split(input_dir)[-1]:
         length_penalty_vals = [1.0, 1.5, 2.0, 3.0, 5.0, 10.0]
     else:
@@ -40,7 +42,12 @@ def batch_calculate_slot_error_rate(input_dir, checkpoint_name, class_method, ve
                 if verbose:
                     print(f'Running with file "{file_name}"...')
 
-                ser = calculate_slot_error_rate(input_dir, file_name, class_method, verbose=verbose)
+                if exact_matching:
+                    ser = calculate_slot_error_rate(input_dir, file_name, dataset_class, slot_level=slot_level,
+                                                    verbose=verbose)
+                else:
+                    ser = score_slot_realizations(input_dir, file_name, dataset_class, slot_level=slot_level,
+                                                  verbose=verbose)
                 ser_list.append(ser)
 
     if not verbose:
@@ -71,22 +78,31 @@ def batch_utterance_stats(input_dir, export_vocab=False, verbose=False):
         print('\n'.join(files_processed))
 
 
-def run_batch_score_slot_realizations(verbose=False):
-    input_dir = os.path.join('..', 'predictions', 'multiwoz', 'finetuned_verbalized_slots', 't5-small_lr_2e-4_bs_64_wus_200_run3')
-    checkpoint_name = 'epoch_24_step_875'
-    class_method = MultiWOZDataset
+def run_batch_calculate_slot_error_rate():
+    # input_dir = os.path.join('seq2seq', 'predictions', 'multiwoz', 'finetuned_verbalized_slots', 'bart-base_lr_1e-5_bs_32_wus_500_run4')
+    # checkpoint_name = 'epoch_18_step_1749'
+    # dataset_class = MultiWOZDataset
 
-    batch_calculate_slot_error_rate(input_dir, checkpoint_name, class_method, verbose=verbose)
+    input_dir = os.path.join('seq2seq', 'predictions', 'rest_e2e_cleaned', 'finetuned_verbalized_slots', 't5-small_lr_2e-4_bs_64_wus_100_run4')
+    checkpoint_name = 'epoch_11_step_524'
+    dataset_class = E2ECleanedDataset
+
+    if 'multiwoz' in dataset_class.name:
+        batch_calculate_slot_error_rate(
+            input_dir, checkpoint_name, dataset_class, exact_matching=True, slot_level=False, verbose=False)
+    else:
+        batch_calculate_slot_error_rate(
+            input_dir, checkpoint_name, dataset_class, exact_matching=False, slot_level=True, verbose=False)
 
 
-def run_batch_utterance_stats(verbose=False):
-    # input_dir = os.path.join('..', 'predictions_baselines', 'DataTuner', 'video_game')
-    # input_dir = os.path.join('..', 'predictions', 'rest_e2e_cleaned', 'finetuned', 'gpt2_lr_2e-5_bs_20_wus_500_run1')
-    input_dir = os.path.join('..', 'predictions', 'video_game', 'finetuned', 'gpt2_lr_2e-5_bs_16_wus_100_run4')
+def run_batch_utterance_stats():
+    # input_dir = os.path.join('seq2seq', 'predictions_baselines', 'DataTuner', 'video_game')
+    # input_dir = os.path.join('seq2seq', 'predictions', 'rest_e2e_cleaned', 'finetuned', 'gpt2_lr_2e-5_bs_20_wus_500_run1')
+    input_dir = os.path.join('seq2seq', 'predictions', 'video_game', 'finetuned', 'gpt2_lr_2e-5_bs_16_wus_100_run4')
 
-    batch_utterance_stats(input_dir, export_vocab=False, verbose=verbose)
+    batch_utterance_stats(input_dir, export_vocab=False, verbose=False)
 
 
 if __name__ == '__main__':
-    run_batch_score_slot_realizations(verbose=False)
-    # run_batch_utterance_stats(verbose=False)
+    run_batch_calculate_slot_error_rate()
+    # run_batch_utterance_stats()
