@@ -4,16 +4,47 @@ from nltk.corpus import wordnet
 from seq2seq.slot_aligner.alignment.utils import find_first_in_list, get_slot_value_alternatives
 
 
-def align_categorical_slot(text, text_tok, slot, value, mode='exact_match'):
+def _plural(word):
+    """Converts a word to its plural form.
+
+    Credit: https://stackoverflow.com/questions/18902608/generating-the-plural-form-of-a-noun
+    """
+    if word.endswith('fe'):
+        # wolf -> wolves
+        return word[:-2] + 'ves'
+    elif word.endswith('f'):
+        # knife -> knives
+        return word[:-1] + 'ves'
+    elif word.endswith('o'):
+        # potato -> potatoes
+        return word + 'es'
+    elif word.endswith('us'):
+        # cactus -> cacti
+        return word[:-2] + 'i'
+    elif word.endswith('on'):
+        # criterion -> criteria
+        return word[:-2] + 'a'
+    elif word.endswith('y'):
+        # community -> communities
+        return word[:-1] + 'ies'
+    elif word[-1] in 'sx' or word[-2:] in ['sh', 'ch']:
+        return word + 'es'
+    elif word.endswith('an'):
+        return word[:-2] + 'en'
+    else:
+        return word + 's'
+
+
+def align_categorical_slot(text, text_tok, slot, value, mode='exact_match', allow_plural=False):
     # TODO: load alternatives only once
     alternatives = get_slot_value_alternatives(slot)
 
-    pos = find_value_alternative(text, text_tok, value, alternatives, mode=mode)
+    pos = find_value_alternative(text, text_tok, value, alternatives, mode=mode, allow_plural=allow_plural)
 
     return pos
 
 
-def find_value_alternative(text, text_tok, value, alternatives, mode):
+def find_value_alternative(text, text_tok, value, alternatives, mode, allow_plural=False):
     leftmost_pos = -1
 
     # Parse the item into tokens according to the selected mode
@@ -29,6 +60,9 @@ def find_value_alternative(text, text_tok, value, alternatives, mode):
     # Merge the tokens with the item's alternatives
     if value in alternatives:
         value_alternatives += alternatives[value]
+
+    if allow_plural:
+        value_alternatives += [_plural(value_alt) for value_alt in value_alternatives]
 
     # Iterate over individual tokens of the item
     for value_alt in value_alternatives:

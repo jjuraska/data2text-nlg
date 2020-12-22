@@ -52,6 +52,7 @@ def score_slot_realizations(data_dir, predictions_file, dataset_class, slot_leve
 
     error_counts = []
     incorrect_slots = []
+    duplicate_slots = []
     total_content_slots = 0
 
     # Load the input MRs and output utterances
@@ -62,14 +63,17 @@ def score_slot_realizations(data_dir, predictions_file, dataset_class, slot_leve
 
     for mr_as_list, utt in zip(mrs_processed, predictions):
         # Count the missing and hallucinated slots in the utterance
-        num_errors, cur_incorrect_slots, num_content_slots = count_errors(utt, mr_as_list, verbose=verbose)
+        num_errors, cur_incorrect_slots, cur_duplicate_slots, num_content_slots = count_errors(
+            utt, mr_as_list, dataset_class.name, verbose=verbose)
         error_counts.append(num_errors)
         incorrect_slots.append(', '.join(cur_incorrect_slots))
+        duplicate_slots.append(', '.join(cur_duplicate_slots))
         total_content_slots += num_content_slots
 
     # Save the utterances along with their slot error indications to a CSV file
     df_data['errors'] = error_counts
     df_data['incorrect'] = incorrect_slots
+    df_data['duplicate'] = duplicate_slots
     out_file_path = os.path.splitext(os.path.join(data_dir, predictions_file))[0] + ' [errors].csv'
     df_data.to_csv(out_file_path, index=False, encoding='utf-8-sig')
 
@@ -337,8 +341,10 @@ if __name__ == '__main__':
     # score_slot_realizations(config.LAPTOP_DATA_DIR, 'test.json')
     # score_slot_realizations(os.path.join(config.EVAL_DIR, 'predictions rest_e2e (GPT-2, FP16)'),
     #                         'gpt2_epoch_2_step_2104_nucleus_sampling_0.8.csv')
-    score_slot_realizations(r'd:\Git\viggo\seq2seq\predictions_baselines\TGen+\rest_e2e_cleaned',
-                            'tgen-plus.run4.csv', E2ECleanedDataset, slot_level=True)
+    # score_slot_realizations(r'd:\Git\viggo\seq2seq\predictions_baselines\TGen+\rest_e2e_cleaned',
+    #                         'tgen-plus.run4.csv', E2ECleanedDataset, slot_level=True)
+    score_slot_realizations(r'd:\Git\viggo\seq2seq\data\multiwoz',
+                            'valid.csv', MultiWOZDataset, slot_level=True)
 
     # ----
 

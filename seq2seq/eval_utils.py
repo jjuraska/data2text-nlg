@@ -60,7 +60,7 @@ def calculate_multiref_bleu(dataset, predictions):
     return corpus_bleu(predictions, references_transposed).score
 
 
-def rerank_beams(beams, mrs, keep_n=None, keep_least_errors_only=False):
+def rerank_beams(beams, mrs, domain, keep_n=None, keep_least_errors_only=False):
     """Reranks beams based on the slot error rate determined by the slot aligner. Keeps at most n best candidates.
 
     Note: Python's sort is guaranteed to be stable, i.e., when multiple records have the same key (e.g., slot error
@@ -73,7 +73,7 @@ def rerank_beams(beams, mrs, keep_n=None, keep_least_errors_only=False):
 
         for utt in beams[idx]:
             # Calculate the slot error score
-            num_errors, _, _ = count_errors(utt, mr)
+            num_errors, _, _, _ = count_errors(utt, mr, domain)
             score = 1 / (num_errors + 1)
             beam_scored.append((utt, score))
 

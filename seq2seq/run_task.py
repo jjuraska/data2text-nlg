@@ -369,7 +369,7 @@ def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cp
     if config.semantic_reranking:
         # Rerank generated beams based on semantic accuracy
         predictions_reranked = eval_utils.rerank_beams(
-            predictions, test_set.get_mrs(as_lists=True, convert_slot_names=True))
+            predictions, test_set.get_mrs(as_lists=True, convert_slot_names=True), test_set.name)
         predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
         eval_configurations.append((predictions_reranked, True))
 

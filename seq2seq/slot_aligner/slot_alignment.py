@@ -9,7 +9,7 @@ import string
 from seq2seq.slot_aligner.alignment.boolean_slot import align_boolean_slot
 from seq2seq.slot_aligner.alignment.categorical_slots import align_categorical_slot, foodSlot
 from seq2seq.slot_aligner.alignment.list_slot import align_list_slot, align_list_with_conjunctions_slot
-from seq2seq.slot_aligner.alignment.numeric_slot import align_numeric_slot_with_unit, align_year_slot
+from seq2seq.slot_aligner.alignment.numeric_slot import align_numeric_slot, align_numeric_slot_with_unit, align_year_slot
 from seq2seq.slot_aligner.alignment.scalar_slot import align_scalar_slot
 from seq2seq.slot_aligner.alignment.utils import find_first_in_list
 
@@ -35,7 +35,7 @@ def dontcare_realization(text, slot, soft_match=False):
     text = re.sub('\'', '', text.lower())
     text_tok = word_tokenize(text)
 
-    for slot_stem in reduce_slot_name(slot):
+    for slot_stem in get_slot_mention_alternatives(slot):
         slot_stem_plural = get_plural(slot_stem)
 
         if slot_stem in text_tok or slot_stem_plural in text_tok or slot in text_tok:
@@ -61,50 +61,96 @@ def dontcare_realization(text, slot, soft_match=False):
     return False
 
 
-def none_realization(text, slot, soft_match=False):
-    text = re.sub('\'', '', text.lower())
-    text_tok = word_tokenize(text)
-
-    for slot_stem in reduce_slot_name(slot):
-        if slot_stem in text_tok:
+def none_realization(text, slot, all_slots, soft_match=False):
+    for slot_stem in get_slot_mention_alternatives(slot, all_slots) + ['none']:
+        pos, is_duplicated = _match_keywords_in_text(slot_stem, text, ignore_dupes=True)
+        if pos >= 0:
             if soft_match:
-                return True
+                return pos, is_duplicated
 
-            for x in ['information', 'info', 'inform', 'results', 'requirement', 'requirements', 'specification', 'specifications']:
-                if x in text_tok and ('no' in text_tok or 'not' in text_tok or 'any' in text_tok):
-                    return True
+            if re.search(r'\b(no|not|any)\b', text):
+                for x in ['information', 'info', 'inform', 'results', 'requirement', 'requirements', 'specification', 'specifications']:
+                    if re.search(fr'\b{x}\b', text):
+                        return pos, is_duplicated
     
-    return False
+    return -1, False
 
 
 # TODO: merge with the boolean slot stem map and load from a file
-def reduce_slot_name(slot):
-    reduction_map = {
-        'availableonsteam': ['steam'],
+def get_slot_mention_alternatives(slot, all_slots):
+    slot_mention_map_conditioned = {
+        'arrive': {
+            'leave': ['times'],
+        },
+        'depart': {
+            'dest': ['stations', 'from and to', 'to and from', ['travel', 'between'], ['traveling', 'between'],
+                     ['travelling', 'between']],
+        },
+        'dest': {
+            'depart': ['stations', 'from and to', 'to and from', ['travel', 'between'], ['traveling', 'between'],
+                       ['travelling', 'between']],
+        },
+        'leave': {
+            'arrive': ['times'],
+        },
+    }
+
+    slot_mention_map = {
+        'arrive': ['arrive', 'arrival', 'arriving', 'time', 'when'],
+        'area': ['area', 'areas', 'location', 'locations', 'neighborhood', 'part', 'place', 'places', 'section',
+                 'side', 'where', 'anywhere', 'elsewhere'],
+        'available_on_steam': ['steam'],
         'batteryrating': ['battery'],
         'customerrating': ['customer'],
+        'day': ['day', 'days', 'date', 'dates', 'night', 'nights', 'when'],
+        'depart': ['depart', 'departs', 'departing', 'departure', 'leave', 'leaves', 'leaving', 'pick up', 'picked up',
+                   'pick-up', 'pick you up', 'where'],
+        'dest': ['destination', 'arrive', 'arriving', 'arrival', 'travel to', 'traveling to', 'travelling to', 'where'],
         'driverange': ['drive'],
         'ecorating': ['eco'],
         'eattype': ['eat'],
         'familyfriendly': ['family', 'families', 'kid', 'kids', 'child', 'children'],
+        'food': ['food', 'cuisine', 'cuisines', 'restaurant type', 'type of restaurant'],
         'genres': ['genre'],
-        'haslinuxrelease': ['linux'],
-        'hasmacrelease': ['mac'],
-        'hasmultiplayer': ['multiplayer', 'friends', 'others'],
+        'has_linux_release': ['linux'],
+        'has_mac_release': ['mac'],
+        'has_multiplayer': ['multiplayer', 'friends', 'others'],
         'hasusbport': ['usb'],
         'hdmiport': ['hdmi'],
+        'internet': ['internet', 'wi-fi', 'wifi'],
         'isforbusinesscomputing': ['business'],
-        'playerperspective': ['perspective'],
+        'leave': ['leave', 'leaves', 'leaving', 'depart', 'departs', 'departing', 'departure', 'pick up', 'picked up',
+                  'pick-up', 'pick you up', 'time', 'when'],
+        'name': ['name', 'particular', 'specific', 'what', 'which'],
+        'people': ['people', 'persons', 'one person', 'guests', 'one guest', 'tickets', 'one ticket', 'seats',
+                   'one seat', 'how many', 'only one', 'just you', 'yourself', 'alone', 'on your own',
+                   ('party', 'size'), ['big', 'party'], ['large', 'party']],
         'platforms': ['platform'],
+        'player_perspective': ['perspective'],
         'powerconsumption': ['power'],
+        'price': ['price', 'prices', 'cost', 'fee', 'spend', 'free', 'cheap', 'expensive'],
         'pricerange': ['price'],
-        'releaseyear': ['year'],
+        'release_year': ['year'],
         'screensize': ['screen'],
         'screensizerange': ['screen'],
-        'weightrange': ['weight']
+        'stars': ['stars', 'star', 'rating'],
+        'stay': ['stay', 'days', 'one day', 'dates', 'nights', 'one night', 'duration', 'how long'],
+        'time': ['time', 'earlier', 'later', 'when'],
+        'type': ['type', 'types', 'kind', 'kinds', 'sort', 'sorts', 'particular', 'specific', 'different', 'other',
+                 'anything else', 'something else', 'what', 'which'],
+        'weightrange': ['weight'],
     }
 
-    return reduction_map.get(slot, [slot])
+    alternatives = []
+
+    if slot in slot_mention_map_conditioned:
+        for conditional_slot in slot_mention_map_conditioned[slot]:
+            if conditional_slot in all_slots:
+                alternatives += slot_mention_map_conditioned[slot][conditional_slot]
+
+    alternatives += slot_mention_map.get(slot, [slot])
+
+    return alternatives
 
 
 def get_plural(word):
@@ -141,37 +187,67 @@ def get_scalar_slots():
     }
 
 
-def find_slot_realization(text, text_tok, slot, value, soft_align=False, match_name_ref=False):
+def _match_keywords_in_text(keywords, text, ignore_dupes=False):
+    """Finds given keyword(s) in the given text, identifying duplicate occurrences.
+
+    If the keywords are given as a list, their order is preserved in the search. If they are given as a tuple, no order
+    is enforced during the search. In case of multiple keywords, if matched, the position of the last one is returned.
+    """
+    pos = -1
+    end_pos = 0
+    is_duplicated = False
+
+    if isinstance(keywords, str):
+        keywords = [keywords]
+        fixed_word_order = True
+    elif isinstance(keywords, list):
+        fixed_word_order = True
+    elif isinstance(keywords, tuple):
+        fixed_word_order = False
+    else:
+        raise TypeError('The "keywords" argument must be of one of the following types: str, list, tuple')
+
+    for word in keywords:
+        pattern = re.compile(fr'\b{re.escape(word)}\b')
+        start_pos = end_pos if fixed_word_order else 0
+        match = pattern.search(text, start_pos)
+        if match:
+            pos, end_pos = match.span()
+            if not ignore_dupes:
+                # Check if the slot is mentioned multiple times
+                if len(pattern.findall(text)) > 1:
+                    is_duplicated = True
+        else:
+            return -1, False
+
+    return pos, is_duplicated
+
+
+def find_slot_realization(text, text_tok, slot, value, domain, mr, ignore_dupes=False, soft_align=False,
+                          match_name_ref=False):
     pos = -1
     is_duplicated = False
 
     slot = slot.rstrip(string.digits)
-    value = re.sub(r'[-/]', ' ', value.lower())
+    # value = re.sub(r'[-/]', ' ', value.lower())
+    value = value.strip('.?! ').lower()
+    all_slots = {slot for slot, _ in mr}
 
     # Universal slot values
     if value == 'dontcare':
         if dontcare_realization(text, slot, soft_match=True):
             # TODO: get the actual position
             pos = 0
-            for slot_stem in reduce_slot_name(slot):
+            for slot_stem in get_slot_mention_alternatives(slot, all_slots):
                 slot_cnt = text.count(slot_stem)
                 if slot_cnt > 1:
                     is_duplicated = True
     elif value == 'none':
-        if none_realization(text, slot, soft_match=True):
-            # TODO: get the actual position
-            pos = 0
-            for slot_stem in reduce_slot_name(slot):
-                slot_cnt = text.count(slot_stem)
-                if slot_cnt > 1:
-                    is_duplicated = True
+        pos, is_duplicated = none_realization(text, slot, all_slots, soft_match=True)
     elif value == '':
-        for slot_stem in reduce_slot_name(slot):
-            pos = text.find(slot_stem)
-            if pos >= 0:
-                slot_cnt = text.count(slot_stem)
-                if slot_cnt > 1:
-                    is_duplicated = True
+        for slot_stem in get_slot_mention_alternatives(slot, all_slots):
+            pos, is_duplicated = _match_keywords_in_text(slot_stem, text, ignore_dupes=ignore_dupes)
+            if pos != -1:
                 break
     elif slot == 'name' and match_name_ref:
         pos = text.find(value)
@@ -180,63 +256,69 @@ def find_slot_realization(text, text_tok, slot, value, soft_align=False, match_n
                 _, pos = find_first_in_list(pronoun, text_tok)
                 if pos >= 0:
                     break
+    else:
+        # E2E restaurant dataset slots
+        if 'rest_e2e' in domain:
+            if slot == 'familyfriendly':
+                pos = align_boolean_slot(text, text_tok, slot, value)
+            elif slot == 'food':
+                pos = foodSlot(text, text_tok, value)
+            elif slot in ['area', 'eattype']:
+                match_mode = 'first_word' if soft_align else 'exact_match'
+                pos = align_categorical_slot(text, text_tok, slot, value, mode=match_mode)
+            elif slot == 'pricerange':
+                pos = align_scalar_slot(text, text_tok, slot, value, slot_stem_only=soft_align)
+            elif slot == 'customerrating':
+                pos = align_scalar_slot(text, text_tok, slot, value,
+                                        slot_mapping=customerrating_mapping['slot'],
+                                        value_mapping=customerrating_mapping['values'],
+                                        slot_stem_only=soft_align)
 
-    # E2E restaurant dataset slots
-    elif slot == 'familyfriendly':
-        pos = align_boolean_slot(text, text_tok, slot, value)
-    elif slot == 'food':
-        pos = foodSlot(text, text_tok, value)
-    elif slot in ['area', 'eattype']:
-        match_mode = 'first_word' if soft_align else 'exact_match'
-        pos = align_categorical_slot(text, text_tok, slot, value, mode=match_mode)
-    elif slot == 'pricerange':
-        pos = align_scalar_slot(text, text_tok, slot, value, slot_stem_only=soft_align)
-    elif slot == 'customerrating':
-        pos = align_scalar_slot(text, text_tok, slot, value,
-                                slot_mapping=customerrating_mapping['slot'],
-                                value_mapping=customerrating_mapping['values'],
-                                slot_stem_only=soft_align)
+        # MultiWOZ dataset slots
+        elif 'multiwoz' in domain:
+            if slot in ['choice', 'people', 'stars', 'stay']:
+                pos = align_numeric_slot(text, text_tok, slot, value)
+            elif slot == 'type':
+                match_mode = 'first_word' if soft_align else 'exact_match'
+                pos = align_categorical_slot(text, text_tok, slot, value, mode=match_mode, allow_plural=True)
 
-    # TV dataset slots
-    elif slot == 'type':
-        match_mode = 'first_word' if soft_align else 'exact_match'
-        pos = align_categorical_slot(text, text_tok, slot, value, mode=match_mode)
-    elif slot == 'hasusbport':
-        pos = align_boolean_slot(text, text_tok, slot, value, true_val='true', false_val='false')
-    elif slot in ['powerconsumption', 'price', 'screensize']:
-        pos = align_numeric_slot_with_unit(text, text_tok, slot, value)
-    elif slot in ['accessories', 'color']:
-        pos = align_list_with_conjunctions_slot(text, text_tok, slot, value, match_all=(not soft_align))
+        # TV dataset slots
+        elif 'tv' in domain:
+            if slot == 'type':
+                match_mode = 'first_word' if soft_align else 'exact_match'
+                pos = align_categorical_slot(text, text_tok, slot, value, mode=match_mode)
+            elif slot == 'hasusbport':
+                pos = align_boolean_slot(text, text_tok, slot, value, true_val='true', false_val='false')
+            elif slot in ['powerconsumption', 'price', 'screensize']:
+                pos = align_numeric_slot_with_unit(text, text_tok, slot, value)
+            elif slot in ['accessories', 'color']:
+                pos = align_list_with_conjunctions_slot(text, text_tok, slot, value, match_all=(not soft_align))
 
-    # Laptop dataset slots
-    elif slot in ['battery', 'dimension', 'drive', 'weight']:
-        pos = align_numeric_slot_with_unit(text, text_tok, slot, value)
-    elif slot in ['design', 'utility']:
-        pos = align_list_with_conjunctions_slot(text, text_tok, slot, value, match_all=(not soft_align))
-    elif slot == 'isforbusinesscomputing':
-        pos = align_boolean_slot(text, text_tok, slot, value, true_val='true', false_val='false')
+        # Laptop dataset slots
+        elif 'laptop' in domain:
+            if slot in ['battery', 'dimension', 'drive', 'weight']:
+                pos = align_numeric_slot_with_unit(text, text_tok, slot, value)
+            elif slot in ['design', 'utility']:
+                pos = align_list_with_conjunctions_slot(text, text_tok, slot, value, match_all=(not soft_align))
+            elif slot == 'isforbusinesscomputing':
+                pos = align_boolean_slot(text, text_tok, slot, value, true_val='true', false_val='false')
 
-    # Video game dataset slots
-    elif slot in ['platforms', 'player_perspective']:
-        pos = align_list_slot(text, text_tok, slot, value, match_all=(not soft_align), mode='first_word')
-    elif slot == 'genres':
-        pos = align_list_slot(text, text_tok, slot, value, match_all=(not soft_align), mode='exact_match')
-    elif slot == 'release_year':
-        pos = align_year_slot(text, text_tok, slot, value)
-    elif slot in ['esrb', 'rating']:
-        pos = align_scalar_slot(text, text_tok, slot, value, slot_stem_only=False)
-    elif slot in ['available_on_steam', 'has_linux_release', 'has_mac_release', 'has_multiplayer']:
-        pos = align_boolean_slot(text, text_tok, slot, value)
+        # Video game dataset slots
+        elif 'video_game' in domain:
+            if slot in ['platforms', 'player_perspective']:
+                pos = align_list_slot(text, text_tok, slot, value, match_all=(not soft_align), mode='first_word')
+            elif slot == 'genres':
+                pos = align_list_slot(text, text_tok, slot, value, match_all=(not soft_align), mode='exact_match')
+            elif slot == 'release_year':
+                pos = align_year_slot(text, text_tok, slot, value)
+            elif slot in ['esrb', 'rating']:
+                pos = align_scalar_slot(text, text_tok, slot, value, slot_stem_only=False)
+            elif slot in ['available_on_steam', 'has_linux_release', 'has_mac_release', 'has_multiplayer']:
+                pos = align_boolean_slot(text, text_tok, slot, value)
 
-    # Fall back to finding a verbatim slot mention
-    elif value in text:
-        pattern = re.compile(fr'\b{re.escape(value)}\b')
-        matches = pattern.findall(text)
-        if len(matches) > 0:
-            pos = pattern.search(text).start()
-            # Check if the slot is mentioned multiple times
-            if len(matches) > 1:
-                is_duplicated = True
+        if pos < 0:
+            # Fall back to finding a verbatim slot mention
+            pos, is_duplicated = _match_keywords_in_text(value, text, ignore_dupes=ignore_dupes)
 
     return pos, is_duplicated
 
@@ -325,34 +407,37 @@ def split_content(old_mrs, old_utterances, filename, permute=False, denoise_only
     return new_mrs, new_utterances
 
 
-def count_errors(utt, mr, verbose=False):
+def count_errors(utt, mr, domain, verbose=False):
     """Counts slots not mentioned in the utterance and duplicate slot mentions."""
 
     slots_found = Counter()
-    slots_duplicated = set()
+    duplicate_slots = set()
 
     # Preprocess the MR and the utterance
     mr = __preprocess_mr(mr)
     utt, utt_tok = __preprocess_utterance(utt)
 
+    # Calculate the slot counts in the MR (in some datasets there may be multiple instances of the same slot)
+    mr_slot_counts = Counter(map(lambda x: x[0], mr))
+
     # For each slot find its realization in the utterance
     for slot, value in mr:
-        pos, is_hallucinated = find_slot_realization(utt, utt_tok, slot, value)
+        pos, is_hallucinated = find_slot_realization(
+            utt, utt_tok, slot, value, domain, mr, ignore_dupes=(mr_slot_counts[slot] > 1))
         if pos >= 0:
             slots_found.update([slot])
         if is_hallucinated:
             if verbose:
                 print(f'>> Duplicate slot mention: {slot} = {value}')
-            slots_duplicated.add(slot)
+            duplicate_slots.add(slot)
 
     # Identify slots that were realized incorrectly or not mentioned at all in the utterance
-    mr_slot_counts = Counter(map(lambda x: x[0], mr))
     incorrect_slots = mr_slot_counts - slots_found
 
-    num_errors = sum(incorrect_slots.values()) + len(slots_duplicated)
+    num_errors = sum(incorrect_slots.values()) + len(duplicate_slots)
     num_content_slots = len(mr)
 
-    return num_errors, list(incorrect_slots), num_content_slots
+    return num_errors, list(incorrect_slots), list(duplicate_slots), num_content_slots
 
 
 def find_alignment(utt, mr):
@@ -393,13 +478,13 @@ def __pop_delex_placeholders(utt):
 def __preprocess_mr(mr_as_list):
     mr_processed = []
     for slot, val in mr_as_list:
-        # Ignore abstract slots
-        if slot in ['da', 'intent', 'topic']:
-            continue
-
         match = re.match(r'<\|(?P<slot_name>.*?)\|>', slot)
         if match:
             slot = match.group('slot_name')
+
+        # Ignore abstract slots
+        if slot in ['da', 'intent', 'topic']:
+            continue
 
         mr_processed.append((slot, val))
 
@@ -411,7 +496,8 @@ def __preprocess_utterance(utt):
     Returns the utterance both in string form and tokenized.
     """
 
-    utt = re.sub(r'[-/]', ' ', utt.lower())
+    # utt = re.sub(r'[-/]', ' ', utt.lower())
+    utt = utt.lower()
     utt = re.sub(r'\s+', ' ', utt)
     utt_tok = [w.strip('.,!?') if len(w) > 1 else w for w in word_tokenize(utt)]
 
