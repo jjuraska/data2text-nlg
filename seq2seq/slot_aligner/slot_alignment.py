@@ -223,10 +223,10 @@ def _match_keywords_in_text(keywords, text, ignore_dupes=False):
     return pos, is_duplicated
 
 
-def find_slot_realization(text, text_tok, slot, value, domain, mr, ignore_dupes=False, soft_align=False,
+def find_slot_realization(text, text_tok, slot, value, domain, mr, num_das, ignore_dupes=False, soft_align=False,
                           match_name_ref=False):
     pos = -1
-    is_duplicated = False
+    is_dupe = False
 
     slot = slot.rstrip(string.digits)
     # value = re.sub(r'[-/]', ' ', value.lower())
@@ -241,12 +241,12 @@ def find_slot_realization(text, text_tok, slot, value, domain, mr, ignore_dupes=
             for slot_stem in get_slot_mention_alternatives(slot, all_slots):
                 slot_cnt = text.count(slot_stem)
                 if slot_cnt > 1:
-                    is_duplicated = True
+                    is_dupe = True
     elif value == 'none':
-        pos, is_duplicated = none_realization(text, slot, all_slots, soft_match=True)
+        pos, is_dupe = none_realization(text, slot, all_slots, soft_match=True)
     elif value == '':
         for slot_stem in get_slot_mention_alternatives(slot, all_slots):
-            pos, is_duplicated = _match_keywords_in_text(slot_stem, text, ignore_dupes=ignore_dupes)
+            pos, is_dupe = _match_keywords_in_text(slot_stem, text, ignore_dupes=ignore_dupes)
             if pos != -1:
                 break
     elif slot == 'name' and match_name_ref:
@@ -318,9 +318,36 @@ def find_slot_realization(text, text_tok, slot, value, domain, mr, ignore_dupes=
 
         if pos < 0:
             # Fall back to finding a verbatim slot mention
-            pos, is_duplicated = _match_keywords_in_text(value, text, ignore_dupes=ignore_dupes)
+            pos, is_dupe = _match_keywords_in_text(value, text, ignore_dupes=ignore_dupes)
 
-    return pos, is_duplicated
+    # Re-evaluate duplicate mentions of the slot in the context of the MR
+    is_dupe = reevaluate_duplicate_mentions(is_dupe, slot, value, all_slots, num_das)
+
+    return pos, is_dupe
+
+
+def reevaluate_duplicate_mentions(is_dupe, slot, value, all_slots, num_das):
+    """Re-evaluate heuristically determined duplicate mentions of a slot taking the whole MR into consideration."""
+
+    dupe_ignore_map = {
+        'depart': ['dest', 'leave'],
+        'dest': ['depart', 'leave'],
+        'leave': ['depart', 'dest'],
+        'people': ['stay'],
+        'stay': ['people'],
+    }
+
+    if is_dupe and value == '':
+        # Ignore duplicate mentions when the MR is composed of multiple DAs
+        if num_das > 1:
+            return False
+
+        # Ignore duplicate mentions if certain related slots are also present in the MR
+        for other_slot in dupe_ignore_map.get(slot, []):
+            if other_slot in all_slots:
+                return False
+
+    return is_dupe
 
 
 # TODO: use delexed utterances for splitting
@@ -414,6 +441,7 @@ def count_errors(utt, mr, domain, verbose=False):
     duplicate_slots = set()
 
     # Preprocess the MR and the utterance
+    num_das = __count_dialogue_acts_in_mr(mr)
     mr = __preprocess_mr(mr)
     utt, utt_tok = __preprocess_utterance(utt)
 
@@ -423,7 +451,7 @@ def count_errors(utt, mr, domain, verbose=False):
     # For each slot find its realization in the utterance
     for slot, value in mr:
         pos, is_hallucinated = find_slot_realization(
-            utt, utt_tok, slot, value, domain, mr, ignore_dupes=(mr_slot_counts[slot] > 1))
+            utt, utt_tok, slot, value, domain, mr, num_das, ignore_dupes=(mr_slot_counts[slot] > 1))
         if pos >= 0:
             slots_found.update([slot])
         if is_hallucinated:
@@ -475,6 +503,10 @@ def __pop_delex_placeholders(utt):
     return matches, utt_stripped
 
 
+def __count_dialogue_acts_in_mr(mr_as_list):
+    return sum(slot == '<|da|>' for slot, val in mr_as_list)
+
+
 def __preprocess_mr(mr_as_list):
     mr_processed = []
     for slot, val in mr_as_list:
@@ -483,7 +515,7 @@ def __preprocess_mr(mr_as_list):
             slot = match.group('slot_name')
 
         # Ignore abstract slots
-        if slot in ['da', 'intent', 'topic']:
+        if slot == 'da':
             continue
 
         mr_processed.append((slot, val))
