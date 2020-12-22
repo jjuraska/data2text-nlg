@@ -601,8 +601,9 @@ class MultiWOZDataset(MRToTextDataset):
 
     @staticmethod
     def detokenize_slot_value(value, detokenizer):
-        value_detok = detokenizer.detokenize(value.split())
-        value_detok = value_detok.replace(" - ", "-").replace(" n't", "n't").replace("I ' m", "I'm")
+        value_detok = re.sub(r'(?<=\s): (?=\d)', ':', value)
+        value_detok = detokenizer.detokenize(value_detok.split())
+        value_detok = value_detok.replace(" - ", "-").replace(" n't", "n't").replace("I 'm", "I'm")
 
         return value_detok
 
