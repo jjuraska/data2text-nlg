@@ -80,6 +80,10 @@ class MRToTextDataset(Dataset):
         # Read the MRs and utterances from the file
         self.mrs_raw, self.utterances = self.read_data_from_dataframe(df_data, group_by_mr=self.group_by_mr)
 
+        # Sort data before performing any preprocessing
+        if self.sort_by_length:
+            self.mrs_raw, self.utterances = self.sort_data(self.mrs_raw, self.utterances, reverse=True)
+
         # Perform dataset-specific preprocessing of the MRs, and convert them back to strings
         self.mrs = self.get_mrs(lowercase=self.convert_to_lowercase, convert_slot_names=self.convert_slot_names)
 
@@ -95,9 +99,6 @@ class MRToTextDataset(Dataset):
 
         if self.utterances:
             assert len(self.mrs) == len(self.utterances)
-
-        if self.sort_by_length:
-            self.mrs, self.utterances = self.sort_data(self.mrs, self.utterances, reverse=True)
 
         # DEBUG
         # self.mrs = self.mrs[:10]
@@ -381,6 +382,10 @@ class MRToTextDataset(Dataset):
 
     @staticmethod
     def sort_data(mrs, utterances, reverse=False):
+        """Sorts the data (MRs and utterances in separate lists) by the approximate MR length in words.
+
+        MRs are split into words just by whitespace characters, rather than using tokenization.
+        """
         if utterances:
             mrs, utterances = zip(*sorted(zip(mrs, utterances), key=lambda x: len(x[0].split()), reverse=reverse))
             mrs, utterances = list(mrs), list(utterances)
