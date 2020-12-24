@@ -230,7 +230,7 @@ def find_slot_realization(text, text_tok, slot, value, domain, mr, num_das, igno
 
     slot = slot.rstrip(string.digits)
     # value = re.sub(r'[-/]', ' ', value.lower())
-    value = value.strip('.?! ').lower()
+    # value = value.strip(',.?! ').lower()
     all_slots = {slot for slot, _ in mr}
 
     # Universal slot values
@@ -320,31 +320,41 @@ def find_slot_realization(text, text_tok, slot, value, domain, mr, num_das, igno
             # Fall back to finding a verbatim slot mention
             pos, is_dupe = _match_keywords_in_text(value, text, ignore_dupes=ignore_dupes)
 
-    # Re-evaluate duplicate mentions of the slot in the context of the MR
-    is_dupe = reevaluate_duplicate_mentions(is_dupe, slot, value, all_slots, num_das)
-
     return pos, is_dupe
 
 
-def reevaluate_duplicate_mentions(is_dupe, slot, value, all_slots, num_das):
+def reevaluate_duplicate_mentions(is_dupe, slot, value, mr, num_das):
     """Re-evaluate heuristically determined duplicate mentions of a slot taking the whole MR into consideration."""
 
     dupe_ignore_map = {
+        'day': ['stay'],
         'depart': ['dest', 'leave'],
         'dest': ['depart', 'leave'],
         'leave': ['depart', 'dest'],
         'people': ['stay'],
-        'stay': ['people'],
+        'stay': ['day', 'people'],
     }
 
-    if is_dupe and value == '':
-        # Ignore duplicate mentions when the MR is composed of multiple DAs
-        if num_das > 1:
-            return False
+    if is_dupe:
+        # Extract the value's text if the slot was masked
+        if isinstance(value, dict):
+            value = value['text']
 
-        # Ignore duplicate mentions if certain related slots are also present in the MR
-        for other_slot in dupe_ignore_map.get(slot, []):
-            if other_slot in all_slots:
+        if value == '':
+            all_slots = {slot for slot, _ in mr}
+
+            # Ignore duplicate mentions if the MR is composed of multiple DAs
+            if num_das > 1:
+                return False
+
+            # Ignore duplicate mentions if certain related slots are also present in the MR
+            for other_slot in dupe_ignore_map.get(slot, []):
+                if other_slot in all_slots:
+                    return False
+        else:
+            # Ignore duplicate mentions if there is another slot with the same value in the MR
+            value_counts = Counter([val['text'] if isinstance(val, dict) else val for _, val in mr])
+            if value_counts[value] > 1:
                 return False
 
     return is_dupe
@@ -438,34 +448,43 @@ def count_errors(utt, mr, domain, verbose=False):
     """Counts slots not mentioned in the utterance and duplicate slot mentions."""
 
     slots_found = Counter()
-    duplicate_slots = set()
+    slots_with_duplicate_mentions = set()
 
     # Preprocess the MR and the utterance
     num_das = __count_dialogue_acts_in_mr(mr)
     mr = __preprocess_mr(mr)
     utt, utt_tok = __preprocess_utterance(utt)
+    mr, utt = __mask_name_slots(mr, utt)
 
     # Calculate the slot counts in the MR (in some datasets there may be multiple instances of the same slot)
     mr_slot_counts = Counter(map(lambda x: x[0], mr))
 
     # For each slot find its realization in the utterance
     for slot, value in mr:
-        pos, is_hallucinated = find_slot_realization(
-            utt, utt_tok, slot, value, domain, mr, num_das, ignore_dupes=(mr_slot_counts[slot] > 1))
+        if isinstance(value, dict):
+            # Masked slots have their positions already calculated
+            pos, is_dupe = value['pos'], value['is_dupe']
+        else:
+            pos, is_dupe = find_slot_realization(
+                utt, utt_tok, slot, value, domain, mr, num_das, ignore_dupes=(mr_slot_counts[slot] > 1))
+
+        # Re-evaluate duplicate mentions of the slot in the context of the MR
+        is_dupe = reevaluate_duplicate_mentions(is_dupe, slot, value, mr, num_das)
+
         if pos >= 0:
             slots_found.update([slot])
-        if is_hallucinated:
+        if is_dupe:
             if verbose:
                 print(f'>> Duplicate slot mention: {slot} = {value}')
-            duplicate_slots.add(slot)
+            slots_with_duplicate_mentions.add(slot)
 
     # Identify slots that were realized incorrectly or not mentioned at all in the utterance
     incorrect_slots = mr_slot_counts - slots_found
 
-    num_errors = sum(incorrect_slots.values()) + len(duplicate_slots)
+    num_errors = sum(incorrect_slots.values()) + len(slots_with_duplicate_mentions)
     num_content_slots = len(mr)
 
-    return num_errors, list(incorrect_slots), list(duplicate_slots), num_content_slots
+    return num_errors, list(incorrect_slots), list(slots_with_duplicate_mentions), num_content_slots
 
 
 def find_alignment(utt, mr):
@@ -518,6 +537,8 @@ def __preprocess_mr(mr_as_list):
         if slot == 'da':
             continue
 
+        val = val.strip(',.?! ').lower()
+
         mr_processed.append((slot, val))
 
     return mr_processed
@@ -525,15 +546,55 @@ def __preprocess_mr(mr_as_list):
 
 def __preprocess_utterance(utt):
     """Removes certain special symbols from the utterance, and reduces all whitespace to a single space.
-    Returns the utterance both in string form and tokenized.
-    """
 
+    Returns the utterance both as string and tokenized.
+    """
     # utt = re.sub(r'[-/]', ' ', utt.lower())
     utt = utt.lower()
     utt = re.sub(r'\s+', ' ', utt)
     utt_tok = [w.strip('.,!?') if len(w) > 1 else w for w in word_tokenize(utt)]
 
     return utt, utt_tok
+
+
+def __mask_name_slots(mr_as_list, utt):
+    """Masks verbatim mentions of name-based slots in the utterance, i.e., mentions using the slot's value verbatim.
+
+    The masks preserve the length of the utterance so that the slot mention positions would correspond to the original
+    utterance.
+    """
+    name_slots = {'addr', 'depart', 'dest', 'developer', 'name', 'near'}
+
+    # Save each slot's original index in the MR, and sort the slots in decreasing order of their value's length
+    mr_with_pos = [(slot_value_tuple[0], slot_value_tuple[1], idx) for idx, slot_value_tuple in enumerate(mr_as_list)]
+    mr_with_pos.sort(key=lambda x: len(x[1]), reverse=True)
+
+    # Count how many times each value occurs in the MR (some slots may have the same value)
+    value_counts = Counter([val for _, val in mr_as_list])
+
+    for i, slot_value_tuple in enumerate(mr_with_pos):
+        slot, value, pos = slot_value_tuple
+        if slot in name_slots and value:
+            pattern = re.compile(fr'\b{re.escape(value)}\b')
+            match = pattern.search(utt)
+            if match:
+                # Decrement the count of the current value
+                value_counts.subtract([value])
+
+                # Mask the value in the utterance if this is the last slot with this value, else just count occurrences
+                if value_counts[value] < 1:
+                    utt, num_mentions = pattern.subn('_' * len(value), utt)
+                else:
+                    num_mentions = len(pattern.findall(utt))
+
+                # Add information about the slot mention's position and whether it has duplicate mentions
+                value_dict = {'text': value, 'pos': match.start(), 'is_dupe': num_mentions > 1}
+                mr_with_pos[i] = (slot, value_dict, pos)
+
+    # Revert the MR to the original slot order, and remove positional info about slots
+    mr_as_list = [(slot, value) for slot, value, pos in sorted(mr_with_pos, key=lambda x: x[2])]
+
+    return mr_as_list, utt
 
 
 def mergeOrderedDicts(mrs, order=None):
