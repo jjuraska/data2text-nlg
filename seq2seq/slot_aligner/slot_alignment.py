@@ -223,7 +223,7 @@ def _match_keywords_in_text(keywords, text, ignore_dupes=False):
     return pos, is_duplicated
 
 
-def find_slot_realization(text, text_tok, slot, value, domain, mr, num_das, ignore_dupes=False, soft_align=False,
+def find_slot_realization(text, text_tok, slot, value, domain, mr, ignore_dupes=False, soft_align=False,
                           match_name_ref=False):
     pos = -1
     is_dupe = False
@@ -454,7 +454,7 @@ def count_errors(utt, mr, domain, verbose=False):
     num_das = __count_dialogue_acts_in_mr(mr)
     mr = __preprocess_mr(mr)
     utt, utt_tok = __preprocess_utterance(utt)
-    mr, utt = __mask_name_slots(mr, utt)
+    mr, utt = __mask_named_entities(mr, utt, ignore_name_slot_dupes=True)
 
     # Calculate the slot counts in the MR (in some datasets there may be multiple instances of the same slot)
     mr_slot_counts = Counter(map(lambda x: x[0], mr))
@@ -466,7 +466,7 @@ def count_errors(utt, mr, domain, verbose=False):
             pos, is_dupe = value['pos'], value['is_dupe']
         else:
             pos, is_dupe = find_slot_realization(
-                utt, utt_tok, slot, value, domain, mr, num_das, ignore_dupes=(mr_slot_counts[slot] > 1))
+                utt, utt_tok, slot, value, domain, mr, ignore_dupes=(mr_slot_counts[slot] > 1))
 
         # Re-evaluate duplicate mentions of the slot in the context of the MR
         is_dupe = reevaluate_duplicate_mentions(is_dupe, slot, value, mr, num_das)
@@ -549,15 +549,13 @@ def __preprocess_utterance(utt):
 
     Returns the utterance both as string and tokenized.
     """
-    # utt = re.sub(r'[-/]', ' ', utt.lower())
-    utt = utt.lower()
-    utt = re.sub(r'\s+', ' ', utt)
-    utt_tok = [w.strip('.,!?') if len(w) > 1 else w for w in word_tokenize(utt)]
+    utt = re.sub(r'\s+', ' ', utt.lower())
+    utt_tok = [w.strip('.,!?') if len(w) > 1 else w for w in word_tokenize(re.sub(r'[-/]', ' ', utt))]
 
     return utt, utt_tok
 
 
-def __mask_name_slots(mr_as_list, utt):
+def __mask_named_entities(mr_as_list, utt, ignore_name_slot_dupes=False):
     """Masks verbatim mentions of name-based slots in the utterance, i.e., mentions using the slot's value verbatim.
 
     The masks preserve the length of the utterance so that the slot mention positions would correspond to the original
@@ -587,8 +585,10 @@ def __mask_name_slots(mr_as_list, utt):
                 else:
                     num_mentions = len(pattern.findall(utt))
 
+                is_dupe = num_mentions > 1 and (slot != 'name' or not ignore_name_slot_dupes)
+
                 # Add information about the slot mention's position and whether it has duplicate mentions
-                value_dict = {'text': value, 'pos': match.start(), 'is_dupe': num_mentions > 1}
+                value_dict = {'text': value, 'pos': match.start(), 'is_dupe': is_dupe}
                 mr_with_pos[i] = (slot, value_dict, pos)
 
     # Revert the MR to the original slot order, and remove positional info about slots

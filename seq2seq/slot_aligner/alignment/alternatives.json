@@ -192,6 +192,9 @@
   "pricerange": {
     "cheap": [
       "less than \u00a320",
+      "less than 20",
+      "under \u00a320",
+      "under 20",
       "inexpensive",
       "affordable",
       "low",
@@ -200,12 +203,18 @@
       "bargain"
     ],
     "moderate": [
-      "\u00a320-25",
+      "20-25",
+      "20 - 25",
+      "20 to 25",
+      "between 20 and 25",
       "average",
       "reasonable"
     ],
     "high": [
       "more than \u00a330",
+      "more than 30",
+      "over \u00a330",
+      "over 30",
       "expensive",
       "costly",
       "pricey",
@@ -213,6 +222,9 @@
       "higher"
     ],
     "less than \u00a320": [
+      "less than 20",
+      "under \u00a320",
+      "under 20",
       "cheap",
       "inexpensive",
       "affordable",
@@ -220,11 +232,18 @@
       "budget"
     ],
     "\u00a320-25": [
+      "20-25",
+      "20 - 25",
+      "20 to 25",
+      "between 20 and 25",
       "moderate",
       "average",
       "reasonable"
     ],
     "more than \u00a330": [
+      "more than 30",
+      "over \u00a330",
+      "over 30",
       "high",
       "expensive",
       "costly",
