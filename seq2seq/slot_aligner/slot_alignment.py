@@ -456,10 +456,10 @@ def count_errors(utt, mr, domain, verbose=False):
     utt, utt_tok = __preprocess_utterance(utt)
     mr, utt = __mask_named_entities(mr, utt, ignore_name_slot_dupes=True)
 
-    # Calculate the slot counts in the MR (in some datasets there may be multiple instances of the same slot)
+    # Calculate the slot counts in the MR (in some datasets there may be multiple instances of the same slot in the MR)
     mr_slot_counts = Counter(map(lambda x: x[0], mr))
 
-    # For each slot find its realization in the utterance
+    # For each slot find its mention in the utterance
     for slot, value in mr:
         if isinstance(value, dict):
             # Masked slots have their positions already calculated
@@ -487,39 +487,31 @@ def count_errors(utt, mr, domain, verbose=False):
     return num_errors, list(incorrect_slots), list(slots_with_duplicate_mentions), num_content_slots
 
 
-def find_alignment(utt, mr):
+def find_alignment(utt, mr, domain):
     """Identifies the mention position of each slot in an utterance."""
 
     alignment = []
 
+    # Preprocess the MR and the utterance
+    mr = __preprocess_mr(mr)
     utt, utt_tok = __preprocess_utterance(utt)
+    mr, utt = __mask_named_entities(mr, utt, ignore_name_slot_dupes=True)
 
-    # For each slot find its realization in the utterance
-    for slot, value in mr.items():
-        slot_root = slot.rstrip(string.digits)
-        value = value.lower()
-
-        pos, _ = find_slot_realization(utt, utt_tok, slot_root, value, None)
+    # For each slot find its mention in the utterance
+    for slot, value in mr:
+        if isinstance(value, dict):
+            # Masked slots have their positions already calculated
+            pos = value['pos']
+        else:
+            pos, _ = find_slot_realization(utt, utt_tok, slot, value, domain, mr)
 
         if pos >= 0:
-            alignment.append((pos, slot, value))
+            alignment.append((slot, value, pos))
 
     # Sort the slot realizations by their position
-    alignment.sort(key=lambda x: x[0])
+    alignment.sort(key=lambda x: x[2])
 
     return alignment
-
-
-def __pop_delex_placeholders(utt):
-    """Extracts and removes delexicalized placeholders from the utterance."""
-
-    pattern = DELEX_PREFIX + '.*?' + DELEX_SUFFIX
-
-    matches = set(re.findall(pattern, utt))
-    utt_stripped = re.sub(pattern, '', utt)
-    utt_stripped = re.sub('\s+', ' ', utt_stripped)
-
-    return matches, utt_stripped
 
 
 def __count_dialogue_acts_in_mr(mr_as_list):

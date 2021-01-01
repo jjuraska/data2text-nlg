@@ -1,50 +1,41 @@
+from collections import Counter, OrderedDict
+import json
 import os
 import pandas as pd
-from collections import Counter, OrderedDict
 
-# import config
-# import data_loader
 from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, MultiWOZDataset, ViggoDataset
 from seq2seq.slot_aligner.slot_alignment import count_errors, find_alignment
 
 
-def align_slots(dataset, filename):
-    """Aligns slots of the MRs with their mentions in the corresponding utterances."""
+def align_slots(data_dir, filename, dataset_class, serialize_pos_info=False):
+    """Finds and records the position of each slot's mention in the corresponding utterance.
 
+    The position is indicated as the index of the first character of the slot mention phrase within the utterance. When
+    the phrase comprises non-contiguous words in the utterance, the position is typically that of the salient term in
+    the phrase.
+
+    Note that if a slot is mentioned in the corresponding utterance multiple times, only its last mention is recorded.
+    """
     alignments = []
-    alignment_strings = []
 
-    print('Aligning slots in ' + str(filename))
+    # Load MRs and corresponding utterances
+    df_data = pd.read_csv(os.path.join(data_dir, filename), header=0)
+    mrs_raw = df_data.iloc[:, 0].to_list()
+    mrs_processed = dataset_class.preprocess_mrs(mrs_raw, as_lists=True, lowercase=False, convert_slot_names=True)
+    utterances = df_data.iloc[:, 1].to_list()
 
-    # Read in the data
-    data_cont = data_loader.init_test_data(os.path.join(config.DATA_DIR, dataset, filename))
-    mrs_orig, utterances_orig = data_cont['data']
-    _, _, slot_sep, val_sep, val_sep_end = data_cont['separators']
+    for mr_as_list, utt in zip(mrs_processed, utterances):
+        # Determine the positions of all slot mentions in the utterance
+        slot_mention_positions = find_alignment(utt, mr_as_list, dataset_class.name)
+        if serialize_pos_info:
+            alignments.append(json.dumps([[pos, slot] for slot, _, pos in slot_mention_positions]))
+        else:
+            alignments.append(' '.join([f'({pos}: {slot})' for slot, _, pos in slot_mention_positions]))
 
-    # Preprocess the MRs and the utterances
-    mrs = [data_loader.convert_mr_from_str_to_list(mr, data_cont['separators']) for mr in mrs_orig]
-    utterances = [data_loader.preprocess_utterance(utt) for utt in utterances_orig]
-
-    for i, mr in enumerate(mrs):
-        mr_dict = OrderedDict()
-
-        # Extract the slot-value pairs into a dictionary
-        for slot_value in mr.split(slot_sep):
-            slot, value, _, _ = data_loader.parse_slot_and_value(slot_value, val_sep, val_sep_end)
-            mr_dict[slot] = value
-
-        alignments.append(find_alignment(utterances[i], mr_dict))
-
-    for i in range(len(utterances)):
-        alignment_strings.append(' '.join(['({0}: {1})'.format(pos, slot) for pos, slot, _ in alignments[i]]))
-
-    new_df = pd.DataFrame(columns=['mr', 'ref', 'alignment'])
-    new_df['mr'] = mrs_orig
-    new_df['ref'] = utterances_orig
-    new_df['alignment'] = alignment_strings
-
-    filename_out = os.path.splitext(filename)[0] + ' [aligned].csv'
-    new_df.to_csv(os.path.join(config.DATA_DIR, dataset, filename_out), index=False, encoding='utf8')
+    # Save the MRs and utterances along with the positional information about slot mentions to a new CSV file
+    df_data['alignment'] = alignments
+    out_file_path = os.path.splitext(os.path.join(data_dir, filename))[0] + ' [with alignment].csv'
+    df_data.to_csv(out_file_path, index=False, encoding='utf-8-sig')
 
 
 def score_slot_realizations(data_dir, predictions_file, dataset_class, slot_level=False, verbose=False):
@@ -55,13 +46,13 @@ def score_slot_realizations(data_dir, predictions_file, dataset_class, slot_leve
     duplicate_slots = []
     total_content_slots = 0
 
-    # Load the input MRs and output utterances
+    # Load MRs and corresponding utterances
     df_data = pd.read_csv(os.path.join(data_dir, predictions_file), header=0)
     mrs_raw = df_data.iloc[:, 0].to_list()
     mrs_processed = dataset_class.preprocess_mrs(mrs_raw, as_lists=True, lowercase=False, convert_slot_names=True)
-    predictions = df_data.iloc[:, 1].to_list()
+    utterances = df_data.iloc[:, 1].to_list()
 
-    for mr_as_list, utt in zip(mrs_processed, predictions):
+    for mr_as_list, utt in zip(mrs_processed, utterances):
         # Count the missing and hallucinated slots in the utterance
         num_errors, cur_incorrect_slots, cur_duplicate_slots, num_content_slots = count_errors(
             utt, mr_as_list, dataset_class.name, verbose=verbose)
@@ -70,7 +61,7 @@ def score_slot_realizations(data_dir, predictions_file, dataset_class, slot_leve
         duplicate_slots.append(', '.join(cur_duplicate_slots))
         total_content_slots += num_content_slots
 
-    # Save the utterances along with their slot error indications to a CSV file
+    # Save the MRs and utterances along with their slot error indications to a new CSV file
     df_data['errors'] = error_counts
     df_data['incorrect'] = incorrect_slots
     df_data['duplicate'] = duplicate_slots
@@ -81,7 +72,7 @@ def score_slot_realizations(data_dir, predictions_file, dataset_class, slot_leve
     if slot_level:
         ser = sum(error_counts) / total_content_slots
     else:
-        ser = sum([num_errs > 0 for num_errs in error_counts]) / len(predictions)
+        ser = sum([num_errs > 0 for num_errs in error_counts]) / len(utterances)
 
     # Print the SER
     if verbose:
@@ -332,19 +323,14 @@ def analyze_contrast_relations(dataset, filename):
 
 
 if __name__ == '__main__':
-    # align_slots('rest_e2e', 'devset_e2e.csv')
-    # align_slots('video_game', 'valid.csv')
+    align_slots(r'd:\Git\viggo\seq2seq\data\rest_e2e', 'devset.csv', E2EDataset, serialize_pos_info=False)
 
     # ----
 
-    # score_slot_realizations(config.E2E_DATA_DIR, 'devset_e2e.csv')
-    # score_slot_realizations(config.LAPTOP_DATA_DIR, 'test.json')
-    # score_slot_realizations(os.path.join(config.EVAL_DIR, 'predictions rest_e2e (GPT-2, FP16)'),
-    #                         'gpt2_epoch_2_step_2104_nucleus_sampling_0.8.csv')
-    # score_slot_realizations(r'd:\Git\viggo\seq2seq\predictions_baselines\TGen+\rest_e2e_cleaned',
-    #                         'tgen-plus.run4.csv', E2ECleanedDataset, slot_level=True)
-    score_slot_realizations(r'd:\Git\viggo\seq2seq\data\multiwoz',
-                            'valid.csv', MultiWOZDataset, slot_level=True)
+    # score_slot_realizations(r'd:\Git\viggo\seq2seq\predictions_baselines\DataTuner\rest_e2e_cleaned',
+    #                         'systemFc.csv', E2ECleanedDataset, slot_level=True)
+    # score_slot_realizations(r'd:\Git\viggo\seq2seq\data\video_game',
+    #                         'valid.csv', ViggoDataset, slot_level=True)
 
     # ----
 

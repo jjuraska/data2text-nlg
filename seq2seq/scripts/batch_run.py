@@ -3,7 +3,7 @@ import os
 from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, MultiWOZDataset, ViggoDataset
 from seq2seq.scripts.slot_error_rate import calculate_slot_error_rate
 from seq2seq.scripts.utterance_stats import utterance_stats
-from seq2seq.slot_aligner.data_analysis import score_slot_realizations
+from seq2seq.slot_aligner.data_analysis import align_slots, score_slot_realizations
 
 
 def batch_calculate_slot_error_rate(input_dir, checkpoint_name, dataset_class, exact_matching=False, slot_level=False,
@@ -57,6 +57,23 @@ def batch_calculate_slot_error_rate(input_dir, checkpoint_name, dataset_class, e
         print('\n'.join(files_processed))
 
 
+def batch_find_slot_alignment(input_dir, file_names, dataset_class, serialize_pos_info=False, verbose=False):
+    files_processed = []
+
+    for file_name in file_names:
+        files_processed.append(file_name)
+        if verbose:
+            print(f'Running with file "{file_name}"...')
+
+        align_slots(input_dir, file_name, dataset_class, serialize_pos_info=serialize_pos_info)
+
+    if not verbose:
+        # Print a summary of all files processed (in the same order)
+        print()
+        print('>> Files processed:')
+        print('\n'.join(files_processed))
+
+
 def batch_utterance_stats(input_dir, export_vocab=False, verbose=False):
     files_processed = []
 
@@ -83,8 +100,8 @@ def run_batch_calculate_slot_error_rate():
     # checkpoint_name = 'epoch_18_step_1749'
     # dataset_class = MultiWOZDataset
 
-    input_dir = os.path.join('seq2seq', 'predictions', 'rest_e2e_cleaned', 'finetuned_verbalized_slots', 't5-small_lr_2e-4_bs_64_wus_100_run4')
-    checkpoint_name = 'epoch_11_step_524'
+    input_dir = os.path.join('seq2seq', 'predictions', 'rest_e2e_cleaned', 'from_scratch_w_pretrained_tokenizer_verbalized_slots', 'gpt2_lr_2e-5_bs_16_run1')
+    checkpoint_name = 'epoch_10_step_2096'
     dataset_class = E2ECleanedDataset
 
     if 'multiwoz' in dataset_class.name:
@@ -93,6 +110,26 @@ def run_batch_calculate_slot_error_rate():
     else:
         batch_calculate_slot_error_rate(
             input_dir, checkpoint_name, dataset_class, exact_matching=False, slot_level=True, verbose=False)
+
+
+def run_batch_find_slot_alignment():
+    # input_dir = os.path.join('seq2seq', 'data', 'rest_e2e')
+    # file_names = ['trainset.csv', 'devset.csv', 'testset.csv']
+    # dataset_class = E2EDataset
+
+    # input_dir = os.path.join('seq2seq', 'data', 'rest_e2e_cleaned')
+    # file_names = ['train-fixed.no-ol.csv', 'devel-fixed.no-ol.csv', 'test-fixed.csv']
+    # dataset_class = E2ECleanedDataset
+
+    input_dir = os.path.join('seq2seq', 'data', 'multiwoz')
+    file_names = ['train.csv', 'valid.csv', 'test.csv']
+    dataset_class = MultiWOZDataset
+
+    # input_dir = os.path.join('seq2seq', 'data', 'video_game')
+    # file_names = ['train.csv', 'valid.csv', 'test.csv']
+    # dataset_class = ViggoDataset
+
+    batch_find_slot_alignment(input_dir, file_names, dataset_class, serialize_pos_info=False, verbose=True)
 
 
 def run_batch_utterance_stats():
@@ -104,5 +141,6 @@ def run_batch_utterance_stats():
 
 
 if __name__ == '__main__':
-    run_batch_calculate_slot_error_rate()
+    # run_batch_calculate_slot_error_rate()
+    run_batch_find_slot_alignment()
     # run_batch_utterance_stats()
