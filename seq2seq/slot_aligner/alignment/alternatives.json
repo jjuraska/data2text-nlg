@@ -62,7 +62,7 @@
       ]
     ]
   },
-  "playerperspective": {
+  "player_perspective": {
     "first person": [
       "fps"
     ],
@@ -203,8 +203,7 @@
       "bargain"
     ],
     "moderate": [
-      "20-25",
-      "20 - 25",
+      "20 25",
       "20 to 25",
       "between 20 and 25",
       "average",
@@ -231,9 +230,8 @@
       "low",
       "budget"
     ],
-    "\u00a320-25": [
-      "20-25",
-      "20 - 25",
+    "\u00a320 25": [
+      "20 25",
       "20 to 25",
       "between 20 and 25",
       "moderate",

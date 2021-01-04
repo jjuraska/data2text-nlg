@@ -152,7 +152,7 @@ general-greet(),Thank you for contacting the help desk. Have a great day.,
 "general-bye(), general-welcome()",Thank you goodbye,
 "Attraction-Inform(Fee[need to call], Name[The Place], Addr[22 Sidney Street], Phone[01223324600])",The Place is located at 22 Sidney Street. Their phone number is 01223324600. You will need to call for their entry fee.,(0: name) (24: addr) (64: phone) (86: fee)
 "Taxi-Request(Leave[?], Arrive[?])","I can book you a taxi, can you tell me the arrival or departure time?",(43: arrive) (54: leave)
-"Hotel-Inform(Area[north], Area[east], Price[moderate], Price[expensive], Choice[three], Choice[two], Choice[one])",I have three options for you - two in the north in the moderate price range and one that's expensive in the east.,(7: choice) (31: choice) (42: area) (55: price) (80: choice) (91: price) (108: area)
+"Hotel-Inform(Area[north], Area[east], Price[moderate], Price[expensive], Choice[three], Choice[two], Choice[one])",I have three options for you - two in the north in the moderate price range and one that's expensive in the east.,(7: choice) (29: choice) (40: area) (53: price) (78: choice) (89: price) (106: area)
 "Hotel-Select(), Hotel-Inform(Name[Ashley Hotel], Name[Lovell Lodge])",The ones in the north are the Ashley Hotel and the Lovell Lodge. Do you have a preference?,(30: name) (51: name)
 "Hotel-Inform(Name[ashley hotel]), general-reqmore(), Booking-Book(Ref[YMEO7L37])",I have successfully booked you at the ashley hotel. The reference number is YMEO7L37. Can I help you with anything else today?,(38: name) (76: ref)
 general-bye(),"Thank you, goodbye!",
@@ -289,7 +289,7 @@ general-welcome(),You're welcome. Enjoy your trip!,
 "general-reqmore(), Attraction-Inform(Phone[01223302580], Phone[01223243830], Name[Sheep 's Green and Lammas Land Park Fen Causeway], Name[Wandlebury Country Park], Post[cb22ad], Post[cb223ae])",sheep's green and lammas land park fen causeway number is 01223302580 and postcode is cb22ad. wandlebury country park number is 01223243830 postcode is cb223ae. Do you need anything else?,(0: name) (58: phone) (86: post) (94: name) (128: phone) (152: post)
 "general-reqmore(), Attraction-Inform(Addr[fen causeway], Addr[newnham road], Addr[wandlebury ring], Addr[gog magog hills], Addr[babraham], Name[sheep 's green & lammas land park fen causeway], Name[wandlebury country park])","sheep's green & lammas land park fen causeway is located at fen causeway, newnham road; wandlebury country park is at wandlebury ring, gog magog hills, babraham. Anything else?",(0: name) (60: addr) (74: addr) (88: name) (118: addr) (135: addr) (152: addr)
 "general-bye(), general-welcome(), general-greet()",You are very welcome! I hope that you enjoy your trip! Goodbye.,
-"Restaurant-Inform(Food[italian], Price[moderate], Area[west], Addr[21 - 24 Northampton Road], Name[Prezzo])","Prezzo is located at 21 - 24 Northampton Road, in the west. It's an italian restaurant. Moderate price range.",(0: name) (54: area) (68: food) (88: price)
+"Restaurant-Inform(Food[italian], Price[moderate], Area[west], Addr[21 - 24 Northampton Road], Name[Prezzo])","Prezzo is located at 21 - 24 Northampton Road, in the west. It's an italian restaurant. Moderate price range.",(0: name) (21: addr) (52: area) (66: food) (86: price)
 Booking-Inform(),Would you like me to book you a table?,
 "Attraction-Request(Type[?]), Attraction-Inform(Choice[44], Area[centre])","Okay, there's about 44 attractions in the centre of town. Is there something in particular you'd like?",(20: choice) (42: area) (80: type)
 "Attraction-Inform(Addr[trinity lane], Type[architectural], Area[centre], Name[Old Schools])",I think you would enjoy Old Schools in the centre of town. It is an architectural attraction. The address is trinity lane.,(24: name) (43: area) (68: type) (109: addr)
@@ -773,7 +773,7 @@ Booking-Book(Ref[P8ZMRWGO]),Booking was successful. Reference number is : P8ZMRW
 "Taxi-Inform(Phone[07540575588], Car[grey audi]), general-reqmore()",Booking completed! A grey audi will be picking you up. Their Contact number is: 07540575588. Do you need any further assistance?,(21: car) (80: phone)
 "Taxi-Inform(Phone[07540575588], Car[grey audi]), general-reqmore()",i booked you a grey audi and the contact number is 07540575588. is there anything else i can help you with.,(15: car) (51: phone)
 general-bye(),"Alright, have a lovely day.",
-"Restaurant-Request(Food[?]), Restaurant-Inform(Choice[69], Area[centre])",There are 69 restaurants in the centre- did you have a preferred cuisine type?,(10: choice) (32: area) (65: food)
+"Restaurant-Request(Food[?]), Restaurant-Inform(Choice[69], Area[centre])",There are 69 restaurants in the centre- did you have a preferred cuisine type?,(10: choice) (32: area) (64: food)
 "Restaurant-Select(), Restaurant-Inform(Choice[two], Name[de luca cucina and bar], Name[riverside brasserie])",There are two restaurants that fit your criteria which are de luca cucina and bar and riverside brasserie. Which one do you prefer?,(10: choice) (59: name) (86: name)
 "general-reqmore(), Booking-Book(Ref[WQOYZ16I], Name[de luca cucina and bar])",I choose de luca cucina and bar. Your reference is WQOYZ16I. How else can I assist? Thanks!,(9: name) (51: ref)
 "Attraction-Request(Type[?]), Attraction-Inform(Choice[many])",There are many fun things to do in the centre. Do you know what type of attraction you would like?,(10: choice) (64: type)
@@ -908,7 +908,7 @@ Attraction-Inform(Fee[the entrance fee is n't listed]),"I'm sorry, the entrance 
 general-bye(),"Thank you, if you need anything else let me know.Good Bye.",
 "Booking-Inform(), Restaurant-Inform(Food[modern european], Price[expensive], Area[centre], Name[Darrys cookhouse and wine shop])",Darrys cookhouse and wine shop is located in the centre. It is expensive and serves modern european food. Would you like a reservation?,(0: name) (49: area) (63: price) (84: food)
 "Restaurant-Inform(Price[expensive], Addr[40270 King Street City], Name[Darrys Cookhouse], Food[modern European], Area[Centre])",Darrys Cookhouse is a modern European restaurant in the Centre. It is located at 40270 King Street City and is in the expensive price range.,(0: name) (22: food) (56: area) (81: addr) (118: price)
-"Attraction-Request(Type[?]), Attraction-Inform(Type[architecture], Type[cinema], Type[college])","There are many attractions in town. What type are you looking for - architecture, cinema, or a college perhaps?",(41: type) (68: type) (82: type) (95: type)
+"Attraction-Request(Type[?]), Attraction-Inform(Type[architecture], Type[cinema], Type[college])","There are many attractions in town. What type are you looking for - architecture, cinema, or a college perhaps?",(41: type) (66: type) (80: type) (93: type)
 "Attraction-Inform(Type[museum], Area[centre], Name[the broughton house gallery])",the broughton house gallery is a museum located in the centre.,(0: name) (33: type) (55: area)
 "general-reqmore(), Attraction-Inform(Phone[01223314960])",Sure thing! Their phone number is 01223314960. Can I help you with anything more today?,(34: phone)
 "general-bye(), general-welcome()",Thank you for contacting us today. Have a good day.,
@@ -1265,7 +1265,7 @@ general-bye(),Have a great day!,
 "general-greet(), general-reqmore(), Attraction-Inform(Post[cb30aq], Name[The Lynne Strover Gallery])",Certainly. The Lynne Strover Gallery's postcode is cb30aq. Can I help you with anything else?,(11: name) (51: post)
 "general-bye(), general-welcome(), general-greet()",Thank you so much for calling! Enjoy your trip! Goodbye!,
 "general-reqmore(), Restaurant-Inform(Food[British], Price[expensive], Area[center of town])",This is a British restaurant found in the center of town that is in the expensive price range. What other information do you need?,(10: food) (42: area) (72: price)
-"general-reqmore(), Booking-Book(Ref[5CWU2U98])",I booked it for you- the reference number is 5CWU2U98. Is there anything else?,(45: ref)
+"general-reqmore(), Booking-Book(Ref[5CWU2U98])",I booked it for you- the reference number is 5CWU2U98. Is there anything else?,(44: ref)
 "Attraction-Request(Type[?]), Attraction-Inform(Choice[many], Area[east])","There are many in the east,what type are you most interested in?",(10: choice) (22: area) (32: type)
 "Attraction-Recommend(Name[Cambridge Artworks]), Attraction-Inform(Fee[Free to visit])",May I suggest Cambridge Artworks? It sounds like just what you are looking for and is Free to visit.,(14: name) (86: fee)
 "Taxi-Inform(Dest[the restaurant], Car[black tesla], Depart[cambridge artworks], Phone[07036386739])",I booked a taxi from cambridge artworks to the restaurant that will get you there in time for your reservation. Car is a black tesla and the contact number is 07036386739,(21: depart) (43: dest) (121: car) (159: phone)
@@ -1447,7 +1447,7 @@ general-bye(),Have a good day. Thank you for using Cambridge TownInfo centre. Go
 "Train-Inform(Arrive[08:08], Leave[07:17], Depart[london kings], Id[TR4543], Dest[cambridge])",TR4543 leaves london kings cross at 07:17 arriving in cambridge 08:08.,(0: id) (14: depart) (36: leave) (54: dest) (64: arrive)
 general-greet(),Thank you for using our system!,
 "Hotel-NoOffer(Stars[5], Type[hotels], Area[Cambridge]), general-reqmore()","I'm sorry, but there are no 5-star hotels anywhere in Cambridge. Would you like to broaden your criteria?",(28: stars) (35: type) (54: area)
-"Hotel-Select(), Hotel-Inform(Name[The Huntingdon Marriot], Name[the University Arms], Choice[2], Area[on the west side], Area[in the center])","I have 2 options for you - The Huntingdon Marriott on the west side, and the University Arms in the center. Are you interested in one of these?",(7: choice) (51: area) (73: name) (93: area)
+"Hotel-Select(), Hotel-Inform(Name[The Huntingdon Marriot], Name[the University Arms], Choice[2], Area[on the west side], Area[in the center])","I have 2 options for you - The Huntingdon Marriott on the west side, and the University Arms in the center. Are you interested in one of these?",(7: choice) (49: area) (71: name) (91: area)
 "Booking-Inform(), Hotel-Inform(Stars[4]), Booking-Request(Stay[?], People[?])","Both are 4 stars. How many days would you be staying, and how many people are in your party? I can see if something is available.",(9: stars) (27: stay) (67: people)
 Booking-Request(People[?]),How many are in your party?,(0: people)
 "Booking-NoBook(), Booking-Request(Day[?], Stay[?])","I'm sorry, but there is nothing available at that time at either hotel. Would you like to try fewer nights or perhaps a different arrival day?",(100: stay) (138: day)
@@ -1665,7 +1665,7 @@ Hotel-Request(Area[?]),Can I get an area you would like to stay in?,(13: area)
 Hotel-Request(Stars[?]),"Yes, there is. How many stars should the hotel be rated for?",(24: stars)
 "Booking-Inform(), Hotel-Inform(Name[Avalon], Area[north side of town], Type[guesthouse], Price[moderate])",Avalon is a moderate price guesthouse on the north side of town. Would you like me to book a room for you?,(0: name) (12: price) (27: type) (45: area)
 Hotel-Inform(Addr[62 gilbert road]),the address is 62 gilbert road,(15: addr)
-"Hotel-Inform(Phone[01223353071], Name[avalon guesthouse])",phone number to avalon guesthouse -01223353071,(16: name) (35: phone)
+"Hotel-Inform(Phone[01223353071], Name[avalon guesthouse])",phone number to avalon guesthouse -01223353071,(16: name) (34: phone)
 Attraction-Recommend(Name[Whale of a Time]),How about Whale of a Time? It's a great place to take children.,(10: name)
 "Attraction-NoOffer(Area[west], Type[multiple sports])",I cannot find any multiple sports attractions in the west. Is there another area I can check?,(18: type) (53: area)
 Attraction-Request(Price[?]),What price range would you like?,(5: price)
@@ -1804,7 +1804,7 @@ Booking-Request(Day[?]),What day will you be dining?,(5: day)
 "Booking-Inform(), Booking-Request(Time[?])","I would be happy to make that reservation for you, what time would you like that for?",(56: time)
 "Restaurant-Inform(Phone[01223462354], Post[cb23ar])",Their phone number is 01223462354 and their postcode is cb23ar.,(22: phone) (56: post)
 general-bye(),Thank you for using our system!,
-"Hotel-Request(Area[?], Price[?])",I have many options for you - what's your price range or the area you're looking in?,(42: price) (61: area)
+"Hotel-Request(Area[?], Price[?])",I have many options for you - what's your price range or the area you're looking in?,(40: price) (59: area)
 Hotel-Request(Type[?]),Do you have a preference for a hotel versus a guesthouse?,
 "Hotel-Inform(Addr[52 Gilbert Road .], Name[Archway House])",How about Archway House? It's located at 52 Gilbert Road.,(10: name) (41: addr)
 "Hotel-Inform(Name[Archway House], Price[moderate], Area[north])",Certainly! The Archway House is in the north area and has a moderate price range.,(15: name) (39: area) (60: price)
@@ -1994,7 +1994,7 @@ Restaurant-NoOffer(Food[Irish]),"No, sorry, there aren't any serving Irish food.
 "Booking-Inform(), Restaurant-Inform(Food[gastropub], Name[cow pizza kitchen and bar])",The cow pizza kitchen and bar would meet your request for gastropub. Would you like to book it?,(4: name) (58: food)
 Restaurant-Inform(Addr[Corn Exchange Street]),The address is Corn Exchange Street.,(15: addr)
 "Train-Inform(Day[Friday], Choice[several], Leave[20:00]), Train-Request(Dest[?], Depart[?])","There are several trains that depart on Friday after 20:00, where are you traveling from and to?",(10: choice) (40: day) (53: leave) (84: dest) (84: depart)
-"Train-Inform(Leave[20:40], Leave[21:40], Leave[22:40], Leave[23:40], Choice[4]), Train-Select(), Train-OfferBook()","There are 4 trains that will work for you - leaving 20:40, 21:40, 22:40, and 23:40. Would you like to book one of those?",(10: choice) (52: leave) (59: leave) (66: leave) (77: leave)
+"Train-Inform(Leave[20:40], Leave[21:40], Leave[22:40], Leave[23:40], Choice[4]), Train-Select(), Train-OfferBook()","There are 4 trains that will work for you - leaving 20:40, 21:40, 22:40, and 23:40. Would you like to book one of those?",(10: choice) (50: leave) (57: leave) (64: leave) (75: leave)
 "Train-OfferBooked(Ref[N9PDDWD8], Ticket[30.29 GBP])","Booking was successful, your reference number is N9PDDWD8. You pay at the station 30.29 GBP.",(49: ref) (82: ticket)
 "general-bye(), general-welcome()","You're welcome, thank you for using our service today.",
 "Train-Request(Depart[?], Dest[?])",Absolutely! Do you have any particular train stations in mind?,(45: depart) (45: dest)
@@ -2300,7 +2300,7 @@ Hotel-Request(Area[?]),In what area would you prefer it to be?,(8: area)
 general-bye(),My pleasure. Enjoy your stay.,
 Train-Request(Day[?]),"OK, what day are you looking at traveling on?",(9: day)
 "Train-Inform(Arrive[14:08], Day[Thursday], Leave[13:40], Dest[Stansted Airport], Ticket[10.10 pounds]), Train-OfferBook()",I have a train leaving at 13:40 on Thursday that arrives at Stansted Airport at 14:08 for 10.10 pounds. Would you like to book this option?,(26: leave) (35: day) (60: dest) (80: arrive) (90: ticket)
-Train-Inform(Ticket[10.10GBP]),I did - it's 10.10GBP.,(13: ticket)
+Train-Inform(Ticket[10.10GBP]),I did - it's 10.10GBP.,(11: ticket)
 "Attraction-Recommend(Name[Cambridge Contemporary Art Museum]), Attraction-Inform(Addr[6 Trinity Street], Fee[free])",How about the Cambridge Contemporary Art Museum? It's on 6 Trinity Street and the admission is free.,(14: name) (57: addr) (95: fee)
 general-reqmore(),Is there anything else you need today?,
 Attraction-Inform(Phone[01223324222]),yes it is 01223324222,(10: phone)
@@ -2469,7 +2469,7 @@ general-bye(),"Alright, have a great day.",
 Train-Request(Dest[?]),What is your destination?,(13: dest)
 "Train-Inform(Arrive[12:58], Leave[12:11], Depart[kings lyn], Dest[cambridge]), Train-OfferBook()",Train 7040 leaves kings lynn at 12:11 and arrives in cambridge at 12:58. Would you like me to book a ticket?,(32: leave) (53: dest) (66: arrive)
 "general-reqmore(), Train-OfferBooked(Ref[ISO72H9I])",Your booking was successful and your reference number is ISO72H9I. May I help you with anything else today?,(57: ref)
-"Attraction-Select(), Attraction-Inform(Type[colleges], Type[architecture], Type[museums], Type[nightclubs], Type[parks], Type[boating], Type[pools], Choice[lots of])","Sure, there are lots of things to choose from--colleges, architecture, museums, nightclubs, parks, boating, pools. What would interest you the most?",(16: choice) (47: type) (57: type) (71: type) (80: type) (92: type) (99: type) (108: type)
+"Attraction-Select(), Attraction-Inform(Type[colleges], Type[architecture], Type[museums], Type[nightclubs], Type[parks], Type[boating], Type[pools], Choice[lots of])","Sure, there are lots of things to choose from--colleges, architecture, museums, nightclubs, parks, boating, pools. What would interest you the most?",(16: choice) (46: type) (56: type) (70: type) (79: type) (91: type) (98: type) (107: type)
 "general-reqmore(), Attraction-Inform(Fee[free], Phone[01223307402], Name[Castle Galleries])","How about Castle Galleries? It's free, and their phone number is 01223307402. Can I help you with anything else?",(10: name) (33: fee) (65: phone)
 general-bye(),Thank you for using our service today!,
 "Hotel-Request(Price[?]), Hotel-Inform(Area[north], Choice[11], Type[guesthouses])",There are 11 guesthouses in the north. Do you have a price range?,(10: choice) (13: type) (32: area) (53: price)
@@ -2518,7 +2518,7 @@ Train-OfferBook(),I can also assist you with finding a guest house. Does the tra
 Booking-Book(Ref[Q10RYGHF]),Booking was successful. Reference number is : Q10RYGHF.,(46: ref)
 general-bye(),Thank you for using our service today. Glad I was able to help have a good day.,
 "Hotel-Request(Area[?], Price[?])",I can certainly help you with that. Do you have a preferred price range or area?,(60: price) (75: area)
-"Hotel-Request(Price[?]), Hotel-Inform(Price[cheap], Price[expensive], Choice[3], Choice[two], Choice[one], Area[west])",I have 3 in west - two are cheap and one is expensive. Preference on price?,(7: choice) (12: area) (19: choice) (27: price) (37: choice) (44: price) (69: price)
+"Hotel-Request(Price[?]), Hotel-Inform(Price[cheap], Price[expensive], Choice[3], Choice[two], Choice[one], Area[west])",I have 3 in west - two are cheap and one is expensive. Preference on price?,(7: choice) (12: area) (17: choice) (25: price) (35: choice) (42: price) (67: price)
 Hotel-Recommend(Name[Huntingdon Marriott Hotel]),I would suggest the Huntingdon Marriott Hotel. It is very nice. Can I get you some information on it?,(20: name)
 "Booking-Inform(), Hotel-Inform(Internet[none], Parking[none])","Parking and internet are both included, would you like me to book you?",(0: parking) (12: internet)
 "general-reqmore(), Booking-Book(Ref[6I8873PA])",Your booking was successful. Reference number is : 6I8873PA. Is there anything else I can assist you with today?,(51: ref)
@@ -2567,7 +2567,7 @@ general-greet(),I am sorry but there is no mention of you reserved time at the r
 "Booking-NoBook(), general-reqmore()","I'm sorry, that time is not available. Would you like to book another day or time?",
 "Booking-Book(Ref[RQ2L5TKR], Day[Friday], Time[13:00])",Your table is reserved at 13:00 on Friday. Your reference number is RQ2L5TKR.,(26: time) (35: day) (68: ref)
 general-bye(),"Thank you, let us know if you need anything else. Good bye.",
-"Restaurant-Inform(Addr[14 - 16 Bridge street], Name[La Tasca downtown])",I have La Tasca downtown here at 14 - 16 Bridge street.,(7: name)
+"Restaurant-Inform(Addr[14 - 16 Bridge street], Name[La Tasca downtown])",I have La Tasca downtown here at 14 - 16 Bridge street.,(7: name) (33: addr)
 "Restaurant-NoOffer(Area[centre]), general-reqmore()","I do not have any in the centre, another criteria perhaps?",(25: area)
 Restaurant-Inform(Name[bedouin]),"I was able to find bedouin, would you like to try that?",(19: name)
 "general-reqmore(), Restaurant-Inform(Phone[01223367660])",The number is 01223367660. Is there anything else I can help you with?,(14: phone)
@@ -2871,7 +2871,7 @@ Train-OfferBooked(Ref[50DORSNY]),"Ok, your reference number is 50DORSNY.",(29: r
 "Restaurant-Request(Area[?], Food[?], Price[?])","I am able to, do you have an area, price range, or food type you'd like to try?",(29: area) (35: price) (51: food)
 "Booking-Inform(), Restaurant-Recommend(Name[The Lucky Star])",The Lucky Star sounds perfect for you. Would you like me to make a booking?,(0: name)
 "general-greet(), Restaurant-Inform(Phone[01223244277], Name[The Lucky Star], Addr[Cambridge Leisure Park Clifton Way Cherry Hinton])",Yes of course. The Lucky Star's address is Cambridge Leisure Park Clifton Way Cherry Hinton and their phone number is 01223244277.,(15: name) (43: addr) (118: phone)
-"Attraction-Select(Type[museum], Type[nightclub], Type[cinema]), Attraction-Inform(Choice[quite a few])",There quite a few attractions in the area. Is there one in particular you're interested in - maybe a museum? nightclub? cinema?,(6: choice) (101: type) (109: type) (120: type)
+"Attraction-Select(Type[museum], Type[nightclub], Type[cinema]), Attraction-Inform(Choice[quite a few])",There quite a few attractions in the area. Is there one in particular you're interested in - maybe a museum? nightclub? cinema?,(6: choice) (99: type) (107: type) (118: type)
 "Attraction-Recommend(Area[south], Name[The Cineworld Cinema]), general-greet(), Attraction-Inform(Phone[00872208000], Addr[Cambridge Leisure Park], Addr[Clifton Way])","Sure! The Cineworld Cinema is a cinema in the south. Their phone is 00872208000. Their address is Cambridge Leisure Park, Clifton Way.",(6: name) (46: area) (68: phone) (98: addr) (122: addr)
 "general-bye(), general-welcome()","You're welcome, have a great day.",
 "Restaurant-Inform(Food[4 different types], Choice[5])",Yes there are 5 different places that serve 4 different types of food.,(14: choice) (44: food)
@@ -2970,7 +2970,7 @@ general-bye(),Thank you for using our service. Goodbye!,
 "Train-OfferBook(Leave[13:09], Id[TR4032])",TR4032 will depart at 13:09 if that works for you?,(0: id) (22: leave)
 "Train-OfferBooked(Ref[H02HFBMH], Ticket[151.19 GBP])","OK, the booking was successful. The total fee is 151.19 GBP, payable at the station. Your reference number is H02HFBMH.",(49: ticket) (110: ref)
 "Booking-Inform(), Restaurant-Inform(Area[north], Price[moderate], Name[Golden wok])",Golden wok is in the moderate price range and in the north area would you like me to book it for you?,(0: name) (21: price) (53: area)
-"Restaurant-Inform(Post[cb43hl], Addr[191 Histon Road Chesterton], Phone[01223350688])",Of course - the address is 191 Histon Road Chesterton cb43hl and the phone number is 01223350688,(27: addr) (54: post) (85: phone)
+"Restaurant-Inform(Post[cb43hl], Addr[191 Histon Road Chesterton], Phone[01223350688])",Of course - the address is 191 Histon Road Chesterton cb43hl and the phone number is 01223350688,(25: addr) (52: post) (83: phone)
 "general-bye(), general-welcome()",You're welcome! Have a great day! Goodbye.,
 "Restaurant-Request(Food[?], Price[?]), Restaurant-NoOffer(Food[Lebanese], Price[cheap])",Unfortunately there are no Lebanese restaurants in the cheap price range. Would you like another cuisine type or price range?,(27: food) (55: price) (61: price) (97: food)
 "Restaurant-Request(Food[?], Area[?]), Restaurant-NoOffer()","I'm sorry, there are none. Would you like to change your cuisine type or location?",(57: food) (73: area)
@@ -3122,7 +3122,7 @@ Taxi-Request(Leave[?]),What time would you like that taxi to pick you up?,(38: l
 general-bye(),Great! I hope you enjoy your time here! Thank you for contacting Cambridge TownInfo centre.,
 "Hotel-Request(Parking[?]), Hotel-Inform(Choice[two])",We have two results. Are there any other options like free parking you need?,(8: choice) (59: parking)
 "Hotel-Request(Area[?], Price[?]), Hotel-NoOffer(Type[hotels])",Unfortunately there are no hotels that match your criteria. Do want to consider other areas of town or a different price range?,(27: type) (86: area) (115: price)
-"Hotel-Request(Area[?]), Hotel-NoOffer(Stars[4], Stars[5], Area[centre]), Hotel-Select(Stars[3])","I'm sorry, I don't see any 4- or 5-star hotels with availability in the centre. Would you like to look for a 3-star hotel, or another area?",(27: stars) (33: stars) (72: area) (109: stars) (134: area)
+"Hotel-Request(Area[?]), Hotel-NoOffer(Stars[4], Stars[5], Area[centre]), Hotel-Select(Stars[3])","I'm sorry, I don't see any 4- or 5-star hotels with availability in the centre. Would you like to look for a 3-star hotel, or another area?",(27: stars) (32: stars) (71: area) (108: stars) (133: area)
 "Hotel-Inform(Type[hotel], Name[University Arms], Price[expensive])","Yes, I found the University Arms hotel. It is in the centre and has an expensive price range. My apologies for the miscommunication.",(17: name) (33: type) (71: price)
 "Booking-NoBook(), Booking-Request(Day[?], Stay[?])",I apologize but I was not able to book the room for your requested time frame. Would you like to try another night or a shorter stay?,(109: day) (128: stay)
 Booking-Book(Ref[U4ZXJGE9]),Booking was successful. Reference number is : U4ZXJGE9.,(46: ref)
@@ -3610,7 +3610,7 @@ Hotel-Request(Area[?]),Not a problem. Do you have a preference on area?,(43: are
 Taxi-Request(Leave[?]),What time will you be wanting to be picked up?,(36: leave)
 "Taxi-Inform(Phone[07656227446], Car[blue ford]), general-reqmore()",Great! It will be a blue ford. Should you need to contact them their number is 07656227446. Can I help you with anything else?,(20: car) (79: phone)
 general-bye(),Good bye! Have a great day!,
-"Restaurant-Inform(Food[modern european], Price[moderate], Area[south], Addr[152 - 154 Hills Road], Name[restaurant alimentum], Post[cb28pb], Phone[01223413000])",restaurant alimentum offers modern european found south has moderate price range 01223413000 cb28pb 152 - 154 Hills Road,(0: name) (28: food) (50: area) (60: price) (81: phone) (93: post)
+"Restaurant-Inform(Food[modern european], Price[moderate], Area[south], Addr[152 - 154 Hills Road], Name[restaurant alimentum], Post[cb28pb], Phone[01223413000])",restaurant alimentum offers modern european found south has moderate price range 01223413000 cb28pb 152 - 154 Hills Road,(0: name) (28: food) (50: area) (60: price) (81: phone) (93: post) (100: addr)
 general-bye(),Goodbye and have a nice day.,
 general-reqmore(),What can I help you with?,
 "Train-Request(Dest[?], Day[?], Depart[?])",What day would you like to travel? Where are you departing and arriving to?,(5: day) (49: depart) (63: dest)
@@ -3624,7 +3624,7 @@ Attraction-Request(Type[?]),Is there a specific type of attraction you are looki
 "general-reqmore(), Attraction-Inform(Post[cb58hy])",The post code is cb58hy. Is there anything else I can do for you?,(17: post)
 general-bye(),I'm glad I could help. Have a nice day!,
 "Restaurant-Select(Price[moderate], Price[expensive]), Restaurant-Inform(Choice[4])",There are 4 results. Is a moderate or expensive price range better?,(10: choice) (26: price) (38: price)
-"Restaurant-Inform(Choice[2], Name[Curry Prince], Name[Rajmahal])",There are 2 restaurants that meet your criteria - Curry Prince and Rajmahal,(10: choice) (50: name) (67: name)
+"Restaurant-Inform(Choice[2], Name[Curry Prince], Name[Rajmahal])",There are 2 restaurants that meet your criteria - Curry Prince and Rajmahal,(10: choice) (48: name) (65: name)
 "general-greet(), Booking-Inform(), Restaurant-Inform(Addr[7 Barnwell Road Fen Ditton], Post[cb58rg])","Certainly! The address is 7 Barnwell Road Fen Ditton and the post code is, cb58rg. Can I assist with a reservation?",(26: addr) (75: post)
 "Train-Request(Day[?], Depart[?])",Where will you be departing form and what day will you be traveling?,(18: depart) (42: day)
 "Train-Inform(Arrive[12:23], Id[TR4373]), Train-OfferBook()",TR4373 will arrive at 12:23. Would you like a ticket?,(0: id) (22: arrive)
@@ -3781,7 +3781,7 @@ Attraction-Inform(Fee[free]),The entrance fee is free.,(20: fee)
 "Restaurant-NoOffer(Area[the west], Food[afternoon tea])",There are no restaurants serving afternoon tea in the west.,(33: food) (50: area)
 "Restaurant-Select(), Restaurant-Inform(Choice[two], Price[cheap], Price[moderately])",Yes I have two choices. One in the cheap price range and one that is priced moderately. Do you have a preference?,(11: choice) (35: price) (76: price)
 "Booking-Inform(), Restaurant-Recommend(Name[la margherita]), Restaurant-Inform()","Actually, I really like the la margherita - it's cheap but tasty. Would you like me to book it?",(28: name)
-"Booking-Book(Time[20:00], Ref[3V82NNNZ])","You're all set. The table will be available at 20:00 - they can only hold it for 15 minutes, though. Your Reference number is : 3V82NNNZ.",(47: time) (128: ref)
+"Booking-Book(Time[20:00], Ref[3V82NNNZ])","You're all set. The table will be available at 20:00 - they can only hold it for 15 minutes, though. Your Reference number is : 3V82NNNZ.",(47: time) (126: ref)
 "Taxi-Request(Dest[?], Depart[?])",Okay! From where to where?,(11: dest) (11: depart)
 "Taxi-Inform(Car[Black Tesla], Phone[07533830631])",Be on the lookout for a Black Tesla. The contact number is 07533830631.,(24: car) (59: phone)
 general-bye(),have a great day,
@@ -3950,7 +3950,7 @@ Train-OfferBook(),I will book the reservation now.,
 "Train-Inform(Id[TR5170], Arrive[11:51]), Train-OfferBook()",The closest to that time is TR5170 which arrives at 11:51. Can I get you tickets for that?,(28: id) (52: arrive)
 "Train-Inform(Depart[Cambridge], Leave[11:00])",That one departs Cambridge at 11:00.,(17: depart) (30: leave)
 "Train-Inform(Time[51 minutes]), Train-OfferBook()","51 minutes , Would you like me to book it for you ?",(0: time)
-"Attraction-Request(Type[?]), Attraction-Inform(Choice[so much to do])",I'd be happy to! There is so much to do - did you have a particular type of attraction in mind?,(26: choice) (68: type)
+"Attraction-Request(Type[?]), Attraction-Inform(Choice[so much to do])",I'd be happy to! There is so much to do - did you have a particular type of attraction in mind?,(26: choice) (66: type)
 Attraction-Recommend(Name[Cambridge Museum of Technology]),What about the Cambridge Museum of Technology?,(15: name)
 Attraction-Inform(Post[cb58ld]),The postcode is cb58ld,(16: post)
 general-bye(),thank you and enjoy your stay.,
@@ -4372,8 +4372,8 @@ Train-Request(Day[?]),"Sure, when are you hoping to travel?",(6: day)
 general-reqmore(),that is the train that will arrive earliest sorry. can it be of help?,
 "Train-Inform(Arrive[15:58], Id[TR1031], Ticket[7.84 pounds], Leave[15:11])","Sorry, this is the manager, its training day, I have TR1031 for you. It leaves at 15:11, arrives at 15:58, 7.84 pounds per person, does that work?",(53: id) (82: leave) (100: arrive) (107: ticket)
 "general-bye(), general-welcome()",You're very welcome! Sorry about the trouble! Bye!,
-"Booking-Inform(), Restaurant-Inform(Food[spanish], Price[cheap], Addr[4 - 6 Rose Crescent], Name[la raza])","Yes, la raza is a restaurant serving spanish food in the cheap price range. It is located at 4 - 6 Rose Crescent. Would you like a reservation?",(5: name) (37: food) (57: price)
-"Restaurant-Inform(Price[cheap], Addr[4 - 6 Rose Crescent], Name[la raza], Food[spanish], Post[cb2311], Area[the centre part of town])",la raza is a cheap restaurant serving spanish food in the centre part of town. It's address is 4 - 6 Rose Crescent and it's post code is cb2311.,(0: name) (13: price) (38: food) (54: area) (137: post)
+"Booking-Inform(), Restaurant-Inform(Food[spanish], Price[cheap], Addr[4 - 6 Rose Crescent], Name[la raza])","Yes, la raza is a restaurant serving spanish food in the cheap price range. It is located at 4 - 6 Rose Crescent. Would you like a reservation?",(5: name) (37: food) (57: price) (93: addr)
+"Restaurant-Inform(Price[cheap], Addr[4 - 6 Rose Crescent], Name[la raza], Food[spanish], Post[cb2311], Area[the centre part of town])",la raza is a cheap restaurant serving spanish food in the centre part of town. It's address is 4 - 6 Rose Crescent and it's post code is cb2311.,(0: name) (13: price) (38: food) (54: area) (95: addr) (135: post)
 "general-reqmore(), Booking-Book(Ref[OOG9KQ5V])","All right, I've made a reservation. Your reference number is OOG9KQ5V. What else can I do for you?",(61: ref)
 "Restaurant-Request(Food[?]), Restaurant-Inform(Choice[a lot])","There a lot of restaurants in the city, what kind are you looking for?",(6: choice)
 general-bye(),It was a pleasure to serve you. Please feel free to use our service again anytime. Have a good day.,
@@ -4466,7 +4466,7 @@ Train-Inform(Ticket[16.6 GBP]),16.6 GBP per ticket,(0: ticket)
 "general-reqmore(), Attraction-Inform(Post[cb21rl], Addr[on King 's Parade], Phone[01223338300])",Sure the address is on King's Parade post code cb21rl. The phone number is 01223338300. Is there anything else that you need?,(20: addr) (47: post) (75: phone)
 "Train-Inform(Choice[over a thousand], Depart[cambridge]), Train-Request(Day[?], Leave[?])",i have over a thousand trains leaving from cambridge. what day and time do you wish to travel?,(7: choice) (30: leave) (43: depart) (59: day)
 "Train-Request(Dest[?], Leave[?])",What is your destination and what time would you like to leave?,(13: dest) (57: leave)
-"Train-Request(Dest[?], Depart[?])","Sorry, I'm confused - are you leaving from Cambridge or is Cambridge your destination? If it is your destination, what is your departure site?",(74: dest) (127: depart)
+"Train-Request(Dest[?], Depart[?])","Sorry, I'm confused - are you leaving from Cambridge or is Cambridge your destination? If it is your destination, what is your departure site?",(72: dest) (125: depart)
 "Train-Inform(Id[TR8580], Arrive[1:07], Leave[23:39]), Train-OfferBook()",I have train TR8580 leaving at 23:39 and arriving at 1:07. Would you like tickets?,(13: id) (31: leave) (53: arrive)
 "general-reqmore(), Train-OfferBooked(Ref[Z8EQXNH5], Ticket[26.56 GBP])","Your booking was successful, the total fee is 26.56 GBP payable at the station. Reference number is Z8EQXNH5. How else can I be of service?",(46: ticket) (100: ref)
 "general-bye(), general-welcome()","You are welcome, please let me know if I can assist with anything else.",
@@ -5148,7 +5148,7 @@ Hotel-Inform(Type[hotel]),They are a hotel. Do you need their phone number?,(11:
 "Taxi-Inform(Phone[07464036678], Car[red tesla]), general-reqmore()","I've booked your taxi. You'll be looking for a red tesla. If you need to contact the driver, the number is 07464036678. Can I do anything else for you today?",(47: car) (107: phone)
 general-bye(),Okay then have a great day!,
 Restaurant-Request(Food[?]),Sure! What kind of food do you like?,(19: food)
-"Restaurant-Request(Area[?]), Restaurant-Inform(Choice[22], Food[indian])",I have 22 indian restaurants- do you have a preference for area of town?,(7: choice) (10: food) (59: area)
+"Restaurant-Request(Area[?]), Restaurant-Inform(Choice[22], Food[indian])",I have 22 indian restaurants- do you have a preference for area of town?,(7: choice) (10: food) (58: area)
 Restaurant-Recommend(Name[Curry Garden]),Would you like to try Curry Garden?,(22: name)
 "Train-Request(Leave[?]), Booking-Book(Ref[HK9YCL6Z], Name[Curry Garden])","Alright, I have made your requested booking at curry garden, and the reference number is HK9YCL6Z. As for the train, what time would you like to depart?",(47: name) (89: ref) (145: leave)
 "Train-Inform(Arrive[12:54], Id[TR6210], Dest[cambridge], Depart[leicester], Leave[11:09]), general-reqmore(), Train-OfferBooked(Ref[LR5I1RZV], People[6])",I have found TR6210 leaving leicester at 11:09 on saturday and arriving in cambridge at 12:54. I have booked 6 seats. Reference number is LR5I1RZV. anything else i can do?,(13: id) (28: depart) (41: leave) (75: dest) (88: arrive) (109: people) (138: ref)
@@ -5340,7 +5340,7 @@ general-bye(),You are very welcome. Have a safe trip!,
 "Booking-Inform(), general-welcome()","You're welcome, would you like me to make a reservation for you?",
 "general-bye(), general-welcome()",You are welcome. Have a nice day.,
 "Restaurant-Select(Area[south], Area[centre]), Restaurant-Inform(Food[italian], Price[expensive], Choice[5])","There are 5 expensive italian restaurants, would you like one in the south or centre?",(10: choice) (12: price) (22: food) (69: area) (78: area)
-"Booking-Inform(), Restaurant-Inform(Choice[four], Name[stazione restaurant and coffee bar], Name[clowns cafe], Name[don pasquale pizzeria], Name[caffe uno], Area[centre])","There are four in the centre- stazione restaurant and coffee bar, clowns cafe, don pasquale pizzeria, and cafe uno. Can I book one of those for you?",(10: choice) (22: area) (30: name) (66: name) (79: name)
+"Booking-Inform(), Restaurant-Inform(Choice[four], Name[stazione restaurant and coffee bar], Name[clowns cafe], Name[don pasquale pizzeria], Name[caffe uno], Area[centre])","There are four in the centre- stazione restaurant and coffee bar, clowns cafe, don pasquale pizzeria, and cafe uno. Can I book one of those for you?",(10: choice) (22: area) (29: name) (65: name) (78: name)
 "general-reqmore(), Booking-Book(Ref[C1AFQ9DD])",It is booked here is your ref number C1AFQ9DD is there anything else you need?,(37: ref)
 Train-Request(Day[?]),"I'd be happy to help with your request, but first I'll need to know what day you want to travel.",(73: day)
 "Train-Inform(Arrive[9:32], Id[TR3111], Ticket[14.32 pounds], Leave[8:32]), Train-OfferBook()",TR3111 will depart at 8:32 and arrive by 9:32. It will cost 14.32 pounds. Would you like to reserve seats?,(0: id) (22: leave) (41: arrive) (60: ticket)
@@ -5351,7 +5351,7 @@ Train-Request(Arrive[?]),When would you like to arrive by?,(23: arrive)
 "general-reqmore(), Train-OfferBooked(Ref[31K4BK2E], Ticket[188.8 GBP])","Booking was successful, the total fee is 188.8 GBP payable at the station. Reference number is: 31K4BK2E. Is there anything else you need?",(41: ticket) (96: ref)
 "Attraction-Request(Area[?], Type[?]), Attraction-NoOffer(Type[multiple sports])","Unfortunately, there are no multiple sports attractions in the area you specified. Is there some other type of attraction or area I can look into for you?",(28: type) (63: area) (103: type)
 "Attraction-Request(Price[?]), Attraction-Inform(Area[the city centre], Type[colleges], Choice[13])","There are 13 listings for colleges at the city centre, plenty to check out. Do you need info on any particular college? Or narrow it down by entrance fee?",(10: choice) (26: type) (38: area) (150: price)
-"Attraction-Inform(Fee[free], Area[the area you 're looking for], Post[cb23bu], Type[college], Name[corpus christi])",corpus christi is a college in the area you're looking for - the postcode is cb23bu and the entrance fee is free,(0: name) (20: type) (31: area) (77: post) (108: fee)
+"Attraction-Inform(Fee[free], Area[the area you 're looking for], Post[cb23bu], Type[college], Name[corpus christi])",corpus christi is a college in the area you're looking for - the postcode is cb23bu and the entrance fee is free,(0: name) (20: type) (31: area) (75: post) (106: fee)
 Attraction-Inform(Phone[01223338000]),The phone number is 01223338000.,(20: phone)
 "general-bye(), general-welcome()",You're welcome. Goodbye.,
 "Attraction-Inform(Addr[6 Trinity Street], Fee[there is n't any entrance fee], Name[Cambridge Contemporary Art])","If you are into contemporary art, Cambridge Contemporary Art is a great place to relieve boredom. The address is 6 Trinity Street. Best of all, there isn't any entrance fee.",(34: name) (113: addr) (144: fee)
@@ -5416,7 +5416,7 @@ Train-Request(Dest[?]),You came to the right place! Where would you like to go?,
 "Hotel-Inform(Name[Finches Bed and Breakfast], Phone[01223276653])",Of course. The phone number for Finches Bed and Breakfast is 01223276653.,(32: name) (61: phone)
 general-bye(),Bye now.,
 "Restaurant-Request(Food[?]), Restaurant-Inform(Choice[many])",There are many fine places to eat. What type of cuisine would you prefer?,(10: choice) (48: food)
-"Restaurant-Recommend(Name[Midsummer House Restaurant], Food[British]), Restaurant-Inform(Choice[a number of], Price[expensive], Area[centre])",There are a number of expensive eateries in the centre. How about one of my favorites - Midsummer House Restaurant? They serve British food and it's delicious!,(10: choice) (22: price) (48: area) (88: name) (127: food)
+"Restaurant-Recommend(Name[Midsummer House Restaurant], Food[British]), Restaurant-Inform(Choice[a number of], Price[expensive], Area[centre])",There are a number of expensive eateries in the centre. How about one of my favorites - Midsummer House Restaurant? They serve British food and it's delicious!,(10: choice) (22: price) (48: area) (86: name) (125: food)
 Booking-Book(Ref[PLGQUXC8]),I have made those reservations your reference number is PLGQUXC8.,(56: ref)
 "Attraction-Request(Type[?]), Attraction-Inform(Area[centre of town], Choice[more than 40])",I have more than 40 attractions in the centre of town. What type of attraction did you have in mind?,(7: choice) (39: area) (60: type)
 "Attraction-Recommend(Type[museum]), Attraction-Inform(Type[nightclubs], Type[colleges], Choice[plenty of])","Personally, I would go to a museum, but there are plenty of other types of attractions from nightclubs to colleges as well.",(28: type) (50: choice) (92: type) (106: type)
@@ -5604,7 +5604,7 @@ general-bye(),Have a great evening!,
 "Attraction-Inform(Addr[8 mercers row], Addr[mercers row industrial estate])","Yes their address is 8 mercers row, mercers row industrial estate.",(21: addr) (36: addr)
 "Booking-NoBook(), general-reqmore()",I can not. It doesn't give me the option to book tickets. Just general Information. Can I help you with anything else?,
 Restaurant-Select(Price[expensive and moderately priced]),"Sure, I have both expensive and moderately priced restaurants. Do you have a preference?",(18: price)
-"Restaurant-Select(Name[Curry Prince and Rajmahal]), general-reqmore()","Ok, I have two options for you - Curry Prince and Rajmahal. Would you like any more information about either of them?",(33: name)
+"Restaurant-Select(Name[Curry Prince and Rajmahal]), general-reqmore()","Ok, I have two options for you - Curry Prince and Rajmahal. Would you like any more information about either of them?",(31: name)
 Restaurant-Inform(Phone[01223566388]),The phone number is 01223566388.,(20: phone)
 "Restaurant-Inform(Addr[451 Newmarket Road Fen Ditton], Post[cb58jj])",cb58jj is there postcode. Their address is 451 Newmarket Road Fen Ditton,(0: post) (43: addr)
 "Taxi-Inform(Phone[07955921789], Car[black Lexus])","Your car is booked. You should be expecting a black Lexus. If you need to contact the driver, please call 07955921789.",(46: car) (106: phone)
@@ -5647,7 +5647,7 @@ general-bye(),"Okay, Thank you for calling.",
 "Train-Select(Arrive[23:01], Arrive[24:01], Leave[22:01], Leave[23:01], Day[Monday])","There are two trains you can take on Monday, either the 22:01 (arrive 23:01) or the 23:01 (arrive 24:01). Which train do you prefer?",(37: day) (56: leave) (70: arrive) (70: leave) (98: arrive)
 Train-OfferBook(Leave[22:01]),Would you like me to book the 22:01?,(30: leave)
 "Hotel-Request(Area[?], Price[?]), Train-OfferBooked(Ref[UNUTWNQN], Ticket[17.89 GBA])",The booking was successful your reference number is UNUTWNQN and the total is 17.89 GBA. I can is do you have a price range and what area?,(52: ref) (78: ticket) (112: price) (133: area)
-"Hotel-Recommend(Name[gonville hotel], Addr[gonville place]), general-reqmore()",I have 2 options - I would like to suggest the gonville hotel at gonville place. Is there anything else I could help you with?,(47: name) (65: addr)
+"Hotel-Recommend(Name[gonville hotel], Addr[gonville place]), general-reqmore()",I have 2 options - I would like to suggest the gonville hotel at gonville place. Is there anything else I could help you with?,(45: name) (63: addr)
 "Hotel-Inform(Phone[01223366611], Parking[none], Name[The Gonville], Internet[none]), general-reqmore()",The Gonville does offer both free parking and free internet. You can reach them at 01223366611. Is there anything else I can help with?,(0: name) (34: parking) (51: internet) (83: phone)
 "Booking-Inform(), Hotel-Inform(Name[the gonville], Type[hotel])","The gonville is a hotel, not a guesthouse. Would you like a booking?",(0: name) (18: type)
 general-reqmore(),Is there anything else I can help you with today?,
@@ -6254,7 +6254,7 @@ general-bye(),"Goodbye, enjoy your day.",
 "Restaurant-Request(Food[?]), Restaurant-Inform(Choice[many])","There are many options in Cambridge, do you have any tastes in particular?",(10: choice)
 "Restaurant-Request(Price[?], Area[?]), Restaurant-Inform(Choice[11], Food[british])",There are 11 results for british restaurants. Is there a certain area or price range you're looking at?,(10: choice) (25: food) (65: area) (73: price)
 "Booking-Inform(), Restaurant-Inform(Name[Saint Johns Chop House], Addr[21 - 24 Northampton Street])",Saint Johns Chop House fits your request perfectly. They are located at 21-24 Northampton Street. Would you like to make a booking?,(0: name) (72: addr)
-"general-reqmore(), Restaurant-Inform(Post[cb30ad], Phone[01223353110], Addr[21 - 24 Northampton Street])","the phone number is 01223353110. the address is 21 - 24 Northampton Street, and the post code is cb30ad. is there anything i can help you with?",(20: phone) (97: post)
+"general-reqmore(), Restaurant-Inform(Post[cb30ad], Phone[01223353110], Addr[21 - 24 Northampton Street])","the phone number is 01223353110. the address is 21 - 24 Northampton Street, and the post code is cb30ad. is there anything i can help you with?",(20: phone) (48: addr) (95: post)
 Train-Request(Depart[?]),I'd be glad to help you with that. From where will you be departing?,(58: depart)
 Train-Request(Leave[?]),Do you have a departure time you'd like?,(14: leave)
 "Train-Inform(Arrive[01:44]), Train-OfferBook()",there is a train that will arrive at 01:44. Would you like me to book it?,(37: arrive)
@@ -6284,7 +6284,7 @@ general-welcome(),You are very welcome!,
 "Train-Inform(Day[Monday], Id[TR3673], Arrive[just before 9:15], Leave[7:39], Time[88 minute]), Train-OfferBook()",The TR3673 will be arriving just before 9:15 on Monday. It departs at 7:39 and is an 88 minute ride. Would you like me to book it?,(4: id) (28: arrive) (48: day) (70: leave) (85: time)
 "Train-Inform(Leave[07:39]), general-reqmore()",The train departs at 07:39. Can I help you with anything else?,(21: leave)
 general-bye(),Thank you for using our system!,
-"Taxi-Request(Leave[?], Arrive[?])",I'd be happy to assist you today. I'll need a little bit of information from you - let's start with what time you'd like to leave/arrive?,(124: leave) (130: arrive)
+"Taxi-Request(Leave[?], Arrive[?])",I'd be happy to assist you today. I'll need a little bit of information from you - let's start with what time you'd like to leave/arrive?,(122: leave) (128: arrive)
 Taxi-Request(Depart[?]),"Ok, I need a little bit more information, where will your taxi be departing from?",(66: depart)
 "Taxi-Inform(Car[blue volvo], Phone[07690471186])",Your taxi is booked: a blue volvo with the contact number of 07690471186.,(23: car) (61: phone)
 general-reqmore(),You're welcome. Is there anything else I can do for you today?,
@@ -6804,7 +6804,7 @@ general-bye(),"Thank You, have a great day. Goodbye",
 "Restaurant-Request(Food[?]), Restaurant-Inform(Choice[many], Area[centre of town])","There are many restaurants in the centre of town, do you have a preference of food?",(10: choice) (34: area) (78: food)
 "Restaurant-NoOffer(), general-reqmore()",Unfortunately there is not. What else may I check for you?,
 "Restaurant-Request(Price[?]), Restaurant-Inform(Choice[three])","I've found three options, sir. May I ask what type of price range were you looking for?",(11: choice) (54: price)
-"Restaurant-Inform(Name[La Mimosa], Name[Shiraz], Area[centre of town], Food[Mediterranean], Choice[two], Price[expensive])",There are two expensive Mediterranean restaurants in the centre of town--La Mimosa and Shiraz.,(10: choice) (14: price) (24: food) (57: area) (73: name) (87: name)
+"Restaurant-Inform(Name[La Mimosa], Name[Shiraz], Area[centre of town], Food[Mediterranean], Choice[two], Price[expensive])",There are two expensive Mediterranean restaurants in the centre of town--La Mimosa and Shiraz.,(10: choice) (14: price) (24: food) (57: area) (72: name) (86: name)
 "Restaurant-Recommend(Name[la mimosa]), Booking-Request(Day[?], Time[?], People[?])","I recommend la mimosa, great word of mouth. What day and time do you want to dine? How many will be going, please?",(12: name) (49: day) (57: time) (83: people)
 Booking-Request(People[?]),Sure for how many people?,(18: people)
 "general-reqmore(), Restaurant-Inform(Addr[Thompsons Lane Fen Ditton], Post[cb58aq], Name[La Mimosa], Phone[01223362525])",Of course. La Mimosa is located at Thompsons Lane Fen Ditton. The post code is cb58aq. The phone number is 01223362525. Do you need any further assistance?,(11: name) (35: addr) (79: post) (107: phone)
@@ -6985,7 +6985,7 @@ general-bye(),Have a great day.,
 "Hotel-Recommend(Name[the Lovell Lodge]), Hotel-Inform(Type[hotel])",I would recommend the Lovell Lodge. It is indeed a hotel despite it's name and is very cute.,(18: name) (51: type)
 "general-reqmore(), Booking-Book(Ref[9HMD04UW])",Booking was successful. Reference number is : 9HMD04UW. anything else?,(46: ref)
 Restaurant-Request(Area[?]),In what area?,(8: area)
-"Booking-Inform(), Restaurant-Recommend(Name[prezzo]), Restaurant-Inform(Addr[21 - 24 Northampton Road], Food[Italian])","I'd recommend prezzo, its an italian restaurant on 21 - 24 Northampton Road. Would you like a table?",(14: name) (29: food)
+"Booking-Inform(), Restaurant-Recommend(Name[prezzo]), Restaurant-Inform(Addr[21 - 24 Northampton Road], Food[Italian])","I'd recommend prezzo, its an italian restaurant on 21 - 24 Northampton Road. Would you like a table?",(14: name) (29: food) (51: addr)
 "Restaurant-Request(Food[?]), Restaurant-Inform(Area[centre of town], Price[moderately priced], Choice[more than 20])",We have more than 20 moderately priced restaurants in the centre of town. Do you have a preference for cuisine?,(8: choice) (21: price) (58: area) (103: food)
 "Restaurant-Recommend(Name[the Lan Hong House]), Restaurant-Inform(Price[moderate], Choice[three], Food[Chinese], Area[centre])",We have three moderate Chinese restaurants in the centre. May I suggest the Lan Hong House?,(8: choice) (14: price) (23: food) (50: area) (72: name)
 "Restaurant-Inform(Post[cb23pp], Addr[11 Peas Hill City Centre])",cb23pp postcode and the address is 11 Peas Hill City Centre,(0: post) (35: addr)
@@ -7139,7 +7139,7 @@ Train-Inform(Choice[133]),I show 133 possible trains. What day were you looking 
 general-bye(),No problem. Have a great day!,
 "Train-Inform(Depart[london kings cross], Day[Saturday], Dest[cambridge]), Train-Request(Depart[?])",The london kings cross travels to cambridge on Saturday. Where are you leaving from?,(4: depart) (34: dest) (47: day) (71: depart)
 "Train-Inform(Arrive[06:09], Leave[05:19], Id[TR7594]), Train-OfferBook()",The TR7594 leaves at 05:19 and arrives by 06:09. Would you like me to book it?,(4: id) (21: leave) (42: arrive)
-"Train-Inform(Ticket[13.20 GBP], Dest[Cambridge], Depart[Peterborough])",Sure - tickets from Peterborough to Cambridge are 13.20 GBP each.,(20: depart) (36: dest) (50: ticket)
+"Train-Inform(Ticket[13.20 GBP], Dest[Cambridge], Depart[Peterborough])",Sure - tickets from Peterborough to Cambridge are 13.20 GBP each.,(18: depart) (34: dest) (48: ticket)
 "Restaurant-Inform(Name[Dojo noodle bar], Food[asian oriental], Price[cheap])",Dojo noodle bar is an asian oriental restaurant in the cheap price range.,(0: name) (22: food) (55: price)
 "Booking-NoBook(), Booking-Request(Time[?])",That time is not available. What other time would work for you?,(5: time)
 "Booking-Book(Day[Saturday], Ref[WAEOL74O], Time[17:15])",I was able to book you for 17:15 on Saturday. Tables are held for 15 minutes. The reference # is WAEOL74O.,(27: time) (36: day) (97: ref)

@@ -104,7 +104,7 @@ def get_slot_mention_alternatives(slot, all_slots):
         'customerrating': ['customer'],
         'day': ['day', 'days', 'date', 'dates', 'night', 'nights', 'when'],
         'depart': ['depart', 'departs', 'departing', 'departure', 'leave', 'leaves', 'leaving', 'pick up', 'picked up',
-                   'pick-up', 'pick you up', 'where'],
+                   'pick you up', 'where'],
         'dest': ['destination', 'arrive', 'arriving', 'arrival', 'travel to', 'traveling to', 'travelling to', 'where'],
         'driverange': ['drive'],
         'ecorating': ['eco'],
@@ -117,10 +117,10 @@ def get_slot_mention_alternatives(slot, all_slots):
         'has_multiplayer': ['multiplayer', 'friends', 'others'],
         'hasusbport': ['usb'],
         'hdmiport': ['hdmi'],
-        'internet': ['internet', 'wi-fi', 'wifi'],
+        'internet': ['internet', 'wi fi', 'wifi'],
         'isforbusinesscomputing': ['business'],
         'leave': ['leave', 'leaves', 'leaving', 'depart', 'departs', 'departing', 'departure', 'pick up', 'picked up',
-                  'pick-up', 'pick you up', 'time', 'when'],
+                  'pick you up', 'time', 'when'],
         'name': ['name', 'particular', 'specific', 'what', 'which'],
         'people': ['people', 'persons', 'one person', 'guests', 'one guest', 'tickets', 'one ticket', 'seats',
                    'one seat', 'how many', 'only one', 'just you', 'yourself', 'alone', 'on your own',
@@ -177,7 +177,7 @@ def get_scalar_slots():
             'moderate': 2,
             'cheap': 3,
             'more than £30': 1,
-            '£20-25': 2,
+            '£20 25': 2,
             'less than £20': 3
         },
         'familyfriendly': {
@@ -229,8 +229,6 @@ def find_slot_realization(text, text_tok, slot, value, domain, mr, ignore_dupes=
     is_dupe = False
 
     slot = slot.rstrip(string.digits)
-    # value = re.sub(r'[-/]', ' ', value.lower())
-    # value = value.strip(',.?! ').lower()
     all_slots = {slot for slot, _ in mr}
 
     # Universal slot values
@@ -529,7 +527,8 @@ def __preprocess_mr(mr_as_list):
         if slot == 'da':
             continue
 
-        val = val.strip(',.?! ').lower()
+        val = re.sub(r'[-/]', ' ', val.lower()).strip(',.?! ')
+        val = re.sub(r'\s+', ' ', val)
 
         mr_processed.append((slot, val))
 
@@ -541,8 +540,9 @@ def __preprocess_utterance(utt):
 
     Returns the utterance both as string and tokenized.
     """
-    utt = re.sub(r'\s+', ' ', utt.lower())
-    utt_tok = [w.strip('.,!?') if len(w) > 1 else w for w in word_tokenize(re.sub(r'[-/]', ' ', utt))]
+    utt = re.sub(r'[-/]', ' ', utt.lower())
+    utt = re.sub(r'\s+', ' ', utt)
+    utt_tok = [w.strip('.,!?') if len(w) > 1 else w for w in word_tokenize(utt)]
 
     return utt, utt_tok
 

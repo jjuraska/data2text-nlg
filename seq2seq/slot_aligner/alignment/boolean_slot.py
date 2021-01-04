@@ -127,10 +127,10 @@ def __get_boolean_slot_stems(slot):
         'familyfriendly': ['family', 'families', 'kid', 'kids', 'child', 'children'],
         'hasusbport': ['usb'],
         'isforbusinesscomputing': ['business'],
-        'hasmultiplayer': ['multiplayer', 'friends', 'others'],
-        'availableonsteam': ['steam'],
-        'haslinuxrelease': ['linux'],
-        'hasmacrelease': ['mac']
+        'has_multiplayer': ['multiplayer', 'friends', 'others'],
+        'available_on_steam': ['steam'],
+        'has_linux_release': ['linux'],
+        'has_mac_release': ['mac']
     }
 
     return slot_stems.get(slot, [])
@@ -140,7 +140,7 @@ def __get_boolean_slot_antonyms(slot):
     slot_antonyms = {
         'familyfriendly': ['adult', 'adults'],
         'isforbusinesscomputing': ['personal', 'general', 'home', 'nonbusiness'],
-        'hasmultiplayer': ['single player']
+        'has_multiplayer': ['single player']
     }
 
     return slot_antonyms.get(slot, [])
