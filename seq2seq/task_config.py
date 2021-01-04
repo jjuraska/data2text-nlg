@@ -24,6 +24,7 @@ class TrainingConfig(TaskConfig):
     def __init__(self, config):
         super().__init__(config)
 
+        self.num_slot_permutations = config.get('num_slot_permutations', 0)
         self.num_epochs = config.get('num_epochs', 1)
         self.num_warmup_steps = config.get('num_warmup_steps', 100)
         self.lr = config.get('lr', 5e-5)

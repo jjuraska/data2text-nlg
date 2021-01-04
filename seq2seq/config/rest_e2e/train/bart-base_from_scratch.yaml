@@ -3,6 +3,7 @@ pretrained: False
 tokenizer_name: "bart-base-rest_e2e"
 lowercase: False
 convert_slot_names: False
+#num_slot_permutations: 3
 num_epochs: 20
 batch_size: 32
 eval_batch_size: 128

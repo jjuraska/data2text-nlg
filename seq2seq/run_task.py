@@ -47,7 +47,8 @@ def train(config, dataset_class, device='cpu'):
                               lowercase=config.lowercase,
                               convert_slot_names=config.convert_slot_names,
                               separate_source_and_target=is_enc_dec,
-                              prepare_token_types=prepare_token_types)
+                              prepare_token_types=prepare_token_types,
+                              num_slot_permutations=config.num_slot_permutations)
     train_data_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=0)
 
     valid_set = dataset_class(tokenizer,
@@ -369,7 +370,7 @@ def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cp
     if config.semantic_reranking:
         # Rerank generated beams based on semantic accuracy
         predictions_reranked = eval_utils.rerank_beams(
-            predictions, test_set.get_mrs(as_lists=True, convert_slot_names=True), test_set.name)
+            predictions, test_set.get_mrs(convert_slot_names=True), test_set.name)
         predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
         eval_configurations.append((predictions_reranked, True))
 

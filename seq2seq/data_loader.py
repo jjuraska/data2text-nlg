@@ -1,6 +1,7 @@
 from collections import defaultdict
 import os
 import pandas as pd
+import random
 import re
 import regex
 from torch.utils.data import Dataset
@@ -15,14 +16,18 @@ class MRToTextDataset(Dataset):
     delimiters = {}
 
     def __init__(self, tokenizer, partition='train', lowercase=False, convert_slot_names=False, group_by_mr=False,
-                 no_target=False, separate_source_and_target=False, sort_by_length=False, prepare_token_types=False):
+                 no_target=False, separate_source_and_target=False, sort_by_length=False, prepare_token_types=False,
+                 num_slot_permutations=0):
         super().__init__()
 
+        # Tokenizer's special tokens
         self.tokenizer = tokenizer
         self.bos_token = tokenizer.bos_token
         self.eos_token = tokenizer.eos_token
+
         self.partition = partition
 
+        # Data preprocessing parameters
         self.convert_to_lowercase = lowercase
         self.convert_slot_names = convert_slot_names
         self.group_by_mr = group_by_mr
@@ -30,9 +35,11 @@ class MRToTextDataset(Dataset):
         self.separate_source_and_target = separate_source_and_target
         self.sort_by_length = sort_by_length
         self.prepare_token_types = prepare_token_types
+        self.num_slot_permutations = num_slot_permutations
 
         self.mrs_raw = []
         self.mrs_raw_as_lists = []
+        self.mrs_as_lists = []
         self.mrs = []
         self.utterances = []
 
@@ -84,16 +91,27 @@ class MRToTextDataset(Dataset):
         if self.sort_by_length:
             self.mrs_raw, self.utterances = self.sort_data(self.mrs_raw, self.utterances, reverse=True)
 
-        # Perform dataset-specific preprocessing of the MRs, and convert them back to strings
-        self.mrs = self.get_mrs(lowercase=self.convert_to_lowercase, convert_slot_names=self.convert_slot_names)
+        # Perform dataset-specific preprocessing of the MRs
+        self.mrs_as_lists = self.get_mrs(lowercase=self.convert_to_lowercase,
+                                         convert_slot_names=self.convert_slot_names)
 
         # Lowercase utterances if needed
         self.utterances = self.get_utterances(lowercase=self.convert_to_lowercase)
 
+        if self.num_slot_permutations > 0:
+            self.augment_data_with_slot_permutations(self.num_slot_permutations)
+            if self.partition != 'train':
+                print('>> Warning: using slot permutation in a non-training partition of the dataset.')
+                print()
+
+        # Convert MRs back to strings
+        self.mrs = [self.convert_mr_from_list_to_str(mr, add_separators=(not self.convert_slot_names))
+                    for mr in self.mrs_as_lists]
+
         # DEBUG
         # print('>> MRs:\n{}'.format('\n'.join(self.mrs[:50])))
         # if isinstance(self.utterances[0], str):
-        #     print('>> Utterances:\n{}'.format('\n'.join(self.utterances[:10])))
+        #     print('>> Utterances:\n{}'.format('\n'.join(self.utterances[:50])))
         # else:
         #     print('>> Utterances:\n{}'.format('\n'.join(['[' + '; '.join(utt) + ']' for utt in self.utterances[:10]])))
 
@@ -108,18 +126,18 @@ class MRToTextDataset(Dataset):
         # df_mrs = pd.DataFrame({'mr_orig': self.mrs_raw, 'mr': self.mrs})
         # df_mrs.to_csv(os.path.splitext(dataset_path)[0] + '_mrs.csv', index=False, encoding='utf-8-sig')
 
-    def get_mrs(self, raw=False, as_lists=False, lowercase=False, convert_slot_names=False):
+    def get_mrs(self, raw=False, lowercase=False, convert_slot_names=False):
         if raw:
             mrs = self.mrs_raw
-            if as_lists or lowercase:
-                print('Warning: raw MRs are returned as strings with original letter case.')
+            if lowercase:
+                print('Warning: raw MRs are returned with original letter case.')
         else:
             # Convert MRs to an intermediate format of lists of tuples, and cache the outputs
             if not self.mrs_raw_as_lists:
                 self.mrs_raw_as_lists = [self.convert_mr_from_str_to_list(mr) for mr in self.mrs_raw]
 
-            mrs = self.preprocess_mrs_from_intermediate_format(
-                self.mrs_raw_as_lists, as_lists=as_lists, lowercase=lowercase, convert_slot_names=convert_slot_names)
+            mrs = self.preprocess_mrs_in_intermediate_format(
+                self.mrs_raw_as_lists, lowercase=lowercase, convert_slot_names=convert_slot_names)
 
         return mrs
 
@@ -128,6 +146,32 @@ class MRToTextDataset(Dataset):
             return self.lowercase_utterances(self.utterances)
         else:
             return self.utterances
+
+    def augment_data_with_slot_permutations(self, num_permutations):
+        """Augments the data with examples created by permuting content slots in the MR.
+
+        Utterances are left unchanged in the new examples. Assumes data to be already preprocessed.
+        """
+        mrs_augm = []
+        utterances_augm = []
+
+        if any(sum(slot in ['da', 'intent'] for slot, _ in mr_as_list) for mr_as_list in self.mrs_as_lists) > 1:
+            raise NotImplementedError('Slot permutation not supported for datasets with multiple DAs per MR')
+
+        for mr_as_list, utt in zip(self.mrs_as_lists, self.utterances):
+            mrs_augm.append(mr_as_list)
+            da = mr_as_list[0] if mr_as_list[0][0] in ['da', 'intent'] else None
+            content_slots = mr_as_list[1:] if da else mr_as_list
+
+            for i in range(num_permutations):
+                mr_augm = [da] if da else []
+                mr_augm.extend(random.sample(content_slots, len(content_slots)))
+                mrs_augm.append(mr_augm)
+
+            utterances_augm.extend([utt] * (num_permutations + 1))
+
+        self.mrs_as_lists = mrs_augm
+        self.utterances = utterances_augm
 
     def create_reference_file_for_testing(self):
         """Creates a text file with groups of utterances corresponding to one MR separated by an empty line.
@@ -215,7 +259,7 @@ class MRToTextDataset(Dataset):
         return slot_sep.join(['{0}{1}'.format(slot, val_sep + val if val else '') for slot, val in mr_as_list])
 
     @classmethod
-    def preprocess_mrs_from_intermediate_format(cls, mrs, as_lists=False, lowercase=False, convert_slot_names=False):
+    def preprocess_mrs_in_intermediate_format(cls, mrs, lowercase=False, convert_slot_names=False):
         """Performs a series of preprocessing actions on MRs in the intermediate list-of-tuples format.
 
         Depending on the as_lists parameter, it returns the MRs either in the intermediate format or as strings.
@@ -231,10 +275,6 @@ class MRToTextDataset(Dataset):
             # Convert slots and values to lowercase
             mrs = cls.lowercase_mrs(mrs)
 
-        if not as_lists:
-            # Convert MRs to strings
-            mrs = [cls.convert_mr_from_list_to_str(mr, add_separators=(not convert_slot_names)) for mr in mrs]
-
         return mrs
 
     @classmethod
@@ -245,10 +285,15 @@ class MRToTextDataset(Dataset):
         mrs_as_lists = [cls.convert_mr_from_str_to_list(mr) for mr in mrs]
 
         # Perform dataset-specific preprocessing of the MRs, and convert them back to strings
-        mrs_preprocessed = cls.preprocess_mrs_from_intermediate_format(
-            mrs_as_lists, as_lists=as_lists, lowercase=lowercase, convert_slot_names=convert_slot_names)
+        mrs_preprocessed = cls.preprocess_mrs_in_intermediate_format(
+            mrs_as_lists, lowercase=lowercase, convert_slot_names=convert_slot_names)
 
-        return mrs_preprocessed
+        if as_lists:
+            return mrs_preprocessed
+        else:
+            # Convert MRs to strings
+            return [cls.convert_mr_from_list_to_str(mr, add_separators=(not convert_slot_names))
+                    for mr in mrs_preprocessed]
 
     @classmethod
     def preprocess_da_in_mr(cls, mr):
