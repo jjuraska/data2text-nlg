@@ -52,6 +52,7 @@ class TestConfig(TaskConfig):
         self.repetition_penalty = config.get('repetition_penalty', 1.0)
         self.length_penalty = config.get('length_penalty', 1.0)
         self.num_return_sequences = config.get('num_return_sequences', self.num_beams)
+        self.semantic_decoding = config.get('semantic_decoding', False)
         self.semantic_reranking = config.get('semantic_reranking', False)
 
     def extract_epoch_and_step_from_model_path(self):

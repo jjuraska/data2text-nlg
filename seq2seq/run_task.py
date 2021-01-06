@@ -3,6 +3,7 @@ import copy
 from itertools import chain
 import numpy as np
 import os
+import pickle
 import sys
 import torch
 from torch.utils.data import DataLoader
@@ -361,6 +362,64 @@ def decode_model_outputs(sequences, num_seqs_per_input, tokenizer, is_enc_dec):
     return outputs_decoded
 
 
+def semantic_decoding(input_ids, tokenizer, model, max_length=128, device='cpu'):
+    """Performs a semantically guided inference from a structured MR input.
+
+    Note: currently, this performs a simple greedy decoding.
+    """
+    encoded_sequence = tuple()
+    outputs = None
+    attention_weights = {}
+
+    # Initialize the decoder's input sequence with the BOS token
+    # TODO: Make this model-independent (currently works for T5 only)
+    decoder_input_ids = tokenizer('<pad>', add_special_tokens=False, return_tensors='pt').input_ids.to(device)
+
+    assert decoder_input_ids[0, 0].item() == model.config.decoder_start_token_id,\
+        "`decoder_input_ids` should correspond to `model.config.decoder_start_token_id`"
+
+    for step in range(max_length):
+        if step == 0:
+            # Run the input sequence through the encoder, and have the decoder generate the first logit
+            outputs = model(input_ids, decoder_input_ids=decoder_input_ids, output_attentions=True, return_dict=True)
+
+            # Get the encoded input sequence
+            encoded_sequence = (outputs.encoder_last_hidden_state,)
+
+            # Save the encoder's self-attention weights
+            attention_weights['enc_attn_weights'] = [weight_tensor.squeeze().tolist() for weight_tensor in outputs.encoder_attentions]
+        else:
+            # Reuse the encoded inputs, and pass the sequence generated so far as inputs to the decoder
+            outputs = model(None, encoder_outputs=encoded_sequence, decoder_input_ids=decoder_input_ids,
+                            output_attentions=True, return_dict=True)
+
+        logits = outputs.logits
+
+        # Select the token with the highest probability as the next generated token (~ greedy decoding)
+        next_decoder_input_ids = torch.argmax(logits[:, -1:], axis=-1)
+
+        # Append the current output token's ID to the sequence generated so far
+        decoder_input_ids = torch.cat([decoder_input_ids, next_decoder_input_ids], axis=-1)
+
+        # DEBUG
+        # for i in range(len(outputs.cross_attentions)):
+        #     print(outputs.cross_attentions[i].size())
+        # print()
+
+        # Terminate as soon as the decoder generates the EOS token
+        if next_decoder_input_ids.item() == tokenizer.eos_token_id:
+            break
+
+    if outputs:
+        # Save the decoder's self- and cross-attention weights; shape = (num_layers, batch_size, num_heads, sequence_length, sequence_length)
+        attention_weights['dec_attn_weights'] = [weight_tensor.squeeze().tolist()
+                                                 for weight_tensor in outputs.decoder_attentions]
+        attention_weights['cross_attn_weights'] = [weight_tensor.squeeze().tolist()
+                                                   for weight_tensor in outputs.cross_attentions]
+
+    return decoder_input_ids, attention_weights
+
+
 def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
     eval_configurations = []
 
@@ -453,36 +512,55 @@ def batch_test(config, dataset_class, device='cpu'):
     eval_utils.print_test_scores(test_scores, output_dir=os.path.join('seq2seq', 'predictions', test_set.name))
 
 
-def generate_from_input(input_str, config, dataset_class, device='cpu'):
-    # Load model and corresponding tokenizer
-    model, tokenizer = model_utils.load_gpt2_model_and_tokenizer(
-        config.model_name,
-        special_tokens=dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names))
-    model_utils.load_model_checkpoint(model, config.model_name, config.checkpoint_epoch, config.checkpoint_step)
+def generate_from_input(config, input_str, dataset_class, device='cpu'):
+    # Load model and the corresponding tokenizer
+    special_tokens = dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names)
+    model, tokenizer = model_utils.load_model_and_tokenizer(config, special_tokens=special_tokens)
+    is_enc_dec = model.config.is_encoder_decoder
     model = model.to(device)
+
+    # Set model to evaluation mode
     model.eval()
 
-    input_ids = tokenizer(input_str)['input_ids']
-    input_tensor = torch.tensor(input_ids).unsqueeze(0).to(device)
+    input_processed = dataset_class.preprocess_mrs([input_str], lowercase=config.lowercase, convert_slot_names=False)[0]
+    input_ids = tokenizer(input_processed, return_tensors='pt')['input_ids']
+    input_tensor = input_ids.to(device)
 
-    outputs = model.generate(input_tensor,
-                             max_length=config.max_seq_length,
-                             num_beams=config.num_beams,
-                             early_stopping=config.early_stopping,
-                             no_repeat_ngram_size=config.no_repeat_ngram_size,
-                             do_sample=config.do_sample,
-                             top_p=config.top_p,
-                             top_k=config.top_k,
-                             temperature=config.temperature,
-                             repetition_penalty=config.repetition_penalty,
-                             length_penalty=config.length_penalty,
-                             num_return_sequences=config.num_return_sequences,
-                             )
+    if config.semantic_decoding:
+        outputs, attn_weights = semantic_decoding(input_tensor,
+                                                  tokenizer,
+                                                  model,
+                                                  max_length=config.max_seq_length,
+                                                  device=device)
 
-    for i, output_seq in enumerate(outputs):
-        utt_beg_pos = np.where(output_seq.cpu().numpy() == tokenizer.bos_token_id)[0][0] + 1
-        utt_decoded = tokenizer.decode(output_seq[utt_beg_pos:], skip_special_tokens=True)
-        print('>> Sample #{}: {}'.format(i, utt_decoded))
+        # Save the input and output sequences (as lists of tokens) along with the attention weights
+        attn_weights['input_tokens'] = [tokenizer.decode(input_id, skip_special_tokens=False)
+                                        for input_id in input_ids[0]]
+        attn_weights['output_tokens'] = [tokenizer.decode(output_id, skip_special_tokens=False)
+                                         for output_id in outputs[0][1:]]
+
+        # Export attention weights for visualization
+        with open(os.path.join('seq2seq', 'attention', dataset_class.name, 'attention_weights.pkl'), 'wb') as f_attn:
+            pickle.dump(attn_weights, f_attn)
+    else:
+        outputs = model.generate(input_tensor,
+                                 max_length=config.max_seq_length,
+                                 num_beams=config.num_beams,
+                                 early_stopping=config.early_stopping,
+                                 no_repeat_ngram_size=config.no_repeat_ngram_size,
+                                 do_sample=config.do_sample,
+                                 top_p=config.top_p,
+                                 top_k=config.top_k,
+                                 temperature=config.temperature,
+                                 repetition_penalty=config.repetition_penalty,
+                                 length_penalty=config.length_penalty,
+                                 num_return_sequences=config.num_return_sequences,
+                                 )
+
+    utterances = decode_model_outputs(outputs, config.num_beams, tokenizer, is_enc_dec)[0]
+
+    print('>> Generated utterance(s):')
+    print('\n'.join(utterances))
 
 
 def main():
@@ -493,8 +571,8 @@ def main():
     parser.add_argument('-d', '--dataset', required=True, choices=[
         'rest_e2e', 'rest_e2e_cleaned', 'multiwoz', 'video_game', 'video_game_with_rest_e2e', 'video_game_20'],
                         help='Dataset name')
-    parser.add_argument('-t', '--task', required=True, choices=['train', 'test'],
-                        help='Task (train or test)')
+    parser.add_argument('-t', '--task', required=True, choices=['train', 'test', 'generate'],
+                        help='Task (train, test, or generate)')
     args = parser.parse_args()
 
     # Get the corresponding dataset class
@@ -538,8 +616,11 @@ def main():
     elif args.task == 'test':
         batch_test(TestConfig(config), dataset_class, device=device)
     elif args.task == 'generate':
-        input_str = '<|name|> alimentum <|area|> city centre <|familyfriendly|> no <|begoftext|>'
-        generate_from_input(input_str, TestConfig(config), dataset_class, device=device)
+        # input_str = "inform(name[Tomb Raider: The Last Revelation], release_year[1999], esrb[T (for Teen)], genres[action-adventure, puzzle, shooter], platforms[PlayStation, PC], available_on_steam[yes], has_linux_release[no], has_mac_release[yes])"
+        # input_str = "inform(name[Assassin's Creed Chronicles: India], release_year[2016], genres[action-adventure, platformer], player_perspective[side view], has_multiplayer[no])"
+        # input_str = "recommend(name[Crysis], has_multiplayer[yes], platforms[Xbox])"
+        input_str = "request_explanation(esrb[E (for Everyone)], rating[good], genres[adventure, platformer, puzzle])"
+        generate_from_input(TestConfig(config), input_str, dataset_class, device=device)
 
 
 if __name__ == '__main__':
