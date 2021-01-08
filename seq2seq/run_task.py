@@ -1,4 +1,5 @@
 import argparse
+from collections import OrderedDict
 import copy
 from itertools import chain
 import numpy as np
@@ -280,7 +281,8 @@ def validate_bleu(config, dataset, data_loader, tokenizer, model, is_enc_dec, de
     return result
 
 
-def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_validation=False, device='cpu'):
+def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_validation=False, bool_slots=None,
+                        device='cpu'):
     generated_sequences = []
 
     if 'gpt2' in config.model_name:
@@ -288,7 +290,8 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
         tokenizer.padding_side = 'left'
 
     for batch in tqdm(data_loader, desc='Generating'):
-        batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False)
+        batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False,
+                                          bool_slots=bool_slots)
 
         input_tensor = batch['input_ids'].to(device)
         mask_tensor = batch['attention_mask'].to(device)
@@ -307,30 +310,49 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
         # print('>> ENCODED input mask:', inputs['attention_mask'])
         # print()
 
-        if is_validation:
+        if config.semantic_decoding:
             num_seqs_per_input = 1
-            outputs = model.generate(input_tensor,
-                                     attention_mask=mask_tensor,
-                                     min_length=1,
-                                     max_length=config.max_seq_length,
-                                     **model_specific_args)
+            outputs, attn_weights = semantic_decoding(input_tensor,
+                                                      batch['slot_spans'],
+                                                      tokenizer,
+                                                      model,
+                                                      max_length=config.max_seq_length,
+                                                      device=device)
+
+            # Save the input and output sequences (as lists of tokens) along with the attention weights
+            attn_weights['input_tokens'] = [tokenizer.decode(input_id, skip_special_tokens=False)
+                                            for input_id in batch['input_ids'][0]]
+            attn_weights['output_tokens'] = [tokenizer.decode(output_id, skip_special_tokens=False)
+                                             for output_id in outputs[0][1:]]
+
+            # Export attention weights for visualization
+            with open(os.path.join('seq2seq', 'attention', 'attention_weights.pkl'), 'wb') as f_attn:
+                pickle.dump(attn_weights, f_attn)
         else:
-            num_seqs_per_input = config.num_return_sequences
-            outputs = model.generate(input_tensor,
-                                     attention_mask=mask_tensor,
-                                     min_length=1,
-                                     max_length=config.max_seq_length,
-                                     num_beams=config.num_beams,
-                                     early_stopping=config.early_stopping,
-                                     no_repeat_ngram_size=config.no_repeat_ngram_size,
-                                     do_sample=config.do_sample,
-                                     top_p=config.top_p,
-                                     top_k=config.top_k,
-                                     temperature=config.temperature,
-                                     repetition_penalty=config.repetition_penalty,
-                                     length_penalty=config.length_penalty,
-                                     num_return_sequences=config.num_return_sequences,
-                                     **model_specific_args)
+            if is_validation:
+                num_seqs_per_input = 1
+                outputs = model.generate(input_tensor,
+                                         attention_mask=mask_tensor,
+                                         min_length=1,
+                                         max_length=config.max_seq_length,
+                                         **model_specific_args)
+            else:
+                num_seqs_per_input = config.num_return_sequences
+                outputs = model.generate(input_tensor,
+                                         attention_mask=mask_tensor,
+                                         min_length=1,
+                                         max_length=config.max_seq_length,
+                                         num_beams=config.num_beams,
+                                         early_stopping=config.early_stopping,
+                                         no_repeat_ngram_size=config.no_repeat_ngram_size,
+                                         do_sample=config.do_sample,
+                                         top_p=config.top_p,
+                                         top_k=config.top_k,
+                                         temperature=config.temperature,
+                                         repetition_penalty=config.repetition_penalty,
+                                         length_penalty=config.length_penalty,
+                                         num_return_sequences=config.num_return_sequences,
+                                         **model_specific_args)
 
         generated_sequences.extend(decode_model_outputs(outputs, num_seqs_per_input, tokenizer, is_enc_dec))
 
@@ -362,7 +384,7 @@ def decode_model_outputs(sequences, num_seqs_per_input, tokenizer, is_enc_dec):
     return outputs_decoded
 
 
-def semantic_decoding(input_ids, tokenizer, model, max_length=128, device='cpu'):
+def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, device='cpu'):
     """Performs a semantically guided inference from a structured MR input.
 
     Note: currently, this performs a simple greedy decoding.
@@ -395,6 +417,8 @@ def semantic_decoding(input_ids, tokenizer, model, max_length=128, device='cpu')
 
         logits = outputs.logits
 
+        next_decoder_input_ids = select_next_token(logits, outputs.cross_attentions, slot_spans)
+
         # Select the token with the highest probability as the next generated token (~ greedy decoding)
         next_decoder_input_ids = torch.argmax(logits[:, -1:], axis=-1)
 
@@ -417,7 +441,104 @@ def semantic_decoding(input_ids, tokenizer, model, max_length=128, device='cpu')
         attention_weights['cross_attn_weights'] = [weight_tensor.squeeze().tolist()
                                                    for weight_tensor in outputs.cross_attentions]
 
+    # DEBUG
+    print('>> Slot mentions:')
+    print(slot_spans)
+    print()
+
     return decoder_input_ids, attention_weights
+
+
+def select_next_token(logits, attn_weights, slot_spans):
+    # DEBUG
+    # print('>> logits.size():', logits.size())
+    # print('>> attn_weights[0].shape:', attn_weights[0].shape)
+    # print()
+
+    # Extract the weights from the 1st decoder layer only, and remove the batch dimension
+    attn_weights = attn_weights[0].detach().cpu().numpy().squeeze(axis=0)
+    # Add the layer dimension back, and ignore weights from other than the most recent step in the sequence
+    attn_weights = attn_weights[np.newaxis, :, -1:, :]
+
+    # DEBUG
+    # print('>> attn_weights.shape (after filtering):', attn_weights.shape)
+    # print()
+
+    # TODO: Experiment with both aggregations as max and threshold 0.5
+    attn_weights = preprocess_attn_weights(attn_weights, head_agg_mode='max', layer_agg_mode=None)
+
+    attn_weights = binarize_weights(attn_weights, threshold=0.5).squeeze(axis=(1, 2))
+    attn_idxs = np.where(attn_weights == 1)
+
+    # DEBUG
+    # print('>> attn_weights.shape (after binarizing):', attn_weights.shape)
+    # print('>> attn_idxs:', attn_idxs)
+    # print()
+
+    update_slot_mentions(slot_spans, attn_idxs)
+
+
+def update_slot_mentions(slot_span_batch, attn_idxs):
+    for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[1]):
+        for slot_span in slot_span_batch[batch_idx]:
+            if slot_span['mentioned']:
+                continue
+
+            if 'value' in slot_span and not slot_span['is_boolean']:
+                if slot_span['value'][0] <= attn_idx <= slot_span['value'][1]:
+                    slot_span['mentioned'] = True
+                    break
+            else:
+                if slot_span['name'][0] <= attn_idx <= slot_span['name'][1]:
+                    slot_span['mentioned'] = True
+                    break
+
+
+def preprocess_attn_weights(attn_weights, head_agg_mode=None, layer_agg_mode=None):
+    if head_agg_mode:
+        attn_weights = aggregate_across_heads(attn_weights, mode=head_agg_mode)
+
+    if layer_agg_mode:
+        attn_weights = aggregate_across_layers(attn_weights, mode=layer_agg_mode)
+
+    return attn_weights
+
+
+def aggregate_across_heads(attn_weights, mode='max'):
+    """Sums weights across all heads, and normalizes the weights by these sums."""
+    if mode == 'max':
+        head_maxs = attn_weights.max(axis=1)
+    elif mode == 'sum':
+        head_maxs = attn_weights.sum(axis=1)
+    elif mode == 'avg':
+        head_maxs = attn_weights.mean(axis=1)
+    else:
+        raise ValueError(f'Aggregation mode "{mode}" unrecognized')
+
+    return head_maxs[:, np.newaxis, :, :]
+
+
+def aggregate_across_layers(attn_weights, mode='avg'):
+    """Sums weights across all layers, and normalizes the weights by these sums."""
+    if mode == 'max':
+        layer_sums = np.max(attn_weights, axis=0)
+    elif mode == 'sum':
+        layer_sums = np.sum(attn_weights, axis=0)
+    elif mode == 'avg':
+        layer_sums = np.mean(attn_weights, axis=0)
+    else:
+        raise ValueError(f'Aggregation mode "{mode}" unrecognized')
+
+    return layer_sums[np.newaxis, :, :, :]
+
+
+def binarize_weights(attn_weights, threshold=0.0):
+    max_weights = attn_weights.max(axis=-1)[:, :, :, np.newaxis]
+
+    attn_weights[np.nonzero(attn_weights < threshold)] = 0
+    attn_weights = (attn_weights == max_weights).astype(int)
+
+    return attn_weights
 
 
 def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
@@ -522,45 +643,21 @@ def generate_from_input(config, input_str, dataset_class, device='cpu'):
     # Set model to evaluation mode
     model.eval()
 
-    input_processed = dataset_class.preprocess_mrs([input_str], lowercase=config.lowercase, convert_slot_names=False)[0]
-    input_ids = tokenizer(input_processed, return_tensors='pt')['input_ids']
-    input_tensor = input_ids.to(device)
+    # Create a data loader from the input string
+    test_set = dataset_class(tokenizer,
+                             input_str=input_str,
+                             partition='test',
+                             lowercase=config.lowercase,
+                             no_target=True,
+                             separate_source_and_target=is_enc_dec)
+    test_data_loader = DataLoader(test_set, batch_size=1, shuffle=False, num_workers=0)
 
-    if config.semantic_decoding:
-        outputs, attn_weights = semantic_decoding(input_tensor,
-                                                  tokenizer,
-                                                  model,
-                                                  max_length=config.max_seq_length,
-                                                  device=device)
-
-        # Save the input and output sequences (as lists of tokens) along with the attention weights
-        attn_weights['input_tokens'] = [tokenizer.decode(input_id, skip_special_tokens=False)
-                                        for input_id in input_ids[0]]
-        attn_weights['output_tokens'] = [tokenizer.decode(output_id, skip_special_tokens=False)
-                                         for output_id in outputs[0][1:]]
-
-        # Export attention weights for visualization
-        with open(os.path.join('seq2seq', 'attention', dataset_class.name, 'attention_weights.pkl'), 'wb') as f_attn:
-            pickle.dump(attn_weights, f_attn)
-    else:
-        outputs = model.generate(input_tensor,
-                                 max_length=config.max_seq_length,
-                                 num_beams=config.num_beams,
-                                 early_stopping=config.early_stopping,
-                                 no_repeat_ngram_size=config.no_repeat_ngram_size,
-                                 do_sample=config.do_sample,
-                                 top_p=config.top_p,
-                                 top_k=config.top_k,
-                                 temperature=config.temperature,
-                                 repetition_penalty=config.repetition_penalty,
-                                 length_penalty=config.length_penalty,
-                                 num_return_sequences=config.num_return_sequences,
-                                 )
-
-    utterances = decode_model_outputs(outputs, config.num_beams, tokenizer, is_enc_dec)[0]
+    # Generate decoded utterances
+    utterances = generate_and_decode(config, test_data_loader, tokenizer, model, is_enc_dec,
+                                     bool_slots=test_set.bool_slots, device=device)
 
     print('>> Generated utterance(s):')
-    print('\n'.join(utterances))
+    print('\n'.join(utterances[0]))
 
 
 def main():
@@ -618,8 +715,8 @@ def main():
     elif args.task == 'generate':
         # input_str = "inform(name[Tomb Raider: The Last Revelation], release_year[1999], esrb[T (for Teen)], genres[action-adventure, puzzle, shooter], platforms[PlayStation, PC], available_on_steam[yes], has_linux_release[no], has_mac_release[yes])"
         # input_str = "inform(name[Assassin's Creed Chronicles: India], release_year[2016], genres[action-adventure, platformer], player_perspective[side view], has_multiplayer[no])"
-        # input_str = "recommend(name[Crysis], has_multiplayer[yes], platforms[Xbox])"
-        input_str = "request_explanation(esrb[E (for Everyone)], rating[good], genres[adventure, platformer, puzzle])"
+        input_str = "recommend(name[Crysis], has_multiplayer[yes], platforms[Xbox])"
+        # input_str = "request_explanation(esrb[E (for Everyone)], rating[good], genres[adventure, platformer, puzzle])"
         generate_from_input(TestConfig(config), input_str, dataset_class, device=device)
 
 

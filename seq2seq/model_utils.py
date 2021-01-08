@@ -281,7 +281,7 @@ def save_model_checkpoint(model, model_name, epoch, step):
     torch.save(model.state_dict(), os.path.join(model_dir, file_name))
 
 
-def prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False):
+def prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False, bool_slots=None):
     batch_dict = {}
 
     # DEBUG
@@ -312,6 +312,9 @@ def prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False):
                 T5 infers decoder input IDs and mask automatically from labels."""
                 batch_dict['decoder_input_ids'] = shift_tokens_right(labels['input_ids'], tokenizer.pad_token_id)
                 # batch_dict['decoder_mask'] = labels['attention_mask']
+
+        if bool_slots:
+            batch_dict['slot_spans'] = get_slot_spans(input_ids, bool_slots, tokenizer)
     else:
         inputs = tokenizer(batch[0], add_special_tokens=False, max_length=config.max_seq_length,
                            padding=True, truncation=True, return_tensors='pt')
@@ -426,3 +429,44 @@ def create_label_mask(input_ids, input_mask, label_mask):
     # print('>> label mask:', mask)
 
     return mask
+
+
+def get_slot_spans(input_id_batch, bool_slots, tokenizer):
+    slot_span_batch = []
+
+    for i, input_ids in enumerate(input_id_batch):
+        input_tokens = [tokenizer.decode(input_id, skip_special_tokens=False) for input_id in input_ids]
+
+        slot_spans = []
+        cur_name_beg = 0
+        cur_value_beg = 0
+        cur_slot = {}
+
+        for tok_pos, tok in enumerate(input_tokens):
+            if tok == '=':
+                cur_slot['name'] = (cur_name_beg, tok_pos - 1)
+                cur_value_beg = tok_pos + 1
+            elif tok in ['|', tokenizer.eos_token]:
+                if cur_value_beg > cur_name_beg:
+                    cur_slot['value'] = (cur_value_beg, tok_pos - 1)
+                else:
+                    cur_slot['name'] = (cur_name_beg, tok_pos - 1)
+
+                # Ignore non-content slots, and mark Boolean slots
+                slot_name = tokenizer.decode(input_ids[cur_slot['name'][0]:cur_slot['name'][1] + 1])
+                if slot_name not in {'intent', 'topic'}:
+                    cur_slot['is_boolean'] = slot_name in bool_slots
+                    cur_slot['mentioned'] = False
+                    slot_spans.append(cur_slot)
+
+                cur_name_beg = tok_pos + 1
+                cur_slot = {}
+
+        slot_span_batch.append(slot_spans)
+
+        # DEBUG
+        # print('>> input tokens:', input_tokens)
+        # print('>> slot spans:', slot_spans)
+        # print()
+
+    return slot_span_batch
