@@ -1,4 +1,5 @@
 from itertools import chain
+from nltk.tokenize import word_tokenize
 import os
 import pandas as pd
 import re
@@ -6,6 +7,7 @@ import re
 from sacrebleu import corpus_bleu
 from tqdm import tqdm
 
+from seq2seq.eval.RNNLG.GentScorer import GentScorer
 from seq2seq.slot_aligner.slot_alignment import count_errors
 
 
@@ -58,6 +60,39 @@ def calculate_multiref_bleu(dataset, predictions):
             references_transposed[i].append(ref_list[0])
 
     return corpus_bleu(predictions, references_transposed).score
+
+
+def calculate_bleu(predictions_file, dataset_name, verbose=False):
+    """Calculates the BLEU score using sacreblue, as well as the RNNLG script.
+
+    Note: Currently only works with datasets that do not have multiple references.
+    """
+    # Initialize the RNNLG scorer
+    gentscorer = GentScorer(os.path.join('seq2seq', 'eval', 'RNNLG', 'detect.pair'))
+
+    # Load generated utterances and the corresponding reference utterances
+    with open(predictions_file, 'r', encoding='utf-8') as f_pred:
+        utterances = [pred_line.strip() for pred_line in f_pred.readlines()]
+
+    references_file = os.path.join('seq2seq', 'eval', f'test_references_{dataset_name}.txt')
+    with open(references_file, 'r', encoding='utf-8') as f_ref:
+        references = [ref_line.strip() for ref_line in f_ref.readlines() if ref_line.strip() != '']
+
+    # Preprocess generated utterances, as well as references
+    utterances_lower = [utt.lower() for utt in utterances]
+    references_lower = [ref.lower() for ref in references]
+    parallel_corpus_tokenized = [[[' '.join(word_tokenize(utt))], [' '.join(word_tokenize(ref))]]
+                                 for utt, ref in zip(utterances_lower, references_lower)]
+
+    bleu_sacre = corpus_bleu(utterances_lower, [references_lower]).score
+    bleu_rnnlg = gentscorer.scoreSBLEU(parallel_corpus_tokenized)
+
+    # Print the BLEU scores
+    if verbose:
+        print(f'>> BLEU (sacreblue): {round(bleu_sacre / 100, 4)}')
+        print(f'>> BLEU (RNNLG):     {round(bleu_rnnlg, 4)}')
+    else:
+        print(f'{round(bleu_sacre / 100, 4)}\t{round(bleu_rnnlg, 4)}')
 
 
 def rerank_beams(beams, mrs, domain, keep_n=None, keep_least_errors_only=False):
