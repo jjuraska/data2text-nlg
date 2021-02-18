@@ -40,12 +40,12 @@ def train(config, dataset_class, device='cpu'):
     is_enc_dec = model.config.is_encoder_decoder
     model = model.to(device)
 
-    prepare_token_types = True if 'gpt2' in config.model_name else False
+    prepare_token_types = True if 'gpt2' in config.model_name and config.use_token_type_ids else False
     group_by_mr = False if dataset_class.name in {'multiwoz'} else True
 
     # Load training and validation data
     train_set = dataset_class(tokenizer,
-                              'train',
+                              partition='train',
                               lowercase=config.lowercase,
                               convert_slot_names=config.convert_slot_names,
                               separate_source_and_target=is_enc_dec,
@@ -54,7 +54,7 @@ def train(config, dataset_class, device='cpu'):
     train_data_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=0)
 
     valid_set = dataset_class(tokenizer,
-                              'valid',
+                              partition='valid',
                               lowercase=config.lowercase,
                               convert_slot_names=config.convert_slot_names,
                               separate_source_and_target=is_enc_dec,
@@ -63,7 +63,7 @@ def train(config, dataset_class, device='cpu'):
     valid_data_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
     valid_set_bleu = dataset_class(tokenizer,
-                                   'valid',
+                                   partition='valid',
                                    lowercase=config.lowercase,
                                    convert_slot_names=config.convert_slot_names,
                                    group_by_mr=group_by_mr,
@@ -310,32 +310,32 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
         # print('>> ENCODED input mask:', inputs['attention_mask'])
         # print()
 
-        if config.semantic_decoding:
+        if is_validation:
             num_seqs_per_input = 1
-            outputs, attn_weights = semantic_decoding(input_tensor,
-                                                      batch['slot_spans'],
-                                                      tokenizer,
-                                                      model,
-                                                      max_length=config.max_seq_length,
-                                                      device=device)
-
-            # Save the input and output sequences (as lists of tokens) along with the attention weights
-            attn_weights['input_tokens'] = [tokenizer.decode(input_id, skip_special_tokens=False)
-                                            for input_id in batch['input_ids'][0]]
-            attn_weights['output_tokens'] = [tokenizer.decode(output_id, skip_special_tokens=False)
-                                             for output_id in outputs[0][1:]]
-
-            # Export attention weights for visualization
-            with open(os.path.join('seq2seq', 'attention', 'attention_weights.pkl'), 'wb') as f_attn:
-                pickle.dump(attn_weights, f_attn)
+            outputs = model.generate(input_tensor,
+                                     attention_mask=mask_tensor,
+                                     min_length=1,
+                                     max_length=config.max_seq_length,
+                                     **model_specific_args)
         else:
-            if is_validation:
+            if config.semantic_decoding:
                 num_seqs_per_input = 1
-                outputs = model.generate(input_tensor,
-                                         attention_mask=mask_tensor,
-                                         min_length=1,
-                                         max_length=config.max_seq_length,
-                                         **model_specific_args)
+                outputs, attn_weights = semantic_decoding(input_tensor,
+                                                          batch['slot_spans'],
+                                                          tokenizer,
+                                                          model,
+                                                          max_length=config.max_seq_length,
+                                                          device=device)
+
+                # Save the input and output sequences (as lists of tokens) along with the attention weights
+                attn_weights['input_tokens'] = [tokenizer.decode(input_id, skip_special_tokens=False)
+                                                for input_id in batch['input_ids'][0]]
+                attn_weights['output_tokens'] = [tokenizer.decode(output_id, skip_special_tokens=False)
+                                                 for output_id in outputs[0][1:]]
+
+                # Export attention weights for visualization
+                with open(os.path.join('seq2seq', 'attention', 'attention_weights.pkl'), 'wb') as f_attn:
+                    pickle.dump(attn_weights, f_attn)
             else:
                 num_seqs_per_input = config.num_return_sequences
                 outputs = model.generate(input_tensor,
@@ -481,17 +481,26 @@ def select_next_token(logits, attn_weights, slot_spans):
 def update_slot_mentions(slot_span_batch, attn_idxs):
     for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[1]):
         for slot_span in slot_span_batch[batch_idx]:
-            if slot_span['mentioned']:
+            if all(slot_span['mentioned']):
                 continue
 
+            attn_weight_matched = False
+
             if 'value' in slot_span and not slot_span['is_boolean']:
-                if slot_span['value'][0] <= attn_idx <= slot_span['value'][1]:
-                    slot_span['mentioned'] = True
-                    break
+                for elem_idx, value_elem_span in enumerate(slot_span['value']):
+                    # TODO: optimize by breaking out of the loop if attn_idx is less than the position of the 1st element or greater than the position of the last element
+                    if value_elem_span[0] <= attn_idx <= value_elem_span[1]:
+                        slot_span['mentioned'][elem_idx] = True
+                        attn_weight_matched = True
+                        break
             else:
+                # For Boolean slots and slots without a value, match the slot's name
                 if slot_span['name'][0] <= attn_idx <= slot_span['name'][1]:
-                    slot_span['mentioned'] = True
-                    break
+                    slot_span['mentioned'][0] = True
+                    attn_weight_matched = True
+
+            if attn_weight_matched:
+                break
 
 
 def preprocess_attn_weights(attn_weights, head_agg_mode=None, layer_agg_mode=None):
@@ -581,12 +590,12 @@ def batch_test(config, dataset_class, device='cpu'):
     # Set model to evaluation mode
     model.eval()
 
-    prepare_token_types = True if 'gpt2' in config.model_name else False
+    prepare_token_types = True if 'gpt2' in config.model_name and config.use_token_type_ids else False
     group_by_mr = False if dataset_class.name in {'multiwoz'} else True
 
     # Load test data
     test_set = dataset_class(tokenizer,
-                             'test',
+                             partition='test',
                              lowercase=config.lowercase,
                              convert_slot_names=config.convert_slot_names,
                              group_by_mr=group_by_mr,
@@ -596,7 +605,7 @@ def batch_test(config, dataset_class, device='cpu'):
     test_data_loader = DataLoader(test_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
     test_set_ppl = dataset_class(tokenizer,
-                                 'test',
+                                 partition='test',
                                  lowercase=config.lowercase,
                                  convert_slot_names=config.convert_slot_names,
                                  separate_source_and_target=is_enc_dec,
@@ -713,9 +722,9 @@ def main():
     elif args.task == 'test':
         batch_test(TestConfig(config), dataset_class, device=device)
     elif args.task == 'generate':
-        # input_str = "inform(name[Tomb Raider: The Last Revelation], release_year[1999], esrb[T (for Teen)], genres[action-adventure, puzzle, shooter], platforms[PlayStation, PC], available_on_steam[yes], has_linux_release[no], has_mac_release[yes])"
+        input_str = "inform(name[Tomb Raider: The Last Revelation], release_year[1999], esrb[T (for Teen)], genres[action-adventure, puzzle, shooter], platforms[PlayStation, PC], available_on_steam[yes], has_linux_release[no], has_mac_release[yes])"
         # input_str = "inform(name[Assassin's Creed Chronicles: India], release_year[2016], genres[action-adventure, platformer], player_perspective[side view], has_multiplayer[no])"
-        input_str = "recommend(name[Crysis], has_multiplayer[yes], platforms[Xbox])"
+        # input_str = "recommend(name[Crysis], has_multiplayer[yes], platforms[Xbox])"
         # input_str = "request_explanation(esrb[E (for Everyone)], rating[good], genres[adventure, platformer, puzzle])"
         generate_from_input(TestConfig(config), input_str, dataset_class, device=device)
 

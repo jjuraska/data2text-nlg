@@ -445,10 +445,15 @@ def get_slot_spans(input_id_batch, bool_slots, tokenizer):
         for tok_pos, tok in enumerate(input_tokens):
             if tok == '=':
                 cur_slot['name'] = (cur_name_beg, tok_pos - 1)
+                cur_slot['value'] = []
+                cur_value_beg = tok_pos + 1
+            # TODO: only do this for list-slots to avoid false positives (e.g., in address slots)
+            elif tok == ',':
+                cur_slot['value'].append((cur_value_beg, tok_pos - 1))
                 cur_value_beg = tok_pos + 1
             elif tok in ['|', tokenizer.eos_token]:
                 if cur_value_beg > cur_name_beg:
-                    cur_slot['value'] = (cur_value_beg, tok_pos - 1)
+                    cur_slot['value'].append((cur_value_beg, tok_pos - 1))
                 else:
                     cur_slot['name'] = (cur_name_beg, tok_pos - 1)
 
@@ -456,7 +461,7 @@ def get_slot_spans(input_id_batch, bool_slots, tokenizer):
                 slot_name = tokenizer.decode(input_ids[cur_slot['name'][0]:cur_slot['name'][1] + 1])
                 if slot_name not in {'intent', 'topic'}:
                     cur_slot['is_boolean'] = slot_name in bool_slots
-                    cur_slot['mentioned'] = False
+                    cur_slot['mentioned'] = [False] * max(1, len(cur_slot.get('value', [])))
                     slot_spans.append(cur_slot)
 
                 cur_name_beg = tok_pos + 1
