@@ -123,7 +123,7 @@ def execute_e2e_evaluation_script(config, test_set, eval_configurations):
     for prediction_list, reranked in eval_configurations:
         file_name_root = compose_output_file_name(config, reranked=reranked)
 
-        # Save generated utterances along with their corresponding MRs into a CSV file
+        # Save generated utterances along with their corresponding MRs to a CSV file
         file_name = f'{file_name_root}.csv'
         df_predictions = pd.DataFrame({'mr': test_set.get_mrs(raw=True), 'utt': prediction_list})
         df_predictions.to_csv(os.path.join(predictions_dir, file_name), index=False, encoding='utf-8-sig')
@@ -147,6 +147,28 @@ def execute_e2e_evaluation_script(config, test_set, eval_configurations):
         print()
 
     return scores
+
+
+def save_slot_errors(config, test_set, eval_configurations, slot_errors):
+    """Saves generated utterances along with the attention-based slot errors, as well as the input MRs, to a file."""
+
+    # Make sure the output directory exists for the given dataset
+    predictions_dir = os.path.join('seq2seq', 'predictions', test_set.name)
+    if not os.path.exists(predictions_dir):
+        os.makedirs(predictions_dir)
+
+    for prediction_list, reranked in eval_configurations:
+        file_name_root = compose_output_file_name(config, reranked=reranked)
+
+        # Save generated utterances along with their corresponding MRs and slot errors to a CSV file
+        file_name = f'{file_name_root} [errors (attention-based)].csv'
+        df_predictions = pd.DataFrame({
+            'mr': test_set.get_mrs(raw=True),
+            'utt': prediction_list,
+            'errors': [len(slot_error_list) for slot_error_list in slot_errors],
+            'incorrect slots': [', '.join(slot_error_list) for slot_error_list in slot_errors]
+        })
+        df_predictions.to_csv(os.path.join(predictions_dir, file_name), index=False, encoding='utf-8-sig')
 
 
 def parse_scores_from_e2e_script_output(script_output):

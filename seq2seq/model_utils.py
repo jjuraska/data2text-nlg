@@ -446,24 +446,25 @@ def get_slot_spans(input_id_batch, bool_slots, tokenizer):
             # TODO: skip BOS token
             tok_stripped = tok.strip()
             if tok_stripped == '=':
-                cur_slot['name'] = (cur_name_beg, tok_pos - 1)
-                cur_slot['value'] = []
+                cur_slot['name_span'] = (cur_name_beg, tok_pos - 1)
+                cur_slot['value_span'] = []
                 cur_value_beg = tok_pos + 1
             # TODO: only do this for list-slots to avoid false positives (e.g., in address slots)
             elif tok_stripped == ',':
-                cur_slot['value'].append((cur_value_beg, tok_pos - 1))
+                cur_slot['value_span'].append((cur_value_beg, tok_pos - 1))
                 cur_value_beg = tok_pos + 1
             elif tok_stripped in ['|', tokenizer.eos_token]:
                 if cur_value_beg > cur_name_beg:
-                    cur_slot['value'].append((cur_value_beg, tok_pos - 1))
+                    cur_slot['value_span'].append((cur_value_beg, tok_pos - 1))
                 else:
-                    cur_slot['name'] = (cur_name_beg, tok_pos - 1)
+                    cur_slot['name_span'] = (cur_name_beg, tok_pos - 1)
 
                 # Ignore non-content slots, and mark Boolean slots
-                slot_name = tokenizer.decode(input_ids[cur_slot['name'][0]:cur_slot['name'][1] + 1]).strip()
+                slot_name = tokenizer.decode(input_ids[cur_slot['name_span'][0]:cur_slot['name_span'][1] + 1]).strip()
                 if slot_name not in {'intent', 'topic'}:
+                    cur_slot['name'] = slot_name
                     cur_slot['is_boolean'] = slot_name in bool_slots
-                    cur_slot['mentioned'] = [False] * max(1, len(cur_slot.get('value', [])))
+                    cur_slot['mentioned'] = [False] * max(1, len(cur_slot.get('value_span', [])))
                     slot_spans.append(cur_slot)
 
                 cur_name_beg = tok_pos + 1

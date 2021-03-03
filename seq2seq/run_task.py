@@ -258,8 +258,8 @@ def validate(config, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
 def validate_bleu(config, dataset, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
     """Generates decoded utterances without teacher forcing, and calculates their BLEU score using references."""
 
-    generated_utterances = generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_validation=True,
-                                               device=device)
+    generated_utterances, _ = generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_validation=True,
+                                                  device=device)
     generated_utterances_flat = list(chain.from_iterable(generated_utterances))
 
     # DEBUG
@@ -284,6 +284,7 @@ def validate_bleu(config, dataset, data_loader, tokenizer, model, is_enc_dec, de
 def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_validation=False, bool_slots=None,
                         device='cpu'):
     generated_sequences = []
+    slot_errors = []
 
     if 'gpt2' in config.model_name:
         # Set the tokenizer to padding input sequences on the left side in order to enable batch inference
@@ -320,12 +321,14 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
         else:
             if config.semantic_decoding:
                 num_seqs_per_input = 1
-                outputs, attn_weights = semantic_decoding(input_tensor,
-                                                          batch['slot_spans'],
-                                                          tokenizer,
-                                                          model,
-                                                          max_length=config.max_seq_length,
-                                                          device=device)
+                outputs, attn_weights, slot_error_list = semantic_decoding(input_tensor,
+                                                                           batch['slot_spans'],
+                                                                           tokenizer,
+                                                                           model,
+                                                                           max_length=config.max_seq_length,
+                                                                           device=device)
+
+                slot_errors.extend(slot_error_list)
 
                 # Save the input and output sequences (as lists of tokens) along with the attention weights
                 attn_weights['input_tokens'] = [tokenizer.decode(input_id, skip_special_tokens=False)
@@ -360,7 +363,7 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
         # Set the tokenizer back to padding input sequences on the right
         tokenizer.padding_side = 'right'
 
-    return generated_sequences
+    return generated_sequences, slot_errors
 
 
 def decode_model_outputs(sequences, num_seqs_per_input, tokenizer, is_enc_dec):
@@ -434,11 +437,34 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
                                                    for weight_tensor in outputs.cross_attentions]
 
     # DEBUG
-    print('>> Slot mentions:')
-    print(slot_spans)
-    print()
+    # print('>> Slot mentions:')
+    # print(slot_spans)
+    # print()
 
-    return decoder_input_ids, attention_weights
+    slot_errors = evaluate_slot_mentions(slot_spans)
+
+    # DEBUG
+    # print('>> Slot errors:')
+    # print(slot_errors)
+    # print()
+
+    return decoder_input_ids, attention_weights, slot_errors
+
+
+def evaluate_slot_mentions(slot_mentions_batch):
+    slot_errors_batch = []
+
+    for slot_mentions in slot_mentions_batch:
+        slot_errors = []
+
+        for slot in slot_mentions:
+            # If any of the slot's values were not mentioned, consider the slot mention erroneous
+            if not all(slot['mentioned']):
+                slot_errors.append(slot['name'])
+
+        slot_errors_batch.append(slot_errors)
+
+    return slot_errors_batch
 
 
 def select_next_token(logits, attn_weights, slot_spans):
@@ -478,8 +504,8 @@ def update_slot_mentions(slot_span_batch, attn_idxs):
 
             attn_weight_matched = False
 
-            if 'value' in slot_span and not slot_span['is_boolean']:
-                for elem_idx, value_elem_span in enumerate(slot_span['value']):
+            if 'value_span' in slot_span and not slot_span['is_boolean']:
+                for elem_idx, value_elem_span in enumerate(slot_span['value_span']):
                     # TODO: optimize by breaking out of the loop if attn_idx is less than the position of the 1st element or greater than the position of the last element
                     if value_elem_span[0] <= attn_idx <= value_elem_span[1]:
                         slot_span['mentioned'][elem_idx] = True
@@ -487,7 +513,7 @@ def update_slot_mentions(slot_span_batch, attn_idxs):
                         break
             else:
                 # For Boolean slots and slots without a value, match the slot's name
-                if slot_span['name'][0] <= attn_idx <= slot_span['name'][1]:
+                if slot_span['name_span'][0] <= attn_idx <= slot_span['name_span'][1]:
                     slot_span['mentioned'][0] = True
                     attn_weight_matched = True
 
@@ -546,7 +572,8 @@ def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cp
     eval_configurations = []
 
     # Generate decoded utterances
-    predictions = generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, device=device)
+    predictions, slot_errors = generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec,
+                                                   bool_slots=test_set.bool_slots, device=device)
 
     if config.semantic_reranking:
         # Rerank generated beams based on semantic accuracy
@@ -558,6 +585,10 @@ def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cp
     # For the evaluation of non-reranked predictions select the top candidate from the generated pool
     predictions = [pred_beam[0] for pred_beam in predictions]
     eval_configurations.insert(0, (predictions, False))
+
+    if slot_errors:
+        # slot_errors = [slot_error_beam[0] for slot_error_beam in slot_errors]
+        eval_utils.save_slot_errors(config, test_set, eval_configurations, slot_errors)
 
     if test_set.name == 'multiwoz':
         # Evaluate the generated utterances on the BLEU metric with just single references
@@ -654,8 +685,8 @@ def generate_from_input(config, input_str, dataset_class, device='cpu'):
     test_data_loader = DataLoader(test_set, batch_size=1, shuffle=False, num_workers=0)
 
     # Generate decoded utterances
-    utterances = generate_and_decode(config, test_data_loader, tokenizer, model, is_enc_dec,
-                                     bool_slots=test_set.bool_slots, device=device)
+    utterances, slot_errors = generate_and_decode(config, test_data_loader, tokenizer, model, is_enc_dec,
+                                                  bool_slots=test_set.bool_slots, device=device)
 
     print('>> Generated utterance(s):')
     print('\n'.join(utterances[0]))
@@ -721,10 +752,12 @@ def main():
         # input_str = "name[The Wrestlers], eatType[pub], food[Japanese], priceRange[£20-25], area[riverside], familyFriendly[yes], near[Raja Indian Cuisine]"
 
         # Video games (ViGGO)
-        input_str = "inform(name[Tomb Raider: The Last Revelation], release_year[1999], esrb[T (for Teen)], genres[action-adventure, puzzle, shooter], platforms[PlayStation, PC], available_on_steam[yes], has_linux_release[no], has_mac_release[yes])"
+        # input_str = "inform(name[Tomb Raider: The Last Revelation], release_year[1999], esrb[T (for Teen)], genres[action-adventure, puzzle, shooter], platforms[PlayStation, PC], available_on_steam[yes], has_linux_release[no], has_mac_release[yes])"
         # input_str = "inform(name[Assassin's Creed Chronicles: India], release_year[2016], genres[action-adventure, platformer], player_perspective[side view], has_multiplayer[no])"
         # input_str = "recommend(name[Crysis], has_multiplayer[yes], platforms[Xbox])"
         # input_str = "request_explanation(esrb[E (for Everyone)], rating[good], genres[adventure, platformer, puzzle])"
+        # input_str = "verify_attribute(name[Uncharted 4: A Thief's End], esrb[T (for Teen)], rating[excellent])"
+        input_str = "request_explanation(rating[poor], genres[vehicular combat], player_perspective[third person])"
 
         generate_from_input(TestConfig(config), input_str, dataset_class, device=device)
 
