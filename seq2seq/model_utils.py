@@ -5,7 +5,7 @@ import torch
 from transformers import BartConfig, BartForConditionalGeneration, BartTokenizer
 from transformers import GPT2Config, GPT2LMHeadModel, GPT2Tokenizer
 from transformers import T5Config, T5ForConditionalGeneration, T5Tokenizer
-from transformers.modeling_bart import shift_tokens_right
+from transformers.models.bart.modeling_bart import shift_tokens_right
 import yaml
 
 
@@ -443,22 +443,24 @@ def get_slot_spans(input_id_batch, bool_slots, tokenizer):
         cur_slot = {}
 
         for tok_pos, tok in enumerate(input_tokens):
-            if tok == '=':
+            # TODO: skip BOS token
+            tok_stripped = tok.strip()
+            if tok_stripped == '=':
                 cur_slot['name'] = (cur_name_beg, tok_pos - 1)
                 cur_slot['value'] = []
                 cur_value_beg = tok_pos + 1
             # TODO: only do this for list-slots to avoid false positives (e.g., in address slots)
-            elif tok == ',':
+            elif tok_stripped == ',':
                 cur_slot['value'].append((cur_value_beg, tok_pos - 1))
                 cur_value_beg = tok_pos + 1
-            elif tok in ['|', tokenizer.eos_token]:
+            elif tok_stripped in ['|', tokenizer.eos_token]:
                 if cur_value_beg > cur_name_beg:
                     cur_slot['value'].append((cur_value_beg, tok_pos - 1))
                 else:
                     cur_slot['name'] = (cur_name_beg, tok_pos - 1)
 
                 # Ignore non-content slots, and mark Boolean slots
-                slot_name = tokenizer.decode(input_ids[cur_slot['name'][0]:cur_slot['name'][1] + 1])
+                slot_name = tokenizer.decode(input_ids[cur_slot['name'][0]:cur_slot['name'][1] + 1]).strip()
                 if slot_name not in {'intent', 'topic'}:
                     cur_slot['is_boolean'] = slot_name in bool_slots
                     cur_slot['mentioned'] = [False] * max(1, len(cur_slot.get('value', [])))

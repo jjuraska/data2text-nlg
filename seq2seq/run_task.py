@@ -389,41 +389,33 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
 
     Note: currently, this performs a simple greedy decoding.
     """
-    encoded_sequence = tuple()
     outputs = None
     attention_weights = {}
 
-    # Initialize the decoder's input sequence with the BOS token
-    # TODO: Make this model-independent (currently works for T5 only)
-    decoder_input_ids = tokenizer('<pad>', add_special_tokens=False, return_tensors='pt').input_ids.to(device)
+    # Initialize the decoder's input sequence with the corresponding token
+    decoder_input_ids = torch.tensor([[model.config.decoder_start_token_id]], dtype=torch.long).to(device)
 
-    assert decoder_input_ids[0, 0].item() == model.config.decoder_start_token_id,\
-        "`decoder_input_ids` should correspond to `model.config.decoder_start_token_id`"
+    # Run the input sequence through the encoder and get the encoded input sequence
+    encoder = model.get_encoder()
+    encoded_sequence = encoder(input_ids, output_attentions=True)
+
+    # Save the encoder's self-attention weights
+    attention_weights['enc_attn_weights'] = [weight_tensor.squeeze().tolist() for weight_tensor in encoded_sequence.attentions]
 
     for step in range(max_length):
-        if step == 0:
-            # Run the input sequence through the encoder, and have the decoder generate the first logit
-            outputs = model(input_ids, decoder_input_ids=decoder_input_ids, output_attentions=True, return_dict=True)
-
-            # Get the encoded input sequence
-            encoded_sequence = (outputs.encoder_last_hidden_state,)
-
-            # Save the encoder's self-attention weights
-            attention_weights['enc_attn_weights'] = [weight_tensor.squeeze().tolist() for weight_tensor in outputs.encoder_attentions]
-        else:
-            # Reuse the encoded inputs, and pass the sequence generated so far as inputs to the decoder
-            outputs = model(None, encoder_outputs=encoded_sequence, decoder_input_ids=decoder_input_ids,
-                            output_attentions=True, return_dict=True)
+        # Reuse the encoded inputs, and pass the sequence generated so far as inputs to the decoder
+        outputs = model(None, encoder_outputs=encoded_sequence, decoder_input_ids=decoder_input_ids,
+                        output_attentions=True, return_dict=True)
 
         logits = outputs.logits
 
         next_decoder_input_ids = select_next_token(logits, outputs.cross_attentions, slot_spans)
 
         # Select the token with the highest probability as the next generated token (~ greedy decoding)
-        next_decoder_input_ids = torch.argmax(logits[:, -1:], axis=-1)
+        next_decoder_input_ids = torch.argmax(logits[:, -1, :], axis=-1)
 
         # Append the current output token's ID to the sequence generated so far
-        decoder_input_ids = torch.cat([decoder_input_ids, next_decoder_input_ids], axis=-1)
+        decoder_input_ids = torch.cat([decoder_input_ids, next_decoder_input_ids.unsqueeze(-1)], axis=-1)
 
         # DEBUG
         # for i in range(len(outputs.cross_attentions)):
@@ -722,10 +714,18 @@ def main():
     elif args.task == 'test':
         batch_test(TestConfig(config), dataset_class, device=device)
     elif args.task == 'generate':
+        # Restaurants (E2E)
+        # input_str = "name[The Cricketers], eatType[restaurant], food[English], priceRange[high], customer rating[average], area[riverside], familyFriendly[no], near[Café Rouge]"
+        # input_str = "name[The Phoenix], eatType[restaurant], food[Indian], priceRange[£20-25], customer rating[high], area[riverside], familyFriendly[yes], near[Crowne Plaza Hotel]"
+        # input_str = "name[The Punter], eatType[restaurant], food[Italian], priceRange[cheap], customer rating[average], area[riverside], familyFriendly[yes], near[Rainbow Vegetarian Café]"
+        # input_str = "name[The Wrestlers], eatType[pub], food[Japanese], priceRange[£20-25], area[riverside], familyFriendly[yes], near[Raja Indian Cuisine]"
+
+        # Video games (ViGGO)
         input_str = "inform(name[Tomb Raider: The Last Revelation], release_year[1999], esrb[T (for Teen)], genres[action-adventure, puzzle, shooter], platforms[PlayStation, PC], available_on_steam[yes], has_linux_release[no], has_mac_release[yes])"
         # input_str = "inform(name[Assassin's Creed Chronicles: India], release_year[2016], genres[action-adventure, platformer], player_perspective[side view], has_multiplayer[no])"
         # input_str = "recommend(name[Crysis], has_multiplayer[yes], platforms[Xbox])"
         # input_str = "request_explanation(esrb[E (for Everyone)], rating[good], genres[adventure, platformer, puzzle])"
+
         generate_from_input(TestConfig(config), input_str, dataset_class, device=device)
 
 

@@ -132,6 +132,7 @@ dmypy.json
 .idea/
 
 # Output directories
+seq2seq/attention/
 seq2seq/export/
 seq2seq/model/
 seq2seq/predictions/
