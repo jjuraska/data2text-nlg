@@ -482,6 +482,16 @@ def select_next_token(logits, attn_weights, slot_spans, eos_token_id):
     # print('>> attn_weights.shape (current time step only):', attn_weights.shape)
     # print()
 
+    # Extract the attention weights from the 1st decoder layer only, and aggregate them across heads
+    attn_weights_first_layer = preprocess_attn_weights(
+        attn_weights[0:1, :, :, :], head_agg_mode='max', layer_agg_mode=None)
+    attn_weights_first_layer = binarize_weights(
+        attn_weights_first_layer, threshold=0.5, keep_max_only=True).squeeze(axis=(1, 2))
+    attn_idxs = np.where(attn_weights_first_layer == 1)
+
+    # Update slot mentions with a high confidence
+    update_slot_mentions(slot_spans, attn_idxs, confidence=True)
+
     if torch.argmax(logits[:, -1, :], axis=-1).item() == eos_token_id:
         # Remove slot mentions if they have a high attention weight associated with the EOS token
         attn_weights_agg = preprocess_attn_weights(attn_weights, head_agg_mode='max', layer_agg_mode='avg')
@@ -490,17 +500,7 @@ def select_next_token(logits, attn_weights, slot_spans, eos_token_id):
 
         remove_slot_mentions(slot_spans, attn_idxs)
     else:
-        # 1.) Extract the attention weights from the 1st decoder layer only, and aggregate them across heads
-        attn_weights_first_layer = preprocess_attn_weights(
-            attn_weights[0:1, :, :, :], head_agg_mode='max', layer_agg_mode=None)
-        attn_weights_first_layer = binarize_weights(
-            attn_weights_first_layer, threshold=0.5, keep_max_only=True).squeeze(axis=(1, 2))
-        attn_idxs = np.where(attn_weights_first_layer == 1)
-
-        # Update slot mentions with a high confidence
-        update_slot_mentions(slot_spans, attn_idxs, confidence=True)
-
-        # 2.) Aggregate the attention weights across both the heads and the layers
+        # Aggregate the attention weights across both the heads and the layers
         attn_weights_agg = preprocess_attn_weights(attn_weights, head_agg_mode='max', layer_agg_mode='avg')
         attn_weights_agg = binarize_weights(attn_weights_agg, threshold=0.3, keep_max_only=True).squeeze(axis=(1, 2))
         attn_idxs = np.where(attn_weights_agg == 1)
