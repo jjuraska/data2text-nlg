@@ -464,7 +464,9 @@ def get_slot_spans(input_id_batch, bool_slots, tokenizer):
                 if slot_name not in {'intent', 'topic'}:
                     cur_slot['name'] = slot_name
                     cur_slot['is_boolean'] = slot_name in bool_slots
-                    cur_slot['mentioned'] = [False] * max(1, len(cur_slot.get('value_span', [])))
+                    num_value_elements = max(1, len(cur_slot.get('value_span', [])))
+                    cur_slot['mentioned'] = [False] * num_value_elements
+                    cur_slot['confidence'] = [False] * num_value_elements
                     slot_spans.append(cur_slot)
 
                 cur_name_beg = tok_pos + 1

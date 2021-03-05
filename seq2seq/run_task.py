@@ -330,15 +330,15 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
 
                 slot_errors.extend(slot_error_list)
 
-                # Save the input and output sequences (as lists of tokens) along with the attention weights
-                attn_weights['input_tokens'] = [tokenizer.decode(input_id, skip_special_tokens=False)
-                                                for input_id in batch['input_ids'][0]]
-                attn_weights['output_tokens'] = [tokenizer.decode(output_id, skip_special_tokens=False)
-                                                 for output_id in outputs[0][1:]]
-
-                # Export attention weights for visualization
-                with open(os.path.join('seq2seq', 'attention', 'attention_weights.pkl'), 'wb') as f_attn:
-                    pickle.dump(attn_weights, f_attn)
+                # # Save the input and output sequences (as lists of tokens) along with the attention weights
+                # attn_weights['input_tokens'] = [tokenizer.decode(input_id, skip_special_tokens=False)
+                #                                 for input_id in batch['input_ids'][0]]
+                # attn_weights['output_tokens'] = [tokenizer.decode(output_id, skip_special_tokens=False)
+                #                                  for output_id in outputs[0][1:]]
+                #
+                # # Export attention weights for visualization
+                # with open(os.path.join('seq2seq', 'attention', 'attention_weights.pkl'), 'wb') as f_attn:
+                #     pickle.dump(attn_weights, f_attn)
             else:
                 num_seqs_per_input = config.num_return_sequences
                 outputs = model.generate(input_tensor,
@@ -412,7 +412,7 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
 
         logits = outputs.logits
 
-        next_decoder_input_ids = select_next_token(logits, outputs.cross_attentions, slot_spans)
+        next_decoder_input_ids = select_next_token(logits, outputs.cross_attentions, slot_spans, tokenizer.eos_token_id)
 
         # Select the token with the highest probability as the next generated token (~ greedy decoding)
         next_decoder_input_ids = torch.argmax(logits[:, -1, :], axis=-1)
@@ -467,66 +467,127 @@ def evaluate_slot_mentions(slot_mentions_batch):
     return slot_errors_batch
 
 
-def select_next_token(logits, attn_weights, slot_spans):
+def select_next_token(logits, attn_weights, slot_spans, eos_token_id):
     # DEBUG
     # print('>> logits.size():', logits.size())
     # print('>> attn_weights[0].shape:', attn_weights[0].shape)
     # print()
 
-    # Extract the weights from the 1st decoder layer only, and remove the batch dimension
-    attn_weights = attn_weights[0].detach().cpu().numpy().squeeze(axis=0)
-    # Add the layer dimension back, and ignore weights from other than the most recent step in the sequence
-    attn_weights = attn_weights[np.newaxis, :, -1:, :]
+    # Convert from a tuple to an array, and remove the batch dimension
+    attn_weights = np.stack([layer.detach().cpu().numpy().squeeze(axis=0) for layer in attn_weights])
+    # Ignore weights from other than the most recent step in the sequence
+    attn_weights = attn_weights[:, :, -1:, :]
 
     # DEBUG
-    # print('>> attn_weights.shape (after filtering):', attn_weights.shape)
+    # print('>> attn_weights.shape (current time step only):', attn_weights.shape)
     # print()
 
-    # TODO: Experiment with both aggregations as max and threshold 0.5
-    attn_weights = preprocess_attn_weights(attn_weights, head_agg_mode='max', layer_agg_mode=None)
+    if torch.argmax(logits[:, -1, :], axis=-1).item() == eos_token_id:
+        # Remove slot mentions if they have a high attention weight associated with the EOS token
+        attn_weights_agg = preprocess_attn_weights(attn_weights, head_agg_mode='max', layer_agg_mode='avg')
+        attn_weights_agg = binarize_weights(attn_weights_agg, threshold=0.1).squeeze(axis=(1, 2))
+        attn_idxs = np.where(attn_weights_agg == 1)
 
-    attn_weights = binarize_weights(attn_weights, threshold=0.5).squeeze(axis=(1, 2))
-    attn_idxs = np.where(attn_weights == 1)
+        remove_slot_mentions(slot_spans, attn_idxs)
+    else:
+        # 1.) Extract the attention weights from the 1st decoder layer only, and aggregate them across heads
+        attn_weights_first_layer = preprocess_attn_weights(
+            attn_weights[0:1, :, :, :], head_agg_mode='max', layer_agg_mode=None)
+        attn_weights_first_layer = binarize_weights(
+            attn_weights_first_layer, threshold=0.5, keep_max_only=True).squeeze(axis=(1, 2))
+        attn_idxs = np.where(attn_weights_first_layer == 1)
 
-    # DEBUG
-    # print('>> attn_weights.shape (after binarizing):', attn_weights.shape)
-    # print('>> attn_idxs:', attn_idxs)
-    # print()
+        # Update slot mentions with a high confidence
+        update_slot_mentions(slot_spans, attn_idxs, confidence=True)
 
-    update_slot_mentions(slot_spans, attn_idxs)
+        # 2.) Aggregate the attention weights across both the heads and the layers
+        attn_weights_agg = preprocess_attn_weights(attn_weights, head_agg_mode='max', layer_agg_mode='avg')
+        attn_weights_agg = binarize_weights(attn_weights_agg, threshold=0.3, keep_max_only=True).squeeze(axis=(1, 2))
+        attn_idxs = np.where(attn_weights_agg == 1)
+
+        # DEBUG
+        # print('>> attn_weights_agg.shape (after binarizing):', attn_weights_agg.shape)
+        # print('>> attn_idxs:', attn_idxs)
+        # print()
+
+        # Update slot mentions with a low confidence
+        update_slot_mentions(slot_spans, attn_idxs, confidence=False)
 
 
-def update_slot_mentions(slot_span_batch, attn_idxs):
+def update_slot_mentions(slot_mention_batch, attn_idxs, confidence=False):
     for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[1]):
-        for slot_span in slot_span_batch[batch_idx]:
-            if all(slot_span['mentioned']):
+        for slot in slot_mention_batch[batch_idx]:
+            if all(slot['mentioned']) and all(slot['confidence']):
                 continue
 
             attn_weight_matched = False
 
-            if 'value_span' in slot_span and not slot_span['is_boolean']:
-                for elem_idx, value_elem_span in enumerate(slot_span['value_span']):
+            if 'value_span' in slot and not slot['is_boolean']:
+                for elem_idx, value_elem_span in enumerate(slot['value_span']):
                     # TODO: optimize by breaking out of the loop if attn_idx is less than the position of the 1st element or greater than the position of the last element
                     if value_elem_span[0] <= attn_idx <= value_elem_span[1]:
-                        slot_span['mentioned'][elem_idx] = True
+                        slot['mentioned'][elem_idx] = True
+                        if not slot['confidence'][elem_idx]:
+                            slot['confidence'][elem_idx] = confidence
                         attn_weight_matched = True
                         break
             else:
                 # For Boolean slots and slots without a value, match the slot's name
-                if slot_span['name_span'][0] <= attn_idx <= slot_span['name_span'][1]:
-                    slot_span['mentioned'][0] = True
+                if slot['name_span'][0] <= attn_idx <= slot['name_span'][1]:
+                    slot['mentioned'][0] = True
+                    if not slot['confidence'][0]:
+                        slot['confidence'][0] = confidence
                     attn_weight_matched = True
 
             if attn_weight_matched:
                 break
 
 
-def preprocess_attn_weights(attn_weights, head_agg_mode=None, layer_agg_mode=None):
+def remove_slot_mentions(slot_mention_batch, attn_idxs):
+    for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[1]):
+        for slot in slot_mention_batch[batch_idx]:
+            if not any(slot['mentioned']):
+                continue
+
+            attn_weight_matched = False
+
+            if 'value_span' in slot and not slot['is_boolean']:
+                for elem_idx, value_elem_span in enumerate(slot['value_span']):
+                    # TODO: optimize by breaking out of the loop if attn_idx is less than the position of the 1st element or greater than the position of the last element
+                    if value_elem_span[0] <= attn_idx <= value_elem_span[1]:
+                        if not slot['confidence'][elem_idx]:
+                            slot['mentioned'][elem_idx] = False
+                        attn_weight_matched = True
+                        break
+            else:
+                # For Boolean slots and slots without a value, match the slot's name
+                if slot['name_span'][0] <= attn_idx <= slot['name_span'][1]:
+                    if not slot['confidence'][0]:
+                        slot['mentioned'][0] = False
+                    attn_weight_matched = True
+
+            if attn_weight_matched:
+                break
+
+
+def preprocess_attn_weights(attn_weights, head_agg_mode=None, layer_agg_mode=None, threshold=0.0):
     if head_agg_mode:
+        # num_heads = attn_weights.shape[1]
         attn_weights = aggregate_across_heads(attn_weights, mode=head_agg_mode)
 
     if layer_agg_mode:
+        # num_layers = attn_weights.shape[0]
+        # middle_layer_idx = num_layers // 2
+
         attn_weights = aggregate_across_layers(attn_weights, mode=layer_agg_mode)
+        # attn_weights = aggregate_across_layers(attn_weights[0:middle_layer_idx, :, :, :], mode=layer_agg_mode)
+        # for layer_idx in range(1, middle_layer_idx + 1):
+        #     attn_weights_aggr = aggregate_across_layers(attn_weights[0:layer_idx, :, :, :], mode=layer_agg_mode)
+        #     max_weights = attn_weights_aggr.max(axis=-1)[:, :, :, np.newaxis]
+        #     attn_weights_aggr[np.nonzero(attn_weights_aggr < threshold)] = 0
+        #     if (attn_weights_aggr == max_weights).any() or layer_idx == middle_layer_idx:
+        #         attn_weights = attn_weights_aggr
+        #         break
 
     return attn_weights
 
@@ -545,7 +606,7 @@ def aggregate_across_heads(attn_weights, mode='max'):
     return head_maxs[:, np.newaxis, :, :]
 
 
-def aggregate_across_layers(attn_weights, mode='avg'):
+def aggregate_across_layers(attn_weights, mode='max'):
     """Sums weights across all layers, and normalizes the weights by these sums."""
     if mode == 'max':
         layer_sums = np.max(attn_weights, axis=0)
@@ -559,11 +620,15 @@ def aggregate_across_layers(attn_weights, mode='avg'):
     return layer_sums[np.newaxis, :, :, :]
 
 
-def binarize_weights(attn_weights, threshold=0.0):
-    max_weights = attn_weights.max(axis=-1)[:, :, :, np.newaxis]
+def binarize_weights(attn_weights, threshold=0.0, keep_max_only=False):
+    if keep_max_only:
+        max_weights = attn_weights.max(axis=-1)[:, :, :, np.newaxis]
 
-    attn_weights[np.nonzero(attn_weights < threshold)] = 0
-    attn_weights = (attn_weights == max_weights).astype(int)
+        attn_weights[np.nonzero(attn_weights < threshold)] = 0
+        attn_weights = (attn_weights == max_weights).astype(int)
+    else:
+        attn_weights[np.nonzero(attn_weights < threshold)] = 0
+        attn_weights[np.nonzero(attn_weights >= threshold)] = 1
 
     return attn_weights
 
@@ -757,7 +822,16 @@ def main():
         # input_str = "recommend(name[Crysis], has_multiplayer[yes], platforms[Xbox])"
         # input_str = "request_explanation(esrb[E (for Everyone)], rating[good], genres[adventure, platformer, puzzle])"
         # input_str = "verify_attribute(name[Uncharted 4: A Thief's End], esrb[T (for Teen)], rating[excellent])"
-        input_str = "request_explanation(rating[poor], genres[vehicular combat], player_perspective[third person])"
+        # input_str = "request_explanation(rating[poor], genres[vehicular combat], player_perspective[third person])"
+        # input_str = "inform(name[Tom Clancy's The Division], esrb[M (for Mature)], rating[average], genres[role-playing, shooter, tactical], player_perspective[third person], has_multiplayer[yes], platforms[PlayStation, Xbox, PC], available_on_steam[yes])"
+        # input_str = "give_opinion(name[Mirror's Edge Catalyst], rating[poor], available_on_steam[no])"
+        # input_str = "recommend(name[Madden NFL 15], genres[simulation, sport])"
+        # input_str = "inform(name[World of Warcraft], release_year[2004], developer[Blizzard Entertainment], genres[adventure, MMORPG])"
+        # input_str = "request(genres[driving/racing, simulation, sport], specifier[exciting])"
+        # input_str = "inform(name[F1 2014], release_year[2014], rating[average], genres[driving/racing, simulation, sport])"
+        # input_str = "suggest(name[The Sims], platforms[PC], available_on_steam[no])"
+        # input_str = "request_attribute(developer[])"
+        input_str = "recommend(name[F1 2014], genres[driving/racing, simulation, sport], platforms[PC])"
 
         generate_from_input(TestConfig(config), input_str, dataset_class, device=device)
 
