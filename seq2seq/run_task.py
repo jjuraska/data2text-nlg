@@ -543,6 +543,51 @@ def update_slot_mentions(slot_mention_batch, attn_idxs, confidence=False):
                 break
 
 
+def update_slot_mentions_ALT(slot_mention_batch, attn_idxs, confidence=False):
+    for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[1]):
+        for slot in slot_mention_batch[batch_idx]:
+            if all(slot['mentioned']) and all(slot['confidence']):
+                continue
+
+            attn_weight_matched = False
+
+            if 'value_span' in slot and (not slot['is_boolean'] or slot.get('is_boolean_neg', False)):
+                for elem_idx, value_elem_span in enumerate(slot['value_span']):
+                    # TODO: optimize by breaking out of the loop if attn_idx is less than the position of the 1st element or greater than the position of the last element
+                    if value_elem_span[0] <= attn_idx <= value_elem_span[1]:
+                        if slot.get('is_boolean_neg', False):
+                            if slot['mentioned'][elem_idx] is False:
+                                slot['mentioned'][elem_idx] = None
+                            else:
+                                slot['mentioned'][elem_idx] = True
+                        else:
+                            slot['mentioned'][elem_idx] = True
+
+                        if not slot['confidence'][elem_idx]:
+                            slot['confidence'][elem_idx] = confidence
+                        attn_weight_matched = True
+
+                        break
+
+            if 'value_span' not in slot or slot['is_boolean']:
+                # For Boolean slots and slots without a value, match the slot's name
+                if slot['name_span'][0] <= attn_idx <= slot['name_span'][1]:
+                    if slot.get('is_boolean_neg', False):
+                        if slot['mentioned'][0] is False:
+                            slot['mentioned'][0] = None
+                        else:
+                            slot['mentioned'][0] = True
+                    else:
+                        slot['mentioned'][0] = True
+
+                    if not slot['confidence'][0]:
+                        slot['confidence'][0] = confidence
+                    attn_weight_matched = True
+
+            if attn_weight_matched:
+                break
+
+
 def remove_slot_mentions(slot_mention_batch, attn_idxs):
     for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[1]):
         for slot in slot_mention_batch[batch_idx]:

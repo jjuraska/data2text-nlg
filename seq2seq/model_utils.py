@@ -464,6 +464,16 @@ def get_slot_spans(input_id_batch, bool_slots, tokenizer):
                 if slot_name not in {'intent', 'topic'}:
                     cur_slot['name'] = slot_name
                     cur_slot['is_boolean'] = slot_name in bool_slots
+
+                    # For Boolean slots, determine whether their value is negative or not
+                    # if cur_slot['is_boolean'] and 'value_span' in cur_slot:
+                    #     if len(cur_slot['value_span']) == 1:
+                    #         slot_value = [tokenizer.decode(input_ids[val_span[0]:val_span[1] + 1]).strip()
+                    #                       for val_span in cur_slot['value_span']]
+                    #         cur_slot['is_boolean_neg'] = slot_value[0] in {'no', 'false'}
+                    #     else:
+                    #         cur_slot['is_boolean_neg'] = False
+
                     num_value_elements = max(1, len(cur_slot.get('value_span', [])))
                     cur_slot['mentioned'] = [False] * num_value_elements
                     cur_slot['confidence'] = [False] * num_value_elements
