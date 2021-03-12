@@ -310,7 +310,8 @@ def prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False, bo
                 """Prepare decoder inputs manually because BART gets confused by the -100 mask values during
                 automatic generation of decoder inputs from labels, expecting the padding token IDs instead. 
                 T5 infers decoder input IDs and mask automatically from labels."""
-                batch_dict['decoder_input_ids'] = shift_tokens_right(labels['input_ids'], tokenizer.pad_token_id)
+                batch_dict['decoder_input_ids'] = shift_tokens_right(
+                    labels['input_ids'], tokenizer.pad_token_id, tokenizer.eos_token_id)
                 # batch_dict['decoder_mask'] = labels['attention_mask']
 
         if bool_slots:
@@ -435,7 +436,7 @@ def get_slot_spans(input_id_batch, bool_slots, tokenizer):
     slot_span_batch = []
 
     for i, input_ids in enumerate(input_id_batch):
-        input_tokens = [tokenizer.decode(input_id, skip_special_tokens=False) for input_id in input_ids]
+        input_tokens = [tokenizer.decode(input_id, skip_special_tokens=True) for input_id in input_ids]
 
         slot_spans = []
         cur_name_beg = 0
@@ -443,7 +444,6 @@ def get_slot_spans(input_id_batch, bool_slots, tokenizer):
         cur_slot = {}
 
         for tok_pos, tok in enumerate(input_tokens):
-            # TODO: skip BOS token
             tok_stripped = tok.strip()
             if tok_stripped == '=':
                 cur_slot['name_span'] = (cur_name_beg, tok_pos - 1)
@@ -453,14 +453,17 @@ def get_slot_spans(input_id_batch, bool_slots, tokenizer):
             elif tok_stripped == ',':
                 cur_slot['value_span'].append((cur_value_beg, tok_pos - 1))
                 cur_value_beg = tok_pos + 1
-            elif tok_stripped in ['|', tokenizer.eos_token]:
+            elif tok_stripped == '|' or tok_pos == len(input_tokens) - 1:
                 if cur_value_beg > cur_name_beg:
                     cur_slot['value_span'].append((cur_value_beg, tok_pos - 1))
                 else:
                     cur_slot['name_span'] = (cur_name_beg, tok_pos - 1)
 
+                # Decode the slot's name
+                slot_name = tokenizer.decode(
+                    input_ids[cur_slot['name_span'][0]:cur_slot['name_span'][1] + 1], skip_special_tokens=True).strip()
+
                 # Ignore non-content slots, and mark Boolean slots
-                slot_name = tokenizer.decode(input_ids[cur_slot['name_span'][0]:cur_slot['name_span'][1] + 1]).strip()
                 if slot_name not in {'intent', 'topic'}:
                     cur_slot['name'] = slot_name
                     cur_slot['is_boolean'] = slot_name in bool_slots
