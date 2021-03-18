@@ -402,6 +402,15 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
     encoder = model.get_encoder()
     encoded_sequence = encoder(input_ids, output_attentions=True)
 
+    # Determine the indices of special tokens in the input sequence
+    special_tokens = [tok for tok in [tokenizer.bos_token_id, tokenizer.eos_token_id] if tok is not None]
+    special_token_idxs = np.nonzero(input_ids.detach().cpu().numpy()[:, :, np.newaxis] == special_tokens)[:-1]
+
+    # DEBUG
+    # print('>> Indices of special tokens:')
+    # print(special_token_idxs)
+    # print()
+
     # Save the encoder's self-attention weights
     attention_weights['enc_attn_weights'] = [weight_tensor.squeeze().tolist() for weight_tensor in encoded_sequence.attentions]
 
@@ -412,7 +421,8 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
 
         logits = outputs.logits
 
-        next_decoder_input_ids = select_next_token(logits, outputs.cross_attentions, slot_spans, tokenizer.eos_token_id)
+        next_decoder_input_ids = select_next_token(
+            logits, outputs.cross_attentions, slot_spans, tokenizer.eos_token_id, special_token_idxs)
 
         # Select the token with the highest probability as the next generated token (~ greedy decoding)
         next_decoder_input_ids = torch.argmax(logits[:, -1, :], axis=-1)
@@ -467,7 +477,7 @@ def evaluate_slot_mentions(slot_mentions_batch):
     return slot_errors_batch
 
 
-def select_next_token(logits, attn_weights, slot_spans, eos_token_id):
+def select_next_token(logits, attn_weights, slot_spans, eos_token_id, special_token_idxs):
     # DEBUG
     # print('>> logits.size():', logits.size())
     # print('>> attn_weights[0].shape:', attn_weights[0].shape)
@@ -481,6 +491,11 @@ def select_next_token(logits, attn_weights, slot_spans, eos_token_id):
     # DEBUG
     # print('>> attn_weights.shape (current time step only):', attn_weights.shape)
     # print()
+
+    # Set the special-token attention weights to zero
+    if special_token_idxs:
+        # attn_weights[special_token_idxs[0], :, :, :, special_token_idxs[-1]] = 0.0
+        attn_weights[:, :, :, special_token_idxs[-1]] = 0.0
 
     # Extract the attention weights from the 1st decoder layer only, and aggregate them across heads
     attn_weights_first_layer = preprocess_attn_weights(
@@ -500,9 +515,13 @@ def select_next_token(logits, attn_weights, slot_spans, eos_token_id):
 
         remove_slot_mentions(slot_spans, attn_idxs)
     else:
+        num_layers = attn_weights.shape[0]
+        middle_layer_idx = num_layers // 2
+
         # Aggregate the attention weights across both the heads and the layers
-        attn_weights_agg = preprocess_attn_weights(attn_weights, head_agg_mode='max', layer_agg_mode='avg')
-        attn_weights_agg = binarize_weights(attn_weights_agg, threshold=0.3, keep_max_only=True).squeeze(axis=(1, 2))
+        attn_weights_agg = preprocess_attn_weights(
+            attn_weights[0:middle_layer_idx, :, :, :], head_agg_mode='max', layer_agg_mode='avg')
+        attn_weights_agg = binarize_weights(attn_weights_agg, threshold=0.3, keep_max_only=False).squeeze(axis=(1, 2))
         attn_idxs = np.where(attn_weights_agg == 1)
 
         # DEBUG
