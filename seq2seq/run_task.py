@@ -331,6 +331,8 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
                         model,
                         max_length=config.max_seq_length,
                         num_beams=config.num_beams,
+                        length_penalty=config.length_penalty,
+                        early_stopping=config.early_stopping,
                         device=device)
                 else:
                     num_seqs_per_input = 1
@@ -474,7 +476,7 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
     return decoder_input_ids, attention_weights, slot_errors
 
 
-def semantic_decoding_beam_search(input_ids, slot_spans, tokenizer, model, max_length=128, num_beams=1,
+def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model, max_length=128, num_beams=1,
                                   length_penalty=1.0, early_stopping=False, device='cpu'):
     """Performs a semantically guided inference from a structured MR input using beam search."""
     outputs = None
@@ -488,8 +490,10 @@ def semantic_decoding_beam_search(input_ids, slot_spans, tokenizer, model, max_l
     encoded_sequence = encoder(input_ids, output_attentions=True)
 
     # Determine the indices of special tokens in the input sequence
-    # special_tokens = [tok for tok in [tokenizer.bos_token_id, tokenizer.eos_token_id] if tok is not None]
-    # special_token_idxs = np.nonzero(input_ids.detach().cpu().numpy()[:, :, np.newaxis] == special_tokens)[:-1]
+    special_tokens = [tok for tok in [tokenizer.bos_token_id, tokenizer.eos_token_id] if tok is not None]
+    special_token_idxs = np.nonzero(
+        input_ids.detach().cpu().numpy().repeat(num_beams, axis=0)[:, :, np.newaxis] == special_tokens)[:-1]
+    batch_slot_spans = [copy.deepcopy(slot_spans) for _ in range(num_beams) for slot_spans in batch_slot_spans]
 
     # DEBUG
     # print('>> Indices of special tokens:')
@@ -530,6 +534,15 @@ def semantic_decoding_beam_search(input_ids, slot_spans, tokenizer, model, max_l
         next_token_scores = F.log_softmax(logits[:, -1, :], dim=-1)    # (batch_size * num_beams, vocab_size)
         next_token_scores = next_token_scores + beam_scores[:, None].expand_as(next_token_scores)
 
+        next_decoder_input_ids = select_next_token(
+            logits,
+            outputs.cross_attentions,
+            batch_slot_spans,
+            tokenizer.eos_token_id,
+            special_token_idxs,
+            num_seqs_per_input=num_beams
+        )
+
         # Reshape for beam search
         vocab_size = next_token_scores.shape[-1]
         next_token_scores = next_token_scores.view(batch_size, num_beams * vocab_size)
@@ -552,9 +565,6 @@ def semantic_decoding_beam_search(input_ids, slot_spans, tokenizer, model, max_l
         beam_next_tokens = beam_outputs['next_beam_tokens']
         beam_idx = beam_outputs['next_beam_indices']
 
-        # next_decoder_input_ids = select_next_token(
-        #     logits, outputs.cross_attentions, slot_spans, tokenizer.eos_token_id, special_token_idxs)
-
         # Append the current output token's ID to the sequence generated so far
         decoder_input_ids = torch.cat([decoder_input_ids[beam_idx, :], beam_next_tokens.unsqueeze(-1)], dim=-1)
 
@@ -575,6 +585,9 @@ def semantic_decoding_beam_search(input_ids, slot_spans, tokenizer, model, max_l
                                             pad_token_id=tokenizer.pad_token_id,
                                             eos_token_id=tokenizer.eos_token_id)
 
+    batch_slot_spans = [batch_slot_spans[beam_start_idx:beam_start_idx + num_beams]
+                        for beam_start_idx in range(0, len(batch_slot_spans), num_beams)]
+
     if outputs:
         # Save the decoder's self- and cross-attention weights; shape = (num_layers, batch_size, num_heads, sequence_length, sequence_length)
         attention_weights['dec_attn_weights'] = [weight_tensor.squeeze().tolist()
@@ -584,11 +597,10 @@ def semantic_decoding_beam_search(input_ids, slot_spans, tokenizer, model, max_l
 
     # DEBUG
     # print('>> Slot mentions:')
-    # print(slot_spans)
+    # print(batch_slot_spans)
     # print()
 
-    # slot_errors = evaluate_slot_mentions(slot_spans)
-    slot_errors = []
+    slot_errors = evaluate_slot_mentions(batch_slot_spans)
 
     # DEBUG
     # print('>> Slot errors:')
@@ -622,29 +634,30 @@ def expand_inputs_for_beam_search(input_ids, enc_outputs, attention_mask=None, e
 def evaluate_slot_mentions(slot_mentions_batch):
     slot_errors_batch = []
 
-    for slot_mentions in slot_mentions_batch:
-        slot_errors = []
+    for slot_mentions_beam in slot_mentions_batch:
+        slot_errors_beam = []
 
-        for slot in slot_mentions:
+        for slot_mentions in slot_mentions_beam:
             # If any of the slot's values were not mentioned, consider the slot mention erroneous
-            if not all(slot['mentioned']):
-                slot_errors.append(slot['name'])
+            slot_errors = [slot['name'] for slot in slot_mentions if not all(slot['mentioned'])]
+            slot_errors_beam.append(slot_errors)
 
-        slot_errors_batch.append(slot_errors)
+        slot_errors_batch.append(slot_errors_beam)
 
     return slot_errors_batch
 
 
-def select_next_token(logits, attn_weights, slot_spans, eos_token_id, special_token_idxs):
+def select_next_token(logits, attn_weights, slot_spans, eos_token_id, special_token_idxs, num_seqs_per_input=1):
     # DEBUG
     # print('>> logits.size():', logits.size())
     # print('>> attn_weights[0].shape:', attn_weights[0].shape)
     # print()
 
-    # Convert from a tuple to an array, and remove the batch dimension
-    attn_weights = np.stack([layer.detach().cpu().numpy().squeeze(axis=0) for layer in attn_weights])
+    # Convert from a tuple to an array, and move the batch dimension to the front
+    attn_weights = np.stack([layer.detach().cpu().numpy() for layer in attn_weights])
+    attn_weights = attn_weights.swapaxes(0, 1)
     # Ignore weights from other than the most recent step in the sequence
-    attn_weights = attn_weights[:, :, -1:, :]
+    attn_weights = attn_weights[:, :, :, -1:, :]    # (batch_size * num_beams, layers, heads, 1, input_len)
 
     # DEBUG
     # print('>> attn_weights.shape (current time step only):', attn_weights.shape)
@@ -652,47 +665,54 @@ def select_next_token(logits, attn_weights, slot_spans, eos_token_id, special_to
 
     # Set the special-token attention weights to zero
     if special_token_idxs:
-        # attn_weights[special_token_idxs[0], :, :, :, special_token_idxs[-1]] = 0.0
-        attn_weights[:, :, :, special_token_idxs[-1]] = 0.0
+        attn_weights[special_token_idxs[0], :, :, :, special_token_idxs[-1]] = 0.0
+        # attn_weights[:, :, :, special_token_idxs[-1]] = 0.0
 
     # Extract the attention weights from the 1st decoder layer only, and aggregate them across heads
     attn_weights_first_layer = preprocess_attn_weights(
-        attn_weights[0:1, :, :, :], head_agg_mode='max', layer_agg_mode=None)
+        attn_weights[:, 0:1, :, :, :].copy(), head_agg_mode='max', layer_agg_mode=None)
     attn_weights_first_layer = binarize_weights(
-        attn_weights_first_layer, threshold=0.5, keep_max_only=True).squeeze(axis=(1, 2))
+        attn_weights_first_layer, threshold=0.5, keep_max_only=True).squeeze(axis=(2, 3))
     attn_idxs = np.where(attn_weights_first_layer == 1)
 
     # Update slot mentions with a high confidence
     update_slot_mentions(slot_spans, attn_idxs, confidence=True)
 
-    if torch.argmax(logits[:, -1, :], axis=-1).item() == eos_token_id:
-        # Remove slot mentions if they have a high attention weight associated with the EOS token
-        attn_weights_agg = preprocess_attn_weights(attn_weights, head_agg_mode='max', layer_agg_mode='avg')
-        attn_weights_agg = binarize_weights(attn_weights_agg, threshold=0.1).squeeze(axis=(1, 2))
-        attn_idxs = np.where(attn_weights_agg == 1)
+    batch_idxs_without_eos = np.where(torch.argmax(logits[:, -1, :], axis=-1).detach().cpu().numpy() != eos_token_id)
+    attn_weights_agg = attn_weights.copy()
+    attn_weights_agg[batch_idxs_without_eos] = 0.0
 
-        remove_slot_mentions(slot_spans, attn_idxs)
-    else:
-        num_layers = attn_weights.shape[0]
-        middle_layer_idx = num_layers // 2
+    # Remove slot mentions if they have a high attention weight associated with the EOS token
+    attn_weights_agg = preprocess_attn_weights(attn_weights_agg, head_agg_mode='max', layer_agg_mode='avg')
+    attn_weights_agg = binarize_weights(attn_weights_agg, threshold=0.1).squeeze(axis=(1, 2))
+    attn_idxs = np.where(attn_weights_agg == 1)
 
-        # Aggregate the attention weights across both the heads and the layers
-        attn_weights_agg = preprocess_attn_weights(
-            attn_weights[0:middle_layer_idx, :, :, :], head_agg_mode='max', layer_agg_mode='avg')
-        attn_weights_agg = binarize_weights(attn_weights_agg, threshold=0.3, keep_max_only=False).squeeze(axis=(1, 2))
-        attn_idxs = np.where(attn_weights_agg == 1)
+    remove_slot_mentions(slot_spans, attn_idxs)
 
-        # DEBUG
-        # print('>> attn_weights_agg.shape (after binarizing):', attn_weights_agg.shape)
-        # print('>> attn_idxs:', attn_idxs)
-        # print()
+    batch_idxs_with_eos = np.where(torch.argmax(logits[:, -1, :], axis=-1).detach().cpu().numpy() == eos_token_id)
+    attn_weights_agg = attn_weights.copy()
+    attn_weights_agg[batch_idxs_with_eos] = 0.0
 
-        # Update slot mentions with a low confidence
-        update_slot_mentions(slot_spans, attn_idxs, confidence=False)
+    num_layers = attn_weights.shape[0]
+    middle_layer_idx = num_layers // 2
+
+    # Aggregate the attention weights across both the heads and the layers
+    attn_weights_agg = preprocess_attn_weights(
+        attn_weights_agg[:, 0:middle_layer_idx, ...], head_agg_mode='max', layer_agg_mode='avg')
+    attn_weights_agg = binarize_weights(attn_weights_agg, threshold=0.3, keep_max_only=False).squeeze(axis=(1, 2))
+    attn_idxs = np.where(attn_weights_agg == 1)
+
+    # DEBUG
+    # print('>> attn_weights_agg.shape (after binarizing):', attn_weights_agg.shape)
+    # print('>> attn_idxs:', attn_idxs)
+    # print()
+
+    # Update slot mentions with a low confidence
+    update_slot_mentions(slot_spans, attn_idxs, confidence=False)
 
 
 def update_slot_mentions(slot_mention_batch, attn_idxs, confidence=False):
-    for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[1]):
+    for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[-1]):
         for slot in slot_mention_batch[batch_idx]:
             if all(slot['mentioned']) and all(slot['confidence']):
                 continue
@@ -817,34 +837,34 @@ def preprocess_attn_weights(attn_weights, head_agg_mode=None, layer_agg_mode=Non
 def aggregate_across_heads(attn_weights, mode='max'):
     """Sums weights across all heads, and normalizes the weights by these sums."""
     if mode == 'max':
-        head_maxs = attn_weights.max(axis=1)
+        head_maxs = attn_weights.max(axis=2)
     elif mode == 'sum':
-        head_maxs = attn_weights.sum(axis=1)
+        head_maxs = attn_weights.sum(axis=2)
     elif mode == 'avg':
-        head_maxs = attn_weights.mean(axis=1)
+        head_maxs = attn_weights.mean(axis=2)
     else:
         raise ValueError(f'Aggregation mode "{mode}" unrecognized')
 
-    return head_maxs[:, np.newaxis, :, :]
+    return head_maxs[:, :, np.newaxis, :, :]
 
 
 def aggregate_across_layers(attn_weights, mode='max'):
     """Sums weights across all layers, and normalizes the weights by these sums."""
     if mode == 'max':
-        layer_sums = np.max(attn_weights, axis=0)
+        layer_sums = np.max(attn_weights, axis=1)
     elif mode == 'sum':
-        layer_sums = np.sum(attn_weights, axis=0)
+        layer_sums = np.sum(attn_weights, axis=1)
     elif mode == 'avg':
-        layer_sums = np.mean(attn_weights, axis=0)
+        layer_sums = np.mean(attn_weights, axis=1)
     else:
         raise ValueError(f'Aggregation mode "{mode}" unrecognized')
 
-    return layer_sums[np.newaxis, :, :, :]
+    return layer_sums[:, np.newaxis, :, :, :]
 
 
 def binarize_weights(attn_weights, threshold=0.0, keep_max_only=False):
     if keep_max_only:
-        max_weights = attn_weights.max(axis=-1)[:, :, :, np.newaxis]
+        max_weights = attn_weights.max(axis=-1)[:, :, :, :, np.newaxis]
 
         attn_weights[np.nonzero(attn_weights < threshold)] = 0
         attn_weights = (attn_weights == max_weights).astype(int)
@@ -863,9 +883,14 @@ def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cp
                                                    bool_slots=test_set.bool_slots, device=device)
 
     if config.semantic_reranking:
-        # Rerank generated beams based on semantic accuracy
-        predictions_reranked = eval_utils.rerank_beams(
-            predictions, test_set.get_mrs(convert_slot_names=True), test_set.name)
+        if config.semantic_decoding:
+            # Rerank generated beams based on slot errors determined via attention tracking
+            predictions_reranked, slot_errors = eval_utils.rerank_beams_attention_based(predictions, slot_errors)
+        else:
+            # Rerank generated beams based on semantic accuracy
+            predictions_reranked = eval_utils.rerank_beams(
+                predictions, test_set.get_mrs(convert_slot_names=True), test_set.name)
+
         predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
         eval_configurations.append((predictions_reranked, True))
 
@@ -874,7 +899,7 @@ def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cp
     eval_configurations.insert(0, (predictions, False))
 
     if slot_errors:
-        # slot_errors = [slot_error_beam[0] for slot_error_beam in slot_errors]
+        slot_errors = [slot_error_beam[0] for slot_error_beam in slot_errors]
         eval_utils.save_slot_errors(config, test_set, eval_configurations, slot_errors)
 
     if test_set.name == 'multiwoz':
@@ -1039,13 +1064,13 @@ def main():
         # input_str = "name[The Wrestlers], eatType[pub], food[Japanese], priceRange[£20-25], area[riverside], familyFriendly[yes], near[Raja Indian Cuisine]"
 
         # Video games (ViGGO)
-        input_str = "inform(name[Tomb Raider: The Last Revelation], release_year[1999], esrb[T (for Teen)], genres[action-adventure, puzzle, shooter], platforms[PlayStation, PC], available_on_steam[yes], has_linux_release[no], has_mac_release[yes])"
+        # input_str = "inform(name[Tomb Raider: The Last Revelation], release_year[1999], esrb[T (for Teen)], genres[action-adventure, puzzle, shooter], platforms[PlayStation, PC], available_on_steam[yes], has_linux_release[no], has_mac_release[yes])"
         # input_str = "inform(name[Assassin's Creed Chronicles: India], release_year[2016], genres[action-adventure, platformer], player_perspective[side view], has_multiplayer[no])"
         # input_str = "recommend(name[Crysis], has_multiplayer[yes], platforms[Xbox])"
         # input_str = "request_explanation(esrb[E (for Everyone)], rating[good], genres[adventure, platformer, puzzle])"
         # input_str = "verify_attribute(name[Uncharted 4: A Thief's End], esrb[T (for Teen)], rating[excellent])"
         # input_str = "request_explanation(rating[poor], genres[vehicular combat], player_perspective[third person])"
-        # input_str = "inform(name[Tom Clancy's The Division], esrb[M (for Mature)], rating[average], genres[role-playing, shooter, tactical], player_perspective[third person], has_multiplayer[yes], platforms[PlayStation, Xbox, PC], available_on_steam[yes])"
+        input_str = "inform(name[Tom Clancy's The Division], esrb[M (for Mature)], rating[average], genres[role-playing, shooter, tactical], player_perspective[third person], has_multiplayer[yes], platforms[PlayStation, Xbox, PC], available_on_steam[yes])"
         # input_str = "give_opinion(name[Mirror's Edge Catalyst], rating[poor], available_on_steam[no])"
         # input_str = "recommend(name[Madden NFL 15], genres[simulation, sport])"
         # input_str = "inform(name[World of Warcraft], release_year[2004], developer[Blizzard Entertainment], genres[adventure, MMORPG])"

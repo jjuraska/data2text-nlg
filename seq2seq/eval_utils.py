@@ -100,6 +100,27 @@ def rerank_beams(beams, mrs, domain, keep_n=None, keep_least_errors_only=False):
     return beams_reranked
 
 
+def rerank_beams_attention_based(beams, slot_errors):
+    beams_reranked = []
+    slot_errors_reranked = []
+
+    for beam_utts, beam_errors in tqdm(zip(beams, slot_errors), desc='Reranking'):
+        beam_scored = list(zip(beam_utts, beam_errors))
+
+        # Rerank utterances by the number of slot errors (the lower the better)
+        beam_scored.sort(key=lambda tup: len(tup[1]))
+
+        # DEBUG
+        # print(beam_scored)
+        # print()
+
+        # Store the reranked beam utterances as well as slot errors
+        beams_reranked.append([utt[0] for utt in beam_scored])
+        slot_errors_reranked.append([utt[1] for utt in beam_scored])
+
+    return beams_reranked, slot_errors_reranked
+
+
 def execute_e2e_evaluation_script(config, test_set, eval_configurations):
     """Runs the evaluation script of the E2E NLG Challenge for multiple sets of generated utterances.
 
