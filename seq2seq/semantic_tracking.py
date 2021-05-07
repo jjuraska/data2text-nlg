@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import torch
 
@@ -245,3 +246,7 @@ def binarize_weights(attn_weights, threshold=0.0, keep_max_only=False):
         attn_weights_bin[np.nonzero(attn_weights_bin >= threshold)] = 1
 
     return attn_weights_bin
+
+
+def rearrange_slot_mentions_for_next_time_step(slot_spans, beam_idxs):
+    return [copy.deepcopy(slot_spans[beam_idx]) for beam_idx in beam_idxs]

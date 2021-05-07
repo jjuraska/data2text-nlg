@@ -7,7 +7,11 @@ from transformers.generation_beam_search import BeamSearchScorer
 from transformers.generation_stopping_criteria import MaxLengthCriteria, StoppingCriteriaList
 
 import seq2seq.model_utils as model_utils
-from seq2seq.semantic_tracking import evaluate_slot_mentions, select_next_token
+from seq2seq.semantic_tracking import (
+    evaluate_slot_mentions,
+    rearrange_slot_mentions_for_next_time_step,
+    select_next_token
+)
 
 
 def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_validation=False, bool_slots=None,
@@ -225,9 +229,9 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
     encoded_sequence = encoder(input_ids, attention_mask=attention_mask, output_attentions=True)
 
     # Determine the indices of special tokens in the input sequence
-    # special_tokens = [tok for tok in [tokenizer.bos_token_id, tokenizer.eos_token_id] if tok is not None]
-    # special_token_idxs = np.nonzero(
-    #     input_ids.detach().cpu().numpy().repeat(beam_size, axis=0)[:, :, np.newaxis] == special_tokens)[:-1]
+    special_tokens = [tok for tok in [tokenizer.bos_token_id, tokenizer.eos_token_id] if tok is not None]
+    special_token_idxs = np.nonzero(
+        input_ids.detach().cpu().numpy().repeat(beam_size, axis=0)[:, :, np.newaxis] == special_tokens)[:-1]
 
     # DEBUG
     # print('>> Indices of special tokens:')
@@ -235,7 +239,7 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
     # print()
 
     # For each candidate in the beam prepare its own slot tracking dict by duplicating the initial one
-    # batch_slot_spans = [copy.deepcopy(slot_spans) for _ in range(beam_size) for slot_spans in batch_slot_spans]
+    batch_slot_spans = [copy.deepcopy(slot_spans) for _ in range(beam_size) for slot_spans in batch_slot_spans]
 
     # Save the encoder's self-attention weights
     attention_weights['enc_attn_weights'] = [
@@ -284,14 +288,14 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
         best_beam_idxs = best_next_token_ids // vocab_size
         best_next_token_ids = best_next_token_ids % vocab_size
 
-        # next_decoder_input_ids = select_next_token(
-        #     logits,
-        #     outputs.cross_attentions,
-        #     batch_slot_spans,
-        #     tokenizer.eos_token_id,
-        #     special_token_idxs,
-        #     num_seqs_per_input=beam_size
-        # )
+        next_decoder_input_ids = select_next_token(
+            logits,
+            outputs.cross_attentions,
+            batch_slot_spans,
+            tokenizer.eos_token_id,
+            special_token_idxs,
+            num_seqs_per_input=beam_size
+        )
 
         # Extend the current beam hypotheses with the next tokens
         beam_outputs = beam_scorer.process(
@@ -310,6 +314,7 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
         decoder_input_ids = torch.cat([decoder_input_ids[beam_idxs, :], beam_next_tokens.unsqueeze(-1)], dim=-1)
 
         past = update_past_for_next_time_step(outputs, model, beam_idxs)
+        batch_slot_spans = rearrange_slot_mentions_for_next_time_step(batch_slot_spans, beam_idxs)
 
         if beam_scorer.is_done or stopping_criteria(decoder_input_ids, None):
             break
@@ -322,8 +327,8 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
                                             pad_token_id=tokenizer.pad_token_id,
                                             eos_token_id=tokenizer.eos_token_id)
 
-    # batch_slot_spans = [batch_slot_spans[beam_start_idx:beam_start_idx + beam_size]
-    #                     for beam_start_idx in range(0, len(batch_slot_spans), beam_size)]
+    batch_slot_spans = [batch_slot_spans[beam_start_idx:beam_start_idx + beam_size]
+                        for beam_start_idx in range(0, len(batch_slot_spans), beam_size)]
 
     if outputs:
         # Save the decoder's self- and cross-attention weights; shape = (num_layers, batch_size, num_heads, sequence_length, sequence_length)
@@ -339,8 +344,7 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
     # print(batch_slot_spans)
     # print()
 
-    # slot_errors = evaluate_slot_mentions(batch_slot_spans)
-    slot_errors = []
+    slot_errors = evaluate_slot_mentions(batch_slot_spans)
 
     # DEBUG
     # print('>> Slot errors:')
