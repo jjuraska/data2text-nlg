@@ -234,12 +234,14 @@ def aggregate_across_heads(attn_weights, mode='max'):
 
 def binarize_weights(attn_weights, threshold=0.0, keep_max_only=False):
     attn_weights_bin = attn_weights.copy()
-    attn_weights_bin[np.nonzero(attn_weights_bin < threshold)] = 0
 
     if keep_max_only:
         max_weights = attn_weights_bin.max(axis=-1)[..., np.newaxis]
+
+        attn_weights_bin[np.nonzero(attn_weights_bin < threshold)] = 0
         attn_weights_bin = (attn_weights_bin == max_weights).astype(int)
     else:
+        attn_weights_bin[np.nonzero(attn_weights_bin < threshold)] = 0
         attn_weights_bin[np.nonzero(attn_weights_bin >= threshold)] = 1
 
     return attn_weights_bin
