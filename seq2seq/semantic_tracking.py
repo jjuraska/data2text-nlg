@@ -12,7 +12,7 @@ def select_next_token(logits, attn_weights, slot_spans, eos_token_id, special_to
     attn_weights = np.stack([layer.detach().cpu().numpy() for layer in attn_weights])
     attn_weights = attn_weights.swapaxes(0, 1)
     # Ignore weights from other than the most recent step in the sequence
-    attn_weights = attn_weights[:, :, :, -1:, :]  # (batch_size * num_beams, layers, heads, 1, input_len)
+    attn_weights = attn_weights[:, :, :, -1, :]  # (batch_size * beam_size, layers, heads, input_len)
 
     # DEBUG
     # print('>> attn_weights.shape (current time step only):', attn_weights.shape)
@@ -20,14 +20,13 @@ def select_next_token(logits, attn_weights, slot_spans, eos_token_id, special_to
 
     # Set the special-token attention weights to zero
     if special_token_idxs:
-        attn_weights[special_token_idxs[0], :, :, :, special_token_idxs[-1]] = 0.0
-        # attn_weights[:, :, :, special_token_idxs[-1]] = 0.0
+        attn_weights[special_token_idxs[0], :, :, special_token_idxs[-1]] = 0.0
 
     # Extract the attention weights from the 1st decoder layer only, and aggregate them across heads
     attn_weights_first_layer = preprocess_attn_weights(
-        attn_weights[:, 0:1, :, :, :].copy(), head_agg_mode='max', layer_agg_mode=None)
+        attn_weights[:, 0:1, ...].copy(), head_agg_mode='max', layer_agg_mode=None)
     attn_weights_first_layer = binarize_weights(
-        attn_weights_first_layer, threshold=0.5, keep_max_only=True).squeeze(axis=(2, 3))
+        attn_weights_first_layer, threshold=0.5, keep_max_only=True).squeeze(axis=(1, 2))
     attn_idxs = np.where(attn_weights_first_layer == 1)
 
     # Update slot mentions with a high confidence
@@ -76,10 +75,10 @@ def preprocess_attn_weights(attn_weights, head_agg_mode=None, layer_agg_mode=Non
         # middle_layer_idx = num_layers // 2
 
         attn_weights = aggregate_across_layers(attn_weights, mode=layer_agg_mode)
-        # attn_weights = aggregate_across_layers(attn_weights[0:middle_layer_idx, :, :, :], mode=layer_agg_mode)
+        # attn_weights = aggregate_across_layers(attn_weights[0:middle_layer_idx, :, :], mode=layer_agg_mode)
         # for layer_idx in range(1, middle_layer_idx + 1):
-        #     attn_weights_aggr = aggregate_across_layers(attn_weights[0:layer_idx, :, :, :], mode=layer_agg_mode)
-        #     max_weights = attn_weights_aggr.max(axis=-1)[:, :, :, np.newaxis]
+        #     attn_weights_aggr = aggregate_across_layers(attn_weights[0:layer_idx, :, :], mode=layer_agg_mode)
+        #     max_weights = attn_weights_aggr.max(axis=-1)[:, :, np.newaxis]
         #     attn_weights_aggr[np.nonzero(attn_weights_aggr < threshold)] = 0
         #     if (attn_weights_aggr == max_weights).any() or layer_idx == middle_layer_idx:
         #         attn_weights = attn_weights_aggr
@@ -118,7 +117,7 @@ def update_slot_mentions(slot_mention_batch, attn_idxs, confidence=False):
 
 
 def update_slot_mentions_ALT(slot_mention_batch, attn_idxs, confidence=False):
-    for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[1]):
+    for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[-1]):
         for slot in slot_mention_batch[batch_idx]:
             if all(slot['mentioned']) and all(slot['confidence']):
                 continue
@@ -163,7 +162,7 @@ def update_slot_mentions_ALT(slot_mention_batch, attn_idxs, confidence=False):
 
 
 def remove_slot_mentions(slot_mention_batch, attn_idxs):
-    for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[1]):
+    for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[-1]):
         for slot in slot_mention_batch[batch_idx]:
             if not any(slot['mentioned']):
                 continue
@@ -205,22 +204,8 @@ def evaluate_slot_mentions(slot_mentions_batch):
     return slot_errors_batch
 
 
-def aggregate_across_heads(attn_weights, mode='max'):
-    """Sums weights across all heads, and normalizes the weights by these sums."""
-    if mode == 'max':
-        head_maxs = attn_weights.max(axis=2)
-    elif mode == 'sum':
-        head_maxs = attn_weights.sum(axis=2)
-    elif mode == 'avg':
-        head_maxs = attn_weights.mean(axis=2)
-    else:
-        raise ValueError(f'Aggregation mode "{mode}" unrecognized')
-
-    return head_maxs[:, :, np.newaxis, :, :]
-
-
 def aggregate_across_layers(attn_weights, mode='max'):
-    """Sums weights across all layers, and normalizes the weights by these sums."""
+    """Aggregates weights across all attention layers."""
     if mode == 'max':
         layer_sums = np.max(attn_weights, axis=1)
     elif mode == 'sum':
@@ -230,17 +215,31 @@ def aggregate_across_layers(attn_weights, mode='max'):
     else:
         raise ValueError(f'Aggregation mode "{mode}" unrecognized')
 
-    return layer_sums[:, np.newaxis, :, :, :]
+    return layer_sums[:, np.newaxis, :, :]
+
+
+def aggregate_across_heads(attn_weights, mode='max'):
+    """Aggregates weights across all attention heads."""
+    if mode == 'max':
+        head_maxs = attn_weights.max(axis=2)
+    elif mode == 'sum':
+        head_maxs = attn_weights.sum(axis=2)
+    elif mode == 'avg':
+        head_maxs = attn_weights.mean(axis=2)
+    else:
+        raise ValueError(f'Aggregation mode "{mode}" unrecognized')
+
+    return head_maxs[:, :, np.newaxis, :]
 
 
 def binarize_weights(attn_weights, threshold=0.0, keep_max_only=False):
+    attn_weights_bin = attn_weights.copy()
+    attn_weights_bin[np.nonzero(attn_weights_bin < threshold)] = 0
+
     if keep_max_only:
-        max_weights = attn_weights.max(axis=-1)[:, :, :, :, np.newaxis]
-
-        attn_weights[np.nonzero(attn_weights < threshold)] = 0
-        attn_weights = (attn_weights == max_weights).astype(int)
+        max_weights = attn_weights_bin.max(axis=-1)[..., np.newaxis]
+        attn_weights_bin = (attn_weights_bin == max_weights).astype(int)
     else:
-        attn_weights[np.nonzero(attn_weights < threshold)] = 0
-        attn_weights[np.nonzero(attn_weights >= threshold)] = 1
+        attn_weights_bin[np.nonzero(attn_weights_bin >= threshold)] = 1
 
-    return attn_weights
+    return attn_weights_bin
