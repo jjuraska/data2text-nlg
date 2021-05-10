@@ -3,9 +3,9 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 from tqdm import tqdm
-from transformers.generation_beam_search import BeamSearchScorer
 from transformers.generation_stopping_criteria import MaxLengthCriteria, StoppingCriteriaList
 
+from seq2seq.beam_search_scoring import SemanticBeamSearchScorer
 import seq2seq.model_utils as model_utils
 from seq2seq.semantic_tracking import (
     evaluate_slot_mentions,
@@ -239,7 +239,7 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
     # print()
 
     # For each candidate in the beam prepare its own slot tracking dict by duplicating the initial one
-    batch_slot_spans = [copy.deepcopy(slot_spans) for _ in range(beam_size) for slot_spans in batch_slot_spans]
+    batch_slot_spans = [copy.deepcopy(slot_spans) for slot_spans in batch_slot_spans for _ in range(beam_size)]
 
     # Save the encoder's self-attention weights
     attention_weights['enc_attn_weights'] = [
@@ -247,7 +247,7 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
     ]
 
     # Initialize the beam search scorer
-    beam_scorer = BeamSearchScorer(
+    beam_scorer = SemanticBeamSearchScorer(
         batch_size=batch_size,
         max_length=max_length,
         num_beams=beam_size,
@@ -303,6 +303,7 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
             best_next_token_scores,
             best_next_token_ids,
             best_beam_idxs,
+            batch_slot_spans,
             pad_token_id=tokenizer.pad_token_id,
             eos_token_id=tokenizer.eos_token_id,
         )
@@ -324,11 +325,13 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
                                             best_next_token_ids,
                                             best_beam_idxs,
                                             # max_length,
+                                            batch_slot_spans,
                                             pad_token_id=tokenizer.pad_token_id,
                                             eos_token_id=tokenizer.eos_token_id)
 
-    batch_slot_spans = [batch_slot_spans[beam_start_idx:beam_start_idx + beam_size]
-                        for beam_start_idx in range(0, len(batch_slot_spans), beam_size)]
+    slot_mentions_final = sequence_outputs['sequence_slot_mentions']
+    batch_slot_spans_final = [slot_mentions_final[beam_start_idx:beam_start_idx + beam_size]
+                              for beam_start_idx in range(0, len(slot_mentions_final), beam_size)]
 
     if outputs:
         # Save the decoder's self- and cross-attention weights; shape = (num_layers, batch_size, num_heads, sequence_length, sequence_length)
@@ -344,7 +347,7 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
     # print(batch_slot_spans)
     # print()
 
-    slot_errors = evaluate_slot_mentions(batch_slot_spans)
+    slot_errors = evaluate_slot_mentions(batch_slot_spans_final)
 
     # DEBUG
     # print('>> Slot errors:')
@@ -354,24 +357,18 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
     return sequence_outputs['sequences'], attention_weights, slot_errors
 
 
-def expand_inputs_for_beam_search(input_ids, enc_outputs, attention_mask=None, expand_size=1, **model_kwargs):
+def expand_inputs_for_beam_search(input_ids, enc_outputs, attention_mask=None, expand_size=1):
     """Borrowed from Huggingface's transformers library."""
 
     expanded_indices = torch.arange(input_ids.shape[0]).view(-1, 1).repeat(1, expand_size).view(-1).to(input_ids.device)
     input_ids = input_ids.index_select(0, expanded_indices)
 
-    # if 'token_type_ids' in model_kwargs:
-    #     token_type_ids = model_kwargs['token_type_ids']
-    #     model_kwargs['token_type_ids'] = token_type_ids.index_select(0, expanded_indices)
-
     if attention_mask is not None:
-        # model_kwargs['attention_mask'] = attention_mask.index_select(0, expanded_indices)
         attention_mask = attention_mask.index_select(0, expanded_indices)
 
     enc_outputs['last_hidden_state'] = enc_outputs.last_hidden_state.index_select(
         0, expanded_indices.to(enc_outputs.last_hidden_state.device)
     )
-    # model_kwargs['encoder_outputs'] = enc_outputs
 
     return input_ids, enc_outputs, attention_mask
 

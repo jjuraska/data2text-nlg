@@ -141,7 +141,7 @@ def execute_e2e_evaluation_script(config, test_set, eval_configurations):
         print('>> Generating a reference file for the "{}" test set.'.format(test_set.name))
         test_set.create_reference_file_for_testing()
 
-    for prediction_list, reranked in eval_configurations:
+    for prediction_list, reranked, _ in eval_configurations:
         file_name_root = compose_output_file_name(config, reranked=reranked)
 
         # Save generated utterances along with their corresponding MRs to a CSV file
@@ -170,7 +170,7 @@ def execute_e2e_evaluation_script(config, test_set, eval_configurations):
     return scores
 
 
-def save_slot_errors(config, test_set, eval_configurations, slot_errors):
+def save_slot_errors(config, test_set, eval_configurations):
     """Saves generated utterances along with the attention-based slot errors, as well as the input MRs, to a file."""
 
     # Make sure the output directory exists for the given dataset
@@ -178,7 +178,7 @@ def save_slot_errors(config, test_set, eval_configurations, slot_errors):
     if not os.path.exists(predictions_dir):
         os.makedirs(predictions_dir)
 
-    for prediction_list, reranked in eval_configurations:
+    for prediction_list, reranked, slot_errors in eval_configurations:
         file_name_root = compose_output_file_name(config, reranked=reranked)
 
         # Save generated utterances along with their corresponding MRs and slot errors to a CSV file

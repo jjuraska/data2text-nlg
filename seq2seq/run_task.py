@@ -292,22 +292,28 @@ def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cp
     if config.semantic_reranking:
         if config.semantic_decoding:
             # Rerank generated beams based on slot errors determined via attention tracking
-            predictions_reranked, slot_errors = eval_utils.rerank_beams_attention_based(predictions, slot_errors)
+            predictions_reranked, slot_errors_reranked = eval_utils.rerank_beams_attention_based(
+                predictions, slot_errors
+            )
+            slot_errors_reranked = [slot_error_beam[0] for slot_error_beam in slot_errors_reranked]
         else:
             # Rerank generated beams based on semantic accuracy
             predictions_reranked = eval_utils.rerank_beams(
-                predictions, test_set.get_mrs(convert_slot_names=True), test_set.name)
+                predictions, test_set.get_mrs(convert_slot_names=True), test_set.name
+            )
+            slot_errors_reranked = None
 
         predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
-        eval_configurations.append((predictions_reranked, True))
+        eval_configurations.append((predictions_reranked, True, slot_errors_reranked))
 
     # For the evaluation of non-reranked predictions select the top candidate from the generated pool
     predictions = [pred_beam[0] for pred_beam in predictions]
-    eval_configurations.insert(0, (predictions, False))
-
     if slot_errors:
         slot_errors = [slot_error_beam[0] for slot_error_beam in slot_errors]
-        eval_utils.save_slot_errors(config, test_set, eval_configurations, slot_errors)
+    eval_configurations.insert(0, (predictions, False, slot_errors))
+
+    if slot_errors:
+        eval_utils.save_slot_errors(config, test_set, eval_configurations)
 
     if test_set.name == 'multiwoz':
         # Evaluate the generated utterances on the BLEU metric with just single references
