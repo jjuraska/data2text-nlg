@@ -1,22 +1,18 @@
 import copy
-import numpy as np
 import torch
 
 
 def select_next_token(logits, attn_weights, slot_spans, eos_token_id, special_token_idxs, num_seqs_per_input=1):
+    # Convert from a tuple to an array, and move the batch dimension to the front
+    attn_weights = torch.stack(attn_weights, dim=1)
+    # Ignore weights from other than the most recent step in the sequence
+    attn_weights = attn_weights[:, :, :, -1, :].detach()  # (batch_size * beam_size, layers, heads, input_len)
+
     # DEBUG
     # print('>> logits.size():', logits.size())
-    # print('>> attn_weights[0].shape:', attn_weights[0].shape)
-    # print()
-
-    # Convert from a tuple to an array, and move the batch dimension to the front
-    attn_weights = np.stack([layer.detach().cpu().numpy() for layer in attn_weights])
-    attn_weights = attn_weights.swapaxes(0, 1)
-    # Ignore weights from other than the most recent step in the sequence
-    attn_weights = attn_weights[:, :, :, -1, :]  # (batch_size * beam_size, layers, heads, input_len)
-
-    # DEBUG
-    # print('>> attn_weights.shape (current time step only):', attn_weights.shape)
+    # print('>> attn_weights.size():', attn_weights.size())
+    # print('>> special_token_idxs[0].shape:', special_token_idxs[0].shape)
+    # print('>> special_token_idxs:', special_token_idxs)
     # print()
 
     # Set the special-token attention weights to zero
@@ -25,27 +21,29 @@ def select_next_token(logits, attn_weights, slot_spans, eos_token_id, special_to
 
     # Extract the attention weights from the 1st decoder layer only, and aggregate them across heads
     attn_weights_first_layer = preprocess_attn_weights(
-        attn_weights[:, 0:1, ...].copy(), head_agg_mode='max', layer_agg_mode=None)
+        attn_weights[:, 0:1, ...].clone(), head_agg_mode='max', layer_agg_mode=None)
     attn_weights_first_layer = binarize_weights(
-        attn_weights_first_layer, threshold=0.5, keep_max_only=True).squeeze(axis=(1, 2))
-    attn_idxs = np.where(attn_weights_first_layer == 1)
+        attn_weights_first_layer, threshold=0.5, keep_max_only=True).squeeze(2).squeeze(1)
+    attn_idxs = torch.nonzero(attn_weights_first_layer == 1, as_tuple=True)
 
     # Update slot mentions with a high confidence
     update_slot_mentions(slot_spans, attn_idxs, confidence=True)
 
-    batch_idxs_without_eos = np.where(torch.argmax(logits[:, -1, :], axis=-1).detach().cpu().numpy() != eos_token_id)
-    attn_weights_agg = attn_weights.copy()
+    batch_idxs_without_eos = torch.nonzero(
+        torch.argmax(logits[:, -1, :].detach(), axis=-1) != eos_token_id, as_tuple=True)
+    attn_weights_agg = attn_weights.clone()
     attn_weights_agg[batch_idxs_without_eos] = 0.0
 
     # Remove slot mentions if they have a high attention weight associated with the EOS token
     attn_weights_agg = preprocess_attn_weights(attn_weights_agg, head_agg_mode='max', layer_agg_mode='avg')
-    attn_weights_agg = binarize_weights(attn_weights_agg, threshold=0.1).squeeze(axis=(1, 2))
-    attn_idxs = np.where(attn_weights_agg == 1)
+    attn_weights_agg = binarize_weights(attn_weights_agg, threshold=0.1).squeeze(2).squeeze(1)
+    attn_idxs = torch.nonzero(attn_weights_agg == 1, as_tuple=True)
 
     remove_slot_mentions(slot_spans, attn_idxs)
 
-    batch_idxs_with_eos = np.where(torch.argmax(logits[:, -1, :], axis=-1).detach().cpu().numpy() == eos_token_id)
-    attn_weights_agg = attn_weights.copy()
+    batch_idxs_with_eos = torch.nonzero(
+        torch.argmax(logits[:, -1, :].detach(), axis=-1) == eos_token_id, as_tuple=True)
+    attn_weights_agg = attn_weights.clone()
     attn_weights_agg[batch_idxs_with_eos] = 0.0
 
     num_layers = attn_weights.shape[0]
@@ -54,8 +52,8 @@ def select_next_token(logits, attn_weights, slot_spans, eos_token_id, special_to
     # Aggregate the attention weights across both the heads and the layers
     attn_weights_agg = preprocess_attn_weights(
         attn_weights_agg[:, 0:middle_layer_idx, ...], head_agg_mode='max', layer_agg_mode='avg')
-    attn_weights_agg = binarize_weights(attn_weights_agg, threshold=0.3, keep_max_only=False).squeeze(axis=(1, 2))
-    attn_idxs = np.where(attn_weights_agg == 1)
+    attn_weights_agg = binarize_weights(attn_weights_agg, threshold=0.3, keep_max_only=False).squeeze(2).squeeze(1)
+    attn_idxs = torch.nonzero(attn_weights_agg == 1, as_tuple=True)
 
     # DEBUG
     # print('>> attn_weights_agg.shape (after binarizing):', attn_weights_agg.shape)
@@ -89,7 +87,7 @@ def preprocess_attn_weights(attn_weights, head_agg_mode=None, layer_agg_mode=Non
 
 
 def update_slot_mentions(slot_mention_batch, attn_idxs, confidence=False):
-    for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[-1]):
+    for batch_idx, attn_idx in zip(attn_idxs[0].tolist(), attn_idxs[-1].tolist()):
         for slot in slot_mention_batch[batch_idx]:
             if all(slot['mentioned']) and all(slot['confidence']):
                 continue
@@ -97,14 +95,15 @@ def update_slot_mentions(slot_mention_batch, attn_idxs, confidence=False):
             attn_weight_matched = False
 
             if 'value_span' in slot and not slot['is_boolean']:
-                for elem_idx, value_elem_span in enumerate(slot['value_span']):
-                    # TODO: optimize by breaking out of the loop if attn_idx is less than the position of the 1st element or greater than the position of the last element
-                    if value_elem_span[0] <= attn_idx <= value_elem_span[1]:
-                        slot['mentioned'][elem_idx] = True
-                        if not slot['confidence'][elem_idx]:
-                            slot['confidence'][elem_idx] = confidence
-                        attn_weight_matched = True
-                        break
+                # Check if attn_idx is between the position of the 1st element and the position of the last element
+                if slot['value_span'][0][0] <= attn_idx <= slot['value_span'][-1][1]:
+                    for elem_idx, value_elem_span in enumerate(slot['value_span']):
+                        if value_elem_span[0] <= attn_idx <= value_elem_span[1]:
+                            slot['mentioned'][elem_idx] = True
+                            if not slot['confidence'][elem_idx]:
+                                slot['confidence'][elem_idx] = confidence
+                            attn_weight_matched = True
+                            break
             else:
                 # For Boolean slots and slots without a value, match the slot's name
                 if slot['name_span'][0] <= attn_idx <= slot['name_span'][1]:
@@ -163,7 +162,7 @@ def update_slot_mentions_ALT(slot_mention_batch, attn_idxs, confidence=False):
 
 
 def remove_slot_mentions(slot_mention_batch, attn_idxs):
-    for batch_idx, attn_idx in zip(attn_idxs[0], attn_idxs[-1]):
+    for batch_idx, attn_idx in zip(attn_idxs[0].tolist(), attn_idxs[-1].tolist()):
         for slot in slot_mention_batch[batch_idx]:
             if not any(slot['mentioned']):
                 continue
@@ -171,13 +170,14 @@ def remove_slot_mentions(slot_mention_batch, attn_idxs):
             attn_weight_matched = False
 
             if 'value_span' in slot and not slot['is_boolean']:
-                for elem_idx, value_elem_span in enumerate(slot['value_span']):
-                    # TODO: optimize by breaking out of the loop if attn_idx is less than the position of the 1st element or greater than the position of the last element
-                    if value_elem_span[0] <= attn_idx <= value_elem_span[1]:
-                        if not slot['confidence'][elem_idx]:
-                            slot['mentioned'][elem_idx] = False
-                        attn_weight_matched = True
-                        break
+                # Check if attn_idx is between the position of the 1st element and the position of the last element
+                if slot['value_span'][0][0] <= attn_idx <= slot['value_span'][-1][1]:
+                    for elem_idx, value_elem_span in enumerate(slot['value_span']):
+                        if value_elem_span[0] <= attn_idx <= value_elem_span[1]:
+                            if not slot['confidence'][elem_idx]:
+                                slot['mentioned'][elem_idx] = False
+                            attn_weight_matched = True
+                            break
             else:
                 # For Boolean slots and slots without a value, match the slot's name
                 if slot['name_span'][0] <= attn_idx <= slot['name_span'][1]:
@@ -208,42 +208,43 @@ def evaluate_slot_mentions(slot_mentions_batch):
 def aggregate_across_layers(attn_weights, mode='max'):
     """Aggregates weights across all attention layers."""
     if mode == 'max':
-        layer_sums = np.max(attn_weights, axis=1)
+        layer_sums = attn_weights.max(dim=1, keepdim=True)
     elif mode == 'sum':
-        layer_sums = np.sum(attn_weights, axis=1)
+        layer_sums = attn_weights.sum(dim=1, keepdim=True)
     elif mode == 'avg':
-        layer_sums = np.mean(attn_weights, axis=1)
+        layer_sums = attn_weights.mean(dim=1, keepdim=True)
     else:
         raise ValueError(f'Aggregation mode "{mode}" unrecognized')
 
-    return layer_sums[:, np.newaxis, :, :]
+    return layer_sums
 
 
 def aggregate_across_heads(attn_weights, mode='max'):
     """Aggregates weights across all attention heads."""
     if mode == 'max':
-        head_maxs = attn_weights.max(axis=2)
+        head_maxs, _ = attn_weights.max(dim=2, keepdim=True)
     elif mode == 'sum':
-        head_maxs = attn_weights.sum(axis=2)
+        head_maxs, _ = attn_weights.sum(dim=2, keepdim=True)
     elif mode == 'avg':
-        head_maxs = attn_weights.mean(axis=2)
+        head_maxs, _ = attn_weights.mean(dim=2, keepdim=True)
     else:
         raise ValueError(f'Aggregation mode "{mode}" unrecognized')
 
-    return head_maxs[:, :, np.newaxis, :]
+    return head_maxs
 
 
 def binarize_weights(attn_weights, threshold=0.0, keep_max_only=False):
-    attn_weights_bin = attn_weights.copy()
+    # attn_weights_bin = attn_weights.detach().clone()
+    attn_weights_bin = attn_weights
 
     if keep_max_only:
-        max_weights = attn_weights_bin.max(axis=-1)[..., np.newaxis]
+        max_weights, _ = attn_weights_bin.max(dim=-1, keepdim=True)
 
-        attn_weights_bin[np.nonzero(attn_weights_bin < threshold)] = 0
-        attn_weights_bin = (attn_weights_bin == max_weights).astype(int)
+        attn_weights_bin[torch.nonzero(attn_weights_bin < threshold, as_tuple=True)] = 0
+        attn_weights_bin = (attn_weights_bin == max_weights).int()
     else:
-        attn_weights_bin[np.nonzero(attn_weights_bin < threshold)] = 0
-        attn_weights_bin[np.nonzero(attn_weights_bin >= threshold)] = 1
+        attn_weights_bin[torch.nonzero(attn_weights_bin < threshold, as_tuple=True)] = 0
+        attn_weights_bin[torch.nonzero(attn_weights_bin >= threshold, as_tuple=True)] = 1
 
     return attn_weights_bin
 

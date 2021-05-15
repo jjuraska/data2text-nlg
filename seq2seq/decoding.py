@@ -229,9 +229,10 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
     encoded_sequence = encoder(input_ids, attention_mask=attention_mask, output_attentions=True)
 
     # Determine the indices of special tokens in the input sequence
-    special_tokens = [tok for tok in [tokenizer.bos_token_id, tokenizer.eos_token_id] if tok is not None]
-    special_token_idxs = np.nonzero(
-        input_ids.detach().cpu().numpy().repeat(beam_size, axis=0)[:, :, np.newaxis] == special_tokens)[:-1]
+    special_tokens = torch.tensor(
+        [tok for tok in [tokenizer.bos_token_id, tokenizer.eos_token_id] if tok is not None], device=input_ids.device)
+    special_token_idxs = torch.nonzero(
+        input_ids.detach().repeat_interleave(beam_size, dim=0)[:, :, None] == special_tokens, as_tuple=True)[:-1]
 
     # DEBUG
     # print('>> Indices of special tokens:')
