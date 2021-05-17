@@ -5,7 +5,7 @@ import torch
 from transformers import BartConfig, BartForConditionalGeneration, BartTokenizer
 from transformers import GPT2Config, GPT2LMHeadModel, GPT2Tokenizer
 from transformers import T5Config, T5ForConditionalGeneration, T5Tokenizer
-from transformers.modeling_bart import shift_tokens_right
+from transformers.models.bart.modeling_bart import shift_tokens_right
 import yaml
 
 
@@ -281,7 +281,7 @@ def save_model_checkpoint(model, model_name, epoch, step):
     torch.save(model.state_dict(), os.path.join(model_dir, file_name))
 
 
-def prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False):
+def prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False, bool_slots=None):
     batch_dict = {}
 
     # DEBUG
@@ -310,8 +310,12 @@ def prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False):
                 """Prepare decoder inputs manually because BART gets confused by the -100 mask values during
                 automatic generation of decoder inputs from labels, expecting the padding token IDs instead. 
                 T5 infers decoder input IDs and mask automatically from labels."""
-                batch_dict['decoder_input_ids'] = shift_tokens_right(labels['input_ids'], tokenizer.pad_token_id)
+                batch_dict['decoder_input_ids'] = shift_tokens_right(
+                    labels['input_ids'], tokenizer.pad_token_id, tokenizer.eos_token_id)
                 # batch_dict['decoder_mask'] = labels['attention_mask']
+
+        if bool_slots:
+            batch_dict['slot_spans'] = get_slot_spans(input_ids, bool_slots, tokenizer)
     else:
         inputs = tokenizer(batch[0], add_special_tokens=False, max_length=config.max_seq_length,
                            padding=True, truncation=True, return_tensors='pt')
@@ -426,3 +430,66 @@ def create_label_mask(input_ids, input_mask, label_mask):
     # print('>> label mask:', mask)
 
     return mask
+
+
+def get_slot_spans(input_id_batch, bool_slots, tokenizer):
+    slot_span_batch = []
+
+    for i, input_ids in enumerate(input_id_batch):
+        input_tokens = [tokenizer.decode(input_id, skip_special_tokens=True) for input_id in input_ids]
+
+        slot_spans = []
+        cur_name_beg = 0
+        cur_value_beg = 0
+        cur_slot = {}
+
+        for tok_pos, tok in enumerate(input_tokens):
+            tok_stripped = tok.strip()
+            if tok_stripped == '=':
+                cur_slot['name_span'] = (cur_name_beg, tok_pos - 1)
+                cur_slot['value_span'] = []
+                cur_value_beg = tok_pos + 1
+            # TODO: only do this for list-slots to avoid false positives (e.g., in address slots)
+            elif tok_stripped == ',':
+                cur_slot['value_span'].append((cur_value_beg, tok_pos - 1))
+                cur_value_beg = tok_pos + 1
+            elif tok_stripped == '|' or tok_pos == len(input_tokens) - 1:
+                if cur_value_beg > cur_name_beg:
+                    cur_slot['value_span'].append((cur_value_beg, tok_pos - 1))
+                else:
+                    cur_slot['name_span'] = (cur_name_beg, tok_pos - 1)
+
+                # Decode the slot's name
+                slot_name = tokenizer.decode(
+                    input_ids[cur_slot['name_span'][0]:cur_slot['name_span'][1] + 1], skip_special_tokens=True).strip()
+
+                # Ignore non-content slots, and mark Boolean slots
+                if slot_name not in {'intent', 'topic'}:
+                    cur_slot['name'] = slot_name
+                    cur_slot['is_boolean'] = slot_name in bool_slots
+
+                    # For Boolean slots, determine whether their value is negative or not
+                    # if cur_slot['is_boolean'] and 'value_span' in cur_slot:
+                    #     if len(cur_slot['value_span']) == 1:
+                    #         slot_value = [tokenizer.decode(input_ids[val_span[0]:val_span[1] + 1]).strip()
+                    #                       for val_span in cur_slot['value_span']]
+                    #         cur_slot['is_boolean_neg'] = slot_value[0] in {'no', 'false'}
+                    #     else:
+                    #         cur_slot['is_boolean_neg'] = False
+
+                    num_value_elements = max(1, len(cur_slot.get('value_span', [])))
+                    cur_slot['mentioned'] = [False] * num_value_elements
+                    cur_slot['confidence'] = [False] * num_value_elements
+                    slot_spans.append(cur_slot)
+
+                cur_name_beg = tok_pos + 1
+                cur_slot = {}
+
+        slot_span_batch.append(slot_spans)
+
+        # DEBUG
+        # print('>> input tokens:', input_tokens)
+        # print('>> slot spans:', slot_spans)
+        # print()
+
+    return slot_span_batch

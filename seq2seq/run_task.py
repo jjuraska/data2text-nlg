@@ -1,4 +1,5 @@
 import argparse
+from collections import OrderedDict
 import copy
 from itertools import chain
 import numpy as np
@@ -14,6 +15,7 @@ from seq2seq.data_loader import (
     E2EDataset, E2ECleanedDataset,
     MultiWOZDataset,
     ViggoDataset, ViggoWithE2EDataset, Viggo20Dataset)
+from seq2seq.decoding import generate_and_decode
 import seq2seq.eval_utils as eval_utils
 import seq2seq.model_utils as model_utils
 from seq2seq.task_config import TestConfig, TrainingConfig
@@ -39,12 +41,12 @@ def train(config, dataset_class, device='cpu'):
     is_enc_dec = model.config.is_encoder_decoder
     model = model.to(device)
 
-    prepare_token_types = True if 'gpt2' in config.model_name else False
+    prepare_token_types = True if 'gpt2' in config.model_name and config.use_token_type_ids else False
     group_by_mr = False if dataset_class.name in {'multiwoz'} else True
 
     # Load training and validation data
     train_set = dataset_class(tokenizer,
-                              'train',
+                              partition='train',
                               lowercase=config.lowercase,
                               convert_slot_names=config.convert_slot_names,
                               separate_source_and_target=is_enc_dec,
@@ -53,7 +55,7 @@ def train(config, dataset_class, device='cpu'):
     train_data_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=0)
 
     valid_set = dataset_class(tokenizer,
-                              'valid',
+                              partition='valid',
                               lowercase=config.lowercase,
                               convert_slot_names=config.convert_slot_names,
                               separate_source_and_target=is_enc_dec,
@@ -62,7 +64,7 @@ def train(config, dataset_class, device='cpu'):
     valid_data_loader = DataLoader(valid_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
     valid_set_bleu = dataset_class(tokenizer,
-                                   'valid',
+                                   partition='valid',
                                    lowercase=config.lowercase,
                                    convert_slot_names=config.convert_slot_names,
                                    group_by_mr=group_by_mr,
@@ -257,8 +259,8 @@ def validate(config, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
 def validate_bleu(config, dataset, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
     """Generates decoded utterances without teacher forcing, and calculates their BLEU score using references."""
 
-    generated_utterances = generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_validation=True,
-                                               device=device)
+    generated_utterances, _ = generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_validation=True,
+                                                  device=device)
     generated_utterances_flat = list(chain.from_iterable(generated_utterances))
 
     # DEBUG
@@ -280,162 +282,38 @@ def validate_bleu(config, dataset, data_loader, tokenizer, model, is_enc_dec, de
     return result
 
 
-def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_validation=False, device='cpu'):
-    generated_sequences = []
-
-    if 'gpt2' in config.model_name:
-        # Set the tokenizer to padding input sequences on the left side in order to enable batch inference
-        tokenizer.padding_side = 'left'
-
-    for batch in tqdm(data_loader, desc='Generating'):
-        batch = model_utils.prepare_batch(config, batch, tokenizer, is_enc_dec, include_labels=False)
-
-        input_tensor = batch['input_ids'].to(device)
-        mask_tensor = batch['attention_mask'].to(device)
-
-        model_specific_args = {}
-        if batch.get('token_type_ids') is not None:
-            model_specific_args['token_type_ids'] = batch['token_type_ids'].to(device)
-            if hasattr(config, 'num_return_sequences'):
-                model_specific_args['expand_token_type_size'] = config.num_return_sequences
-
-        # DEBUG
-        # print()
-        # print('>> ENCODED inputs:', inputs['input_ids'])
-        # print('>> DECODED inputs:\n', tokenizer.decode(inputs['input_ids'][0]))
-        # print()
-        # print('>> ENCODED input mask:', inputs['attention_mask'])
-        # print()
-
-        if is_validation:
-            num_seqs_per_input = 1
-            outputs = model.generate(input_tensor,
-                                     attention_mask=mask_tensor,
-                                     min_length=1,
-                                     max_length=config.max_seq_length,
-                                     **model_specific_args)
-        else:
-            num_seqs_per_input = config.num_return_sequences
-            outputs = model.generate(input_tensor,
-                                     attention_mask=mask_tensor,
-                                     min_length=1,
-                                     max_length=config.max_seq_length,
-                                     num_beams=config.num_beams,
-                                     early_stopping=config.early_stopping,
-                                     no_repeat_ngram_size=config.no_repeat_ngram_size,
-                                     do_sample=config.do_sample,
-                                     top_p=config.top_p,
-                                     top_k=config.top_k,
-                                     temperature=config.temperature,
-                                     repetition_penalty=config.repetition_penalty,
-                                     length_penalty=config.length_penalty,
-                                     num_return_sequences=config.num_return_sequences,
-                                     **model_specific_args)
-
-        generated_sequences.extend(decode_model_outputs(outputs, num_seqs_per_input, tokenizer, is_enc_dec))
-
-    if 'gpt2' in config.model_name:
-        # Set the tokenizer back to padding input sequences on the right
-        tokenizer.padding_side = 'right'
-
-    return generated_sequences
-
-
-def decode_model_outputs(sequences, num_seqs_per_input, tokenizer, is_enc_dec):
-    outputs_decoded = []
-
-    for beam_idx in range(0, len(sequences), num_seqs_per_input):
-        beam_sequences = sequences[beam_idx:beam_idx + num_seqs_per_input]
-        beam_decoded = []
-
-        for seq in beam_sequences:
-            if is_enc_dec:
-                utt_decoded = tokenizer.decode(seq, skip_special_tokens=True)
-            else:
-                utt_beg_pos = np.where(seq.cpu().numpy() == tokenizer.bos_token_id)[0][0] + 1
-                utt_decoded = tokenizer.decode(seq[utt_beg_pos:], skip_special_tokens=True)
-
-            beam_decoded.append(utt_decoded)
-
-        outputs_decoded.append(beam_decoded)
-
-    return outputs_decoded
-
-
-def semantic_decoding(input_ids, tokenizer, model, max_length=128, device='cpu'):
-    """Performs a semantically guided inference from a structured MR input.
-
-    Note: currently, this performs a simple greedy decoding.
-    """
-    encoded_sequence = tuple()
-    outputs = None
-    attention_weights = {}
-
-    # Initialize the decoder's input sequence with the BOS token
-    # TODO: Make this model-independent (currently works for T5 only)
-    decoder_input_ids = tokenizer('<pad>', add_special_tokens=False, return_tensors='pt').input_ids.to(device)
-
-    assert decoder_input_ids[0, 0].item() == model.config.decoder_start_token_id,\
-        "`decoder_input_ids` should correspond to `model.config.decoder_start_token_id`"
-
-    for step in range(max_length):
-        if step == 0:
-            # Run the input sequence through the encoder, and have the decoder generate the first logit
-            outputs = model(input_ids, decoder_input_ids=decoder_input_ids, output_attentions=True, return_dict=True)
-
-            # Get the encoded input sequence
-            encoded_sequence = (outputs.encoder_last_hidden_state,)
-
-            # Save the encoder's self-attention weights
-            attention_weights['enc_attn_weights'] = [weight_tensor.squeeze().tolist() for weight_tensor in outputs.encoder_attentions]
-        else:
-            # Reuse the encoded inputs, and pass the sequence generated so far as inputs to the decoder
-            outputs = model(None, encoder_outputs=encoded_sequence, decoder_input_ids=decoder_input_ids,
-                            output_attentions=True, return_dict=True)
-
-        logits = outputs.logits
-
-        # Select the token with the highest probability as the next generated token (~ greedy decoding)
-        next_decoder_input_ids = torch.argmax(logits[:, -1:], axis=-1)
-
-        # Append the current output token's ID to the sequence generated so far
-        decoder_input_ids = torch.cat([decoder_input_ids, next_decoder_input_ids], axis=-1)
-
-        # DEBUG
-        # for i in range(len(outputs.cross_attentions)):
-        #     print(outputs.cross_attentions[i].size())
-        # print()
-
-        # Terminate as soon as the decoder generates the EOS token
-        if next_decoder_input_ids.item() == tokenizer.eos_token_id:
-            break
-
-    if outputs:
-        # Save the decoder's self- and cross-attention weights; shape = (num_layers, batch_size, num_heads, sequence_length, sequence_length)
-        attention_weights['dec_attn_weights'] = [weight_tensor.squeeze().tolist()
-                                                 for weight_tensor in outputs.decoder_attentions]
-        attention_weights['cross_attn_weights'] = [weight_tensor.squeeze().tolist()
-                                                   for weight_tensor in outputs.cross_attentions]
-
-    return decoder_input_ids, attention_weights
-
-
 def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cpu'):
     eval_configurations = []
 
     # Generate decoded utterances
-    predictions = generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, device=device)
+    predictions, slot_errors = generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec,
+                                                   bool_slots=test_set.bool_slots, device=device)
 
     if config.semantic_reranking:
-        # Rerank generated beams based on semantic accuracy
-        predictions_reranked = eval_utils.rerank_beams(
-            predictions, test_set.get_mrs(convert_slot_names=True), test_set.name)
+        if config.semantic_decoding:
+            # Rerank generated beams based on slot errors determined via attention tracking
+            predictions_reranked, slot_errors_reranked = eval_utils.rerank_beams_attention_based(
+                predictions, slot_errors
+            )
+            slot_errors_reranked = [slot_error_beam[0] for slot_error_beam in slot_errors_reranked]
+        else:
+            # Rerank generated beams based on semantic accuracy
+            predictions_reranked = eval_utils.rerank_beams(
+                predictions, test_set.get_mrs(convert_slot_names=True), test_set.name
+            )
+            slot_errors_reranked = None
+
         predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
-        eval_configurations.append((predictions_reranked, True))
+        eval_configurations.append((predictions_reranked, True, slot_errors_reranked))
 
     # For the evaluation of non-reranked predictions select the top candidate from the generated pool
     predictions = [pred_beam[0] for pred_beam in predictions]
-    eval_configurations.insert(0, (predictions, False))
+    if slot_errors:
+        slot_errors = [slot_error_beam[0] for slot_error_beam in slot_errors]
+    eval_configurations.insert(0, (predictions, False, slot_errors))
+
+    if slot_errors:
+        eval_utils.save_slot_errors(config, test_set, eval_configurations)
 
     if test_set.name == 'multiwoz':
         # Evaluate the generated utterances on the BLEU metric with just single references
@@ -460,12 +338,12 @@ def batch_test(config, dataset_class, device='cpu'):
     # Set model to evaluation mode
     model.eval()
 
-    prepare_token_types = True if 'gpt2' in config.model_name else False
+    prepare_token_types = True if 'gpt2' in config.model_name and config.use_token_type_ids else False
     group_by_mr = False if dataset_class.name in {'multiwoz'} else True
 
     # Load test data
     test_set = dataset_class(tokenizer,
-                             'test',
+                             partition='test',
                              lowercase=config.lowercase,
                              convert_slot_names=config.convert_slot_names,
                              group_by_mr=group_by_mr,
@@ -475,7 +353,7 @@ def batch_test(config, dataset_class, device='cpu'):
     test_data_loader = DataLoader(test_set, batch_size=config.batch_size, shuffle=False, num_workers=0)
 
     test_set_ppl = dataset_class(tokenizer,
-                                 'test',
+                                 partition='test',
                                  lowercase=config.lowercase,
                                  convert_slot_names=config.convert_slot_names,
                                  separate_source_and_target=is_enc_dec,
@@ -522,45 +400,21 @@ def generate_from_input(config, input_str, dataset_class, device='cpu'):
     # Set model to evaluation mode
     model.eval()
 
-    input_processed = dataset_class.preprocess_mrs([input_str], lowercase=config.lowercase, convert_slot_names=False)[0]
-    input_ids = tokenizer(input_processed, return_tensors='pt')['input_ids']
-    input_tensor = input_ids.to(device)
+    # Create a data loader from the input string
+    test_set = dataset_class(tokenizer,
+                             input_str=input_str,
+                             partition='test',
+                             lowercase=config.lowercase,
+                             no_target=True,
+                             separate_source_and_target=is_enc_dec)
+    test_data_loader = DataLoader(test_set, batch_size=1, shuffle=False, num_workers=0)
 
-    if config.semantic_decoding:
-        outputs, attn_weights = semantic_decoding(input_tensor,
-                                                  tokenizer,
-                                                  model,
-                                                  max_length=config.max_seq_length,
-                                                  device=device)
-
-        # Save the input and output sequences (as lists of tokens) along with the attention weights
-        attn_weights['input_tokens'] = [tokenizer.decode(input_id, skip_special_tokens=False)
-                                        for input_id in input_ids[0]]
-        attn_weights['output_tokens'] = [tokenizer.decode(output_id, skip_special_tokens=False)
-                                         for output_id in outputs[0][1:]]
-
-        # Export attention weights for visualization
-        with open(os.path.join('seq2seq', 'attention', dataset_class.name, 'attention_weights.pkl'), 'wb') as f_attn:
-            pickle.dump(attn_weights, f_attn)
-    else:
-        outputs = model.generate(input_tensor,
-                                 max_length=config.max_seq_length,
-                                 num_beams=config.num_beams,
-                                 early_stopping=config.early_stopping,
-                                 no_repeat_ngram_size=config.no_repeat_ngram_size,
-                                 do_sample=config.do_sample,
-                                 top_p=config.top_p,
-                                 top_k=config.top_k,
-                                 temperature=config.temperature,
-                                 repetition_penalty=config.repetition_penalty,
-                                 length_penalty=config.length_penalty,
-                                 num_return_sequences=config.num_return_sequences,
-                                 )
-
-    utterances = decode_model_outputs(outputs, config.num_beams, tokenizer, is_enc_dec)[0]
+    # Generate decoded utterances
+    utterances, slot_errors = generate_and_decode(config, test_data_loader, tokenizer, model, is_enc_dec,
+                                                  bool_slots=test_set.bool_slots, device=device)
 
     print('>> Generated utterance(s):')
-    print('\n'.join(utterances))
+    print('\n'.join(utterances[0]))
 
 
 def main():
@@ -616,10 +470,29 @@ def main():
     elif args.task == 'test':
         batch_test(TestConfig(config), dataset_class, device=device)
     elif args.task == 'generate':
+        # Restaurants (E2E)
+        # input_str = "name[The Cricketers], eatType[restaurant], food[English], priceRange[high], customer rating[average], area[riverside], familyFriendly[no], near[Café Rouge]"
+        # input_str = "name[The Phoenix], eatType[restaurant], food[Indian], priceRange[£20-25], customer rating[high], area[riverside], familyFriendly[yes], near[Crowne Plaza Hotel]"
+        # input_str = "name[The Punter], eatType[restaurant], food[Italian], priceRange[cheap], customer rating[average], area[riverside], familyFriendly[yes], near[Rainbow Vegetarian Café]"
+        # input_str = "name[The Wrestlers], eatType[pub], food[Japanese], priceRange[£20-25], area[riverside], familyFriendly[yes], near[Raja Indian Cuisine]"
+
+        # Video games (ViGGO)
         # input_str = "inform(name[Tomb Raider: The Last Revelation], release_year[1999], esrb[T (for Teen)], genres[action-adventure, puzzle, shooter], platforms[PlayStation, PC], available_on_steam[yes], has_linux_release[no], has_mac_release[yes])"
         # input_str = "inform(name[Assassin's Creed Chronicles: India], release_year[2016], genres[action-adventure, platformer], player_perspective[side view], has_multiplayer[no])"
         # input_str = "recommend(name[Crysis], has_multiplayer[yes], platforms[Xbox])"
-        input_str = "request_explanation(esrb[E (for Everyone)], rating[good], genres[adventure, platformer, puzzle])"
+        # input_str = "request_explanation(esrb[E (for Everyone)], rating[good], genres[adventure, platformer, puzzle])"
+        # input_str = "verify_attribute(name[Uncharted 4: A Thief's End], esrb[T (for Teen)], rating[excellent])"
+        # input_str = "request_explanation(rating[poor], genres[vehicular combat], player_perspective[third person])"
+        input_str = "inform(name[Tom Clancy's The Division], esrb[M (for Mature)], rating[average], genres[role-playing, shooter, tactical], player_perspective[third person], has_multiplayer[yes], platforms[PlayStation, Xbox, PC], available_on_steam[yes])"
+        # input_str = "give_opinion(name[Mirror's Edge Catalyst], rating[poor], available_on_steam[no])"
+        # input_str = "recommend(name[Madden NFL 15], genres[simulation, sport])"
+        # input_str = "inform(name[World of Warcraft], release_year[2004], developer[Blizzard Entertainment], genres[adventure, MMORPG])"
+        # input_str = "request(genres[driving/racing, simulation, sport], specifier[exciting])"
+        # input_str = "inform(name[F1 2014], release_year[2014], rating[average], genres[driving/racing, simulation, sport])"
+        # input_str = "suggest(name[The Sims], platforms[PC], available_on_steam[no])"
+        # input_str = "request_attribute(developer[])"
+        # input_str = "recommend(name[F1 2014], genres[driving/racing, simulation, sport], platforms[PC])"
+
         generate_from_input(TestConfig(config), input_str, dataset_class, device=device)
 
 

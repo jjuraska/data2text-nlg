@@ -135,6 +135,27 @@ def rerank_beams(beams, mrs, domain, keep_n=None, keep_least_errors_only=False):
     return beams_reranked
 
 
+def rerank_beams_attention_based(beams, slot_errors):
+    beams_reranked = []
+    slot_errors_reranked = []
+
+    for beam_utts, beam_errors in tqdm(zip(beams, slot_errors), desc='Reranking'):
+        beam_scored = list(zip(beam_utts, beam_errors))
+
+        # Rerank utterances by the number of slot errors (the lower the better)
+        beam_scored.sort(key=lambda tup: len(tup[1]))
+
+        # DEBUG
+        # print(beam_scored)
+        # print()
+
+        # Store the reranked beam utterances as well as slot errors
+        beams_reranked.append([utt[0] for utt in beam_scored])
+        slot_errors_reranked.append([utt[1] for utt in beam_scored])
+
+    return beams_reranked, slot_errors_reranked
+
+
 def execute_e2e_evaluation_script(config, test_set, eval_configurations):
     """Runs the evaluation script of the E2E NLG Challenge for multiple sets of generated utterances.
 
@@ -155,10 +176,10 @@ def execute_e2e_evaluation_script(config, test_set, eval_configurations):
         print('>> Generating a reference file for the "{}" test set.'.format(test_set.name))
         test_set.create_reference_file_for_testing()
 
-    for prediction_list, reranked in eval_configurations:
+    for prediction_list, reranked, _ in eval_configurations:
         file_name_root = compose_output_file_name(config, reranked=reranked)
 
-        # Save generated utterances along with their corresponding MRs into a CSV file
+        # Save generated utterances along with their corresponding MRs to a CSV file
         file_name = f'{file_name_root}.csv'
         df_predictions = pd.DataFrame({'mr': test_set.get_mrs(raw=True), 'utt': prediction_list})
         df_predictions.to_csv(os.path.join(predictions_dir, file_name), index=False, encoding='utf-8-sig')
@@ -182,6 +203,28 @@ def execute_e2e_evaluation_script(config, test_set, eval_configurations):
         print()
 
     return scores
+
+
+def save_slot_errors(config, test_set, eval_configurations):
+    """Saves generated utterances along with the attention-based slot errors, as well as the input MRs, to a file."""
+
+    # Make sure the output directory exists for the given dataset
+    predictions_dir = os.path.join('seq2seq', 'predictions', test_set.name)
+    if not os.path.exists(predictions_dir):
+        os.makedirs(predictions_dir)
+
+    for prediction_list, reranked, slot_errors in eval_configurations:
+        file_name_root = compose_output_file_name(config, reranked=reranked)
+
+        # Save generated utterances along with their corresponding MRs and slot errors to a CSV file
+        file_name = f'{file_name_root} [errors (attention-based)].csv'
+        df_predictions = pd.DataFrame({
+            'mr': test_set.get_mrs(raw=True),
+            'utt': prediction_list,
+            'errors': [len(slot_error_list) for slot_error_list in slot_errors],
+            'incorrect slots': [', '.join(slot_error_list) for slot_error_list in slot_errors]
+        })
+        df_predictions.to_csv(os.path.join(predictions_dir, file_name), index=False, encoding='utf-8-sig')
 
 
 def parse_scores_from_e2e_script_output(script_output):

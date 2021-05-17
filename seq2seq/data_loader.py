@@ -15,9 +15,9 @@ class MRToTextDataset(Dataset):
     name = 'mr_to_text'
     delimiters = {}
 
-    def __init__(self, tokenizer, partition='train', lowercase=False, convert_slot_names=False, group_by_mr=False,
-                 no_target=False, separate_source_and_target=False, sort_by_length=False, prepare_token_types=False,
-                 num_slot_permutations=0):
+    def __init__(self, tokenizer, input_str=None, partition='train', lowercase=False, convert_slot_names=False,
+                 group_by_mr=False, no_target=False, separate_source_and_target=False, sort_by_length=False,
+                 prepare_token_types=False, num_slot_permutations=0):
         super().__init__()
 
         # Tokenizer's special tokens
@@ -43,7 +43,9 @@ class MRToTextDataset(Dataset):
         self.mrs = []
         self.utterances = []
 
-        self.load_data()
+        self.load_data(input_str=input_str)
+
+        self.bool_slots = self.identify_boolean_slots()
 
     def __len__(self):
         return len(self.mrs)
@@ -79,13 +81,17 @@ class MRToTextDataset(Dataset):
         else:
             return source_str, target_str
 
-    def load_data(self):
-        # Load the data file
-        dataset_path = self.get_data_file_path(self.partition)
-        df_data = pd.read_csv(dataset_path, header=0, encoding='utf8')
+    def load_data(self, input_str=None):
+        if input_str:
+            self.mrs_raw = [input_str]
+            self.utterances = []
+        else:
+            # Load the data file
+            dataset_path = self.get_data_file_path(self.partition)
+            df_data = pd.read_csv(dataset_path, header=0, encoding='utf8')
 
-        # Read the MRs and utterances from the file
-        self.mrs_raw, self.utterances = self.read_data_from_dataframe(df_data, group_by_mr=self.group_by_mr)
+            # Read the MRs and utterances from the file
+            self.mrs_raw, self.utterances = self.read_data_from_dataframe(df_data, group_by_mr=self.group_by_mr)
 
         # Sort data before performing any preprocessing
         if self.sort_by_length:
@@ -265,8 +271,7 @@ class MRToTextDataset(Dataset):
         Depending on the as_lists parameter, it returns the MRs either in the intermediate format or as strings.
         """
         # Preprocess slot names
-        mrs = [cls.preprocess_slot_names_in_mr(mr, convert_slot_names=convert_slot_names)
-               for mr in mrs]
+        mrs = [cls.preprocess_slot_names_in_mr(mr, convert_slot_names=convert_slot_names) for mr in mrs]
 
         # Preprocess slot values
         mrs = cls.preprocess_slot_values_in_mrs(mrs)
@@ -444,7 +449,7 @@ class MRToTextDataset(Dataset):
         return mrs, utterances
 
     @classmethod
-    def get_ontology(cls):
+    def get_ontology(cls, preprocess_slot_names=False):
         """Creates an ontology of the dataset, listing all possible values for each slot.
 
         The ontology is created based on the training set only.
@@ -456,10 +461,46 @@ class MRToTextDataset(Dataset):
 
         for mr_as_str in df_data[df_data.columns[0]]:
             mr_as_list = cls.convert_mr_from_str_to_list(mr_as_str)
+            if preprocess_slot_names:
+                mr_as_list = cls.preprocess_slot_names_in_mr(mr_as_list)
+
             for slot, value in mr_as_list:
                 ontology[slot].add(value)
 
         return ontology
+
+    @classmethod
+    def identify_boolean_slots(cls, additional_bool_values=None):
+        """Extracts the set of all Boolean slots in the dataset's ontology, inferred from their possible values.
+
+        To specify additional Boolean values, a nested list of strings can be passed as the `additional_bool_values`
+        parameter. Note that slot values are lowercased before being matched with the specified Boolean values.
+        """
+        bool_slots = set()
+        ontology = cls.get_ontology(preprocess_slot_names=True)
+
+        # Predefined possible Boolean and none-values
+        bool_value_groups = [['yes', 'no'], ['true', 'false']]
+        none_values = ['', '?', 'none']
+
+        # Add any additional Boolean values passed to the method
+        if additional_bool_values and isinstance(additional_bool_values, list):
+            for bool_values_to_add in additional_bool_values:
+                if isinstance(bool_values_to_add, list):
+                    bool_value_groups.append(bool_values_to_add)
+
+        # Iterate over all slots in the ontology and record those whose all values are Boolean or none-values
+        for slot_name, values in ontology.items():
+            for bool_values in bool_value_groups:
+                bool_and_none_values = bool_values + none_values
+                if all(value.lower() in bool_and_none_values for value in values):
+                    bool_slots.add(slot_name)
+
+        print('>> Boolean slots identified in the dataset:')
+        print(', '.join(sorted(bool_slots)))
+        print()
+
+        return bool_slots
 
     @classmethod
     def get_special_tokens(cls, convert_slot_names=False):
