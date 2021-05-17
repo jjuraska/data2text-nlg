@@ -135,12 +135,11 @@ def decode_model_outputs(sequences, num_seqs_per_input, tokenizer, is_enc_dec):
 
 
 def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, device='cpu'):
-    """Performs a semantically guided inference from a structured MR input.
-
-    Note: currently, this performs a simple greedy decoding.
-    """
+    """Performs a semantically attention-guided inference from a structured MR input using greedy search."""
     outputs = None
+    past = None
     attention_weights = {}
+    stopping_criteria = StoppingCriteriaList([MaxLengthCriteria(max_length=max_length)])
 
     # Initialize the decoder's input sequence with the corresponding token
     decoder_input_ids = torch.tensor([[model.config.decoder_start_token_id]], dtype=torch.long).to(device)
@@ -150,8 +149,9 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
     encoded_sequence = encoder(input_ids, output_attentions=True)
 
     # Determine the indices of special tokens in the input sequence
-    special_tokens = [tok for tok in [tokenizer.bos_token_id, tokenizer.eos_token_id] if tok is not None]
-    special_token_idxs = np.nonzero(input_ids.detach().cpu().numpy()[:, :, np.newaxis] == special_tokens)[:-1]
+    special_tokens = torch.tensor(
+        [tok for tok in [tokenizer.bos_token_id, tokenizer.eos_token_id] if tok is not None], device=input_ids.device)
+    special_token_idxs = torch.nonzero(input_ids.detach()[:, :, None] == special_tokens, as_tuple=True)[:-1]
 
     # DEBUG
     # print('>> Indices of special tokens:')
@@ -164,9 +164,11 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
     ]
 
     for step in range(max_length):
+        model_inputs = model.prepare_inputs_for_generation(decoder_input_ids, past=past, attention_mask=None,
+                                                           use_cache=True, encoder_outputs=encoded_sequence)
+
         # Reuse the encoded inputs, and pass the sequence generated so far as inputs to the decoder
-        outputs = model(None, encoder_outputs=encoded_sequence, decoder_input_ids=decoder_input_ids,
-                        output_attentions=True, return_dict=True)
+        outputs = model(**model_inputs, output_attentions=True, return_dict=True)
 
         logits = outputs.logits
 
@@ -174,10 +176,10 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
             logits, outputs.cross_attentions, slot_spans, tokenizer.eos_token_id, special_token_idxs)
 
         # Select the token with the highest probability as the next generated token (~ greedy decoding)
-        next_decoder_input_ids = torch.argmax(logits[:, -1, :], axis=-1)
+        next_decoder_input_ids = torch.argmax(logits[:, -1, :], dim=-1)
 
         # Append the current output token's ID to the sequence generated so far
-        decoder_input_ids = torch.cat([decoder_input_ids, next_decoder_input_ids.unsqueeze(-1)], axis=-1)
+        decoder_input_ids = torch.cat([decoder_input_ids, next_decoder_input_ids.unsqueeze(-1)], dim=-1)
 
         # DEBUG
         # for i in range(len(outputs.cross_attentions)):
@@ -185,7 +187,7 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
         # print()
 
         # Terminate as soon as the decoder generates the EOS token
-        if next_decoder_input_ids.item() == tokenizer.eos_token_id:
+        if next_decoder_input_ids.item() == tokenizer.eos_token_id or stopping_criteria(decoder_input_ids, None):
             break
 
     if outputs:
@@ -214,7 +216,7 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
 
 def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model, attention_mask=None, max_length=128,
                                   beam_size=1, length_penalty=1.0, early_stopping=False, device='cpu'):
-    """Performs a semantically guided inference from a structured MR input using beam search."""
+    """Performs a semantically attention-guided inference from a structured MR input using beam search."""
     outputs = None
     past = None
     attention_weights = {}
