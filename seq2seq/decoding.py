@@ -1,8 +1,11 @@
 import copy
 import numpy as np
+import os
+import pickle
 import torch
 from torch.nn import functional as F
 from tqdm import tqdm
+from transformers.generation_logits_process import LogitsProcessorList, NoRepeatNGramLogitsProcessor
 from transformers.generation_stopping_criteria import MaxLengthCriteria, StoppingCriteriaList
 
 from seq2seq.beam_search_scoring import SemanticBeamSearchScorer
@@ -10,7 +13,7 @@ import seq2seq.model_utils as model_utils
 from seq2seq.semantic_tracking import (
     evaluate_slot_mentions,
     rearrange_slot_mentions_for_next_time_step,
-    select_next_token
+    track_slot_mentions
 )
 
 
@@ -134,12 +137,20 @@ def decode_model_outputs(sequences, num_seqs_per_input, tokenizer, is_enc_dec):
     return outputs_decoded
 
 
-def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, device='cpu'):
+def semantic_decoding(input_ids, batch_slot_spans, tokenizer, model, max_length=128, device='cpu'):
     """Performs a semantically attention-guided inference from a structured MR input using greedy search."""
     outputs = None
     past = None
     attention_weights = {}
-    stopping_criteria = StoppingCriteriaList([MaxLengthCriteria(max_length=max_length)])
+
+    # logits_processor = LogitsProcessorList([
+    #     NoRepeatNGramLogitsProcessor(model.config.no_repeat_ngram_size),
+    # ])
+    logits_processor = LogitsProcessorList()
+
+    stopping_criteria = StoppingCriteriaList([
+        MaxLengthCriteria(max_length=max_length)
+    ])
 
     # Initialize the decoder's input sequence with the corresponding token
     decoder_input_ids = torch.tensor([[model.config.decoder_start_token_id]], dtype=torch.long).to(device)
@@ -172,11 +183,18 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
 
         logits = outputs.logits
 
-        next_decoder_input_ids = select_next_token(
-            logits, outputs.cross_attentions, slot_spans, tokenizer.eos_token_id, special_token_idxs)
+        track_slot_mentions(
+            logits,
+            outputs.cross_attentions,
+            batch_slot_spans,
+            tokenizer.eos_token_id,
+            special_token_idxs
+        )
+
+        next_token_scores = logits_processor(decoder_input_ids, logits[:, -1, :])
 
         # Select the token with the highest probability as the next generated token (~ greedy decoding)
-        next_decoder_input_ids = torch.argmax(logits[:, -1, :], dim=-1)
+        next_decoder_input_ids = torch.argmax(next_token_scores, dim=-1)
 
         # Append the current output token's ID to the sequence generated so far
         decoder_input_ids = torch.cat([decoder_input_ids, next_decoder_input_ids.unsqueeze(-1)], dim=-1)
@@ -190,6 +208,9 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
         if next_decoder_input_ids.item() == tokenizer.eos_token_id or stopping_criteria(decoder_input_ids, None):
             break
 
+    # Add a dimension for compatibility with beam search
+    batch_slot_spans_final = [[slot_spans] for slot_spans in batch_slot_spans]
+
     if outputs:
         # Save the decoder's self- and cross-attention weights; shape = (num_layers, batch_size, num_heads, sequence_length, sequence_length)
         attention_weights['dec_attn_weights'] = [
@@ -201,10 +222,10 @@ def semantic_decoding(input_ids, slot_spans, tokenizer, model, max_length=128, d
 
     # DEBUG
     # print('>> Slot mentions:')
-    # print(slot_spans)
+    # print(batch_slot_spans_final)
     # print()
 
-    slot_errors = evaluate_slot_mentions(slot_spans)
+    slot_errors = evaluate_slot_mentions(batch_slot_spans_final)
 
     # DEBUG
     # print('>> Slot errors:')
@@ -221,7 +242,15 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
     past = None
     attention_weights = {}
     batch_size = input_ids.size(0)
-    stopping_criteria = StoppingCriteriaList([MaxLengthCriteria(max_length=max_length)])
+
+    # logits_processor = LogitsProcessorList([
+    #     NoRepeatNGramLogitsProcessor(model.config.no_repeat_ngram_size),
+    # ])
+    logits_processor = LogitsProcessorList()
+
+    stopping_criteria = StoppingCriteriaList([
+        MaxLengthCriteria(max_length=max_length),
+    ])
 
     # Initialize the decoder's input sequence with the corresponding token
     decoder_input_ids = torch.tensor([[model.config.decoder_start_token_id]] * batch_size, dtype=torch.long).to(device)
@@ -279,6 +308,7 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
 
         # Add the corresponding partial sequence log-probabilities to those of the next tokens
         next_token_scores = F.log_softmax(logits[:, -1, :], dim=-1)  # (batch_size * beam_size, vocab_size)
+        next_token_scores = logits_processor(decoder_input_ids, next_token_scores)
         next_token_scores = next_token_scores + beam_scores[:, None].expand_as(next_token_scores)
 
         # Reshape the token score tensor for beam search
@@ -291,7 +321,7 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
         best_beam_idxs = best_next_token_ids // vocab_size
         best_next_token_ids = best_next_token_ids % vocab_size
 
-        next_decoder_input_ids = select_next_token(
+        track_slot_mentions(
             logits,
             outputs.cross_attentions,
             batch_slot_spans,
@@ -347,7 +377,7 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
 
     # DEBUG
     # print('>> Slot mentions:')
-    # print(batch_slot_spans)
+    # print(batch_slot_spans_final)
     # print()
 
     slot_errors = evaluate_slot_mentions(batch_slot_spans_final)

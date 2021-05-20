@@ -2,7 +2,7 @@ import copy
 import torch
 
 
-def select_next_token(logits, attn_weights, slot_spans, eos_token_id, special_token_idxs, num_seqs_per_input=1):
+def track_slot_mentions(logits, attn_weights, slot_spans, eos_token_id, special_token_idxs, num_seqs_per_input=1):
     # Convert from a tuple to an array, and move the batch dimension to the front
     attn_weights = torch.stack(attn_weights, dim=1)
     # Ignore weights from other than the most recent step in the sequence
@@ -46,7 +46,7 @@ def select_next_token(logits, attn_weights, slot_spans, eos_token_id, special_to
     attn_weights_agg = attn_weights.clone()
     attn_weights_agg[batch_idxs_with_eos] = 0.0
 
-    num_layers = attn_weights.shape[0]
+    num_layers = attn_weights.shape[1]
     middle_layer_idx = num_layers // 2
 
     # Aggregate the attention weights across both the heads and the layers
@@ -208,7 +208,7 @@ def evaluate_slot_mentions(slot_mentions_batch):
 def aggregate_across_layers(attn_weights, mode='max'):
     """Aggregates weights across all attention layers."""
     if mode == 'max':
-        layer_sums = attn_weights.max(dim=1, keepdim=True)
+        layer_sums, _ = attn_weights.max(dim=1, keepdim=True)
     elif mode == 'sum':
         layer_sums = attn_weights.sum(dim=1, keepdim=True)
     elif mode == 'avg':
@@ -224,9 +224,9 @@ def aggregate_across_heads(attn_weights, mode='max'):
     if mode == 'max':
         head_maxs, _ = attn_weights.max(dim=2, keepdim=True)
     elif mode == 'sum':
-        head_maxs, _ = attn_weights.sum(dim=2, keepdim=True)
+        head_maxs = attn_weights.sum(dim=2, keepdim=True)
     elif mode == 'avg':
-        head_maxs, _ = attn_weights.mean(dim=2, keepdim=True)
+        head_maxs = attn_weights.mean(dim=2, keepdim=True)
     else:
         raise ValueError(f'Aggregation mode "{mode}" unrecognized')
 
