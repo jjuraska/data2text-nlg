@@ -61,22 +61,30 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
                     outputs, attn_weights, slot_error_list = semantic_decoding_beam_search(
                         input_tensor,
                         batch['slot_spans'],
-                        tokenizer,
                         model,
                         attention_mask=mask_tensor,
                         max_length=config.max_seq_length,
+                        pad_token_id=tokenizer.pad_token_id,
+                        bos_token_id=tokenizer.bos_token_id,
+                        eos_token_id=tokenizer.eos_token_id,
                         beam_size=config.num_beams,
                         length_penalty=config.length_penalty,
                         early_stopping=config.early_stopping,
+                        output_attentions=False,
                         device=device)
                 else:
                     num_seqs_per_input = 1
-                    outputs, attn_weights, slot_error_list = semantic_decoding(input_tensor,
-                                                                               batch['slot_spans'],
-                                                                               tokenizer,
-                                                                               model,
-                                                                               max_length=config.max_seq_length,
-                                                                               device=device)
+                    outputs, attn_weights, slot_error_list = semantic_decoding(
+                        input_tensor,
+                        batch['slot_spans'],
+                        model,
+                        attention_mask=mask_tensor,
+                        max_length=config.max_seq_length,
+                        pad_token_id=tokenizer.pad_token_id,
+                        bos_token_id=tokenizer.bos_token_id,
+                        eos_token_id=tokenizer.eos_token_id,
+                        output_attentions=False,
+                        device=device)
 
                 slot_errors.extend(slot_error_list)
 
@@ -137,11 +145,14 @@ def decode_model_outputs(sequences, num_seqs_per_input, tokenizer, is_enc_dec):
     return outputs_decoded
 
 
-def semantic_decoding(input_ids, batch_slot_spans, tokenizer, model, max_length=128, device='cpu'):
+@torch.no_grad()
+def semantic_decoding(input_ids, batch_slot_spans, model, attention_mask=None, max_length=128, pad_token_id=None,
+                      bos_token_id=None, eos_token_id=None, output_attentions=False, device='cpu'):
     """Performs a semantically attention-guided inference from a structured MR input using greedy search."""
     outputs = None
     past = None
     attention_weights = {}
+    batch_size = input_ids.size(0)
 
     # logits_processor = LogitsProcessorList([
     #     NoRepeatNGramLogitsProcessor(model.config.no_repeat_ngram_size),
@@ -153,15 +164,15 @@ def semantic_decoding(input_ids, batch_slot_spans, tokenizer, model, max_length=
     ])
 
     # Initialize the decoder's input sequence with the corresponding token
-    decoder_input_ids = torch.tensor([[model.config.decoder_start_token_id]], dtype=torch.long).to(device)
+    decoder_input_ids = torch.tensor([[model.config.decoder_start_token_id]] * batch_size, dtype=torch.long).to(device)
 
     # Run the input sequence through the encoder and get the encoded input sequence
     encoder = model.get_encoder()
-    encoded_sequence = encoder(input_ids, output_attentions=True)
+    encoded_sequence = encoder(input_ids, attention_mask=attention_mask, output_attentions=output_attentions)
 
     # Determine the indices of special tokens in the input sequence
     special_tokens = torch.tensor(
-        [tok for tok in [tokenizer.bos_token_id, tokenizer.eos_token_id] if tok is not None], device=input_ids.device)
+        [tok for tok in [bos_token_id, eos_token_id] if tok is not None], device=input_ids.device)
     special_token_idxs = torch.nonzero(input_ids.detach()[:, :, None] == special_tokens, as_tuple=True)[:-1]
 
     # DEBUG
@@ -169,17 +180,21 @@ def semantic_decoding(input_ids, batch_slot_spans, tokenizer, model, max_length=
     # print(special_token_idxs)
     # print()
 
-    # Save the encoder's self-attention weights
-    attention_weights['enc_attn_weights'] = [
-        weight_tensor.squeeze().tolist() for weight_tensor in encoded_sequence.attentions
-    ]
+    if output_attentions:
+        # Save the encoder's self-attention weights
+        attention_weights['enc_attn_weights'] = [
+            weight_tensor.squeeze().tolist() for weight_tensor in encoded_sequence.attentions
+        ]
+
+    # Keep track of which sequences are not yet finished
+    unfinished_sequences = decoder_input_ids.new(batch_size).fill_(1)
 
     for step in range(max_length):
-        model_inputs = model.prepare_inputs_for_generation(decoder_input_ids, past=past, attention_mask=None,
+        model_inputs = model.prepare_inputs_for_generation(decoder_input_ids, past=past, attention_mask=attention_mask,
                                                            use_cache=True, encoder_outputs=encoded_sequence)
 
         # Reuse the encoded inputs, and pass the sequence generated so far as inputs to the decoder
-        outputs = model(**model_inputs, output_attentions=True, return_dict=True)
+        outputs = model(**model_inputs, output_attentions=output_attentions, return_dict=True)
 
         logits = outputs.logits
 
@@ -187,7 +202,7 @@ def semantic_decoding(input_ids, batch_slot_spans, tokenizer, model, max_length=
             logits,
             outputs.cross_attentions,
             batch_slot_spans,
-            tokenizer.eos_token_id,
+            eos_token_id,
             special_token_idxs
         )
 
@@ -196,22 +211,33 @@ def semantic_decoding(input_ids, batch_slot_spans, tokenizer, model, max_length=
         # Select the token with the highest probability as the next generated token (~ greedy decoding)
         next_decoder_input_ids = torch.argmax(next_token_scores, dim=-1)
 
+        # Sets the next token of finished sequences to be the padding token
+        if eos_token_id is not None:
+            assert pad_token_id is not None, "If eos_token_id is defined, make sure that pad_token_id is defined."
+            next_decoder_input_ids = next_decoder_input_ids * unfinished_sequences + pad_token_id * (1 - unfinished_sequences)
+
         # Append the current output token's ID to the sequence generated so far
         decoder_input_ids = torch.cat([decoder_input_ids, next_decoder_input_ids.unsqueeze(-1)], dim=-1)
+
+        past = update_past_for_next_time_step(outputs)
+
+        # Mark a sequence finished if EOS token was determined as the next token
+        if eos_token_id is not None:
+            unfinished_sequences = unfinished_sequences.mul((next_decoder_input_ids != eos_token_id).long())
 
         # DEBUG
         # for i in range(len(outputs.cross_attentions)):
         #     print(outputs.cross_attentions[i].size())
         # print()
 
-        # Terminate as soon as the decoder generates the EOS token
-        if next_decoder_input_ids.item() == tokenizer.eos_token_id or stopping_criteria(decoder_input_ids, None):
+        # Terminate as soon as each sequence is finished or the maximum sequence length has been reached
+        if unfinished_sequences.max() == 0 or stopping_criteria(decoder_input_ids, None):
             break
 
     # Add a dimension for compatibility with beam search
     batch_slot_spans_final = [[slot_spans] for slot_spans in batch_slot_spans]
 
-    if outputs:
+    if output_attentions and outputs:
         # Save the decoder's self- and cross-attention weights; shape = (num_layers, batch_size, num_heads, sequence_length, sequence_length)
         attention_weights['dec_attn_weights'] = [
             weight_tensor.squeeze().tolist() for weight_tensor in outputs.decoder_attentions
@@ -235,8 +261,10 @@ def semantic_decoding(input_ids, batch_slot_spans, tokenizer, model, max_length=
     return decoder_input_ids, attention_weights, slot_errors
 
 
-def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model, attention_mask=None, max_length=128,
-                                  beam_size=1, length_penalty=1.0, early_stopping=False, device='cpu'):
+@torch.no_grad()
+def semantic_decoding_beam_search(input_ids, batch_slot_spans, model, attention_mask=None, max_length=128,
+                                  pad_token_id=None, bos_token_id=None, eos_token_id=None, beam_size=1,
+                                  length_penalty=1.0, early_stopping=False, output_attentions=False, device='cpu'):
     """Performs a semantically attention-guided inference from a structured MR input using beam search."""
     outputs = None
     past = None
@@ -257,11 +285,11 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
 
     # Run the input sequence through the encoder and get the encoded input sequence
     encoder = model.get_encoder()
-    encoded_sequence = encoder(input_ids, attention_mask=attention_mask, output_attentions=True)
+    encoded_sequence = encoder(input_ids, attention_mask=attention_mask, output_attentions=output_attentions)
 
     # Determine the indices of special tokens in the input sequence
     special_tokens = torch.tensor(
-        [tok for tok in [tokenizer.bos_token_id, tokenizer.eos_token_id] if tok is not None], device=input_ids.device)
+        [tok for tok in [bos_token_id, eos_token_id] if tok is not None], device=input_ids.device)
     special_token_idxs = torch.nonzero(
         input_ids.detach().repeat_interleave(beam_size, dim=0)[:, :, None] == special_tokens, as_tuple=True)[:-1]
 
@@ -273,15 +301,15 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
     # For each candidate in the beam prepare its own slot tracking dict by duplicating the initial one
     batch_slot_spans = [copy.deepcopy(slot_spans) for slot_spans in batch_slot_spans for _ in range(beam_size)]
 
-    # Save the encoder's self-attention weights
-    attention_weights['enc_attn_weights'] = [
-        weight_tensor.squeeze().tolist() for weight_tensor in encoded_sequence.attentions
-    ]
+    if output_attentions:
+        # Save the encoder's self-attention weights
+        attention_weights['enc_attn_weights'] = [
+            weight_tensor.squeeze().tolist() for weight_tensor in encoded_sequence.attentions
+        ]
 
     # Initialize the beam search scorer
     beam_scorer = SemanticBeamSearchScorer(
         batch_size=batch_size,
-        max_length=max_length,
         num_beams=beam_size,
         device=device,
         length_penalty=length_penalty,
@@ -325,7 +353,7 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
             logits,
             outputs.cross_attentions,
             batch_slot_spans,
-            tokenizer.eos_token_id,
+            eos_token_id,
             special_token_idxs,
             num_seqs_per_input=beam_size
         )
@@ -337,8 +365,8 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
             best_next_token_ids,
             best_beam_idxs,
             batch_slot_spans,
-            pad_token_id=tokenizer.pad_token_id,
-            eos_token_id=tokenizer.eos_token_id,
+            pad_token_id=pad_token_id,
+            eos_token_id=eos_token_id,
         )
         beam_scores = beam_outputs['next_beam_scores']
         beam_idxs = beam_outputs['next_beam_indices']
@@ -347,7 +375,10 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
         # Append the current output token's ID to the sequence generated so far
         decoder_input_ids = torch.cat([decoder_input_ids[beam_idxs, :], beam_next_tokens.unsqueeze(-1)], dim=-1)
 
-        past = update_past_for_next_time_step(outputs, model, beam_idxs)
+        past = update_past_for_next_time_step(outputs)
+        if past is not None and beam_idxs is not None:
+            past = model._reorder_cache(past, beam_idxs)
+
         batch_slot_spans = rearrange_slot_mentions_for_next_time_step(batch_slot_spans, beam_idxs)
 
         if beam_scorer.is_done or stopping_criteria(decoder_input_ids, None):
@@ -357,16 +388,16 @@ def semantic_decoding_beam_search(input_ids, batch_slot_spans, tokenizer, model,
                                             beam_scores,
                                             best_next_token_ids,
                                             best_beam_idxs,
-                                            # max_length,
+                                            max_length,
                                             batch_slot_spans,
-                                            pad_token_id=tokenizer.pad_token_id,
-                                            eos_token_id=tokenizer.eos_token_id)
+                                            pad_token_id=pad_token_id,
+                                            eos_token_id=eos_token_id)
 
     slot_mentions_final = sequence_outputs['sequence_slot_mentions']
     batch_slot_spans_final = [slot_mentions_final[beam_start_idx:beam_start_idx + beam_size]
                               for beam_start_idx in range(0, len(slot_mentions_final), beam_size)]
 
-    if outputs:
+    if output_attentions and outputs:
         # Save the decoder's self- and cross-attention weights; shape = (num_layers, batch_size, num_heads, sequence_length, sequence_length)
         attention_weights['dec_attn_weights'] = [
             weight_tensor.squeeze().tolist() for weight_tensor in outputs.decoder_attentions
@@ -406,7 +437,7 @@ def expand_inputs_for_beam_search(input_ids, enc_outputs, attention_mask=None, e
     return input_ids, enc_outputs, attention_mask
 
 
-def update_past_for_next_time_step(outputs, model, beam_idxs):
+def update_past_for_next_time_step(outputs):
     if 'past_key_values' in outputs:
         past = outputs.past_key_values
     elif 'mems' in outputs:
@@ -415,8 +446,5 @@ def update_past_for_next_time_step(outputs, model, beam_idxs):
         past = outputs.past_buckets_states
     else:
         past = None
-
-    if past is not None:
-        past = model._reorder_cache(past, beam_idxs)
 
     return past

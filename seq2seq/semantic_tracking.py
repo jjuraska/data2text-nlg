@@ -15,6 +15,8 @@ def track_slot_mentions(logits, attn_weights, slot_spans, eos_token_id, special_
     # print('>> special_token_idxs:', special_token_idxs)
     # print()
 
+    most_probable_next_tokens = torch.argmax(logits[:, -1, :].detach(), axis=-1)
+
     # Set the special-token attention weights to zero
     if special_token_idxs:
         attn_weights[special_token_idxs[0], :, :, special_token_idxs[-1]] = 0.0
@@ -23,14 +25,13 @@ def track_slot_mentions(logits, attn_weights, slot_spans, eos_token_id, special_
     attn_weights_first_layer = preprocess_attn_weights(
         attn_weights[:, 0:1, ...].clone(), head_agg_mode='max', layer_agg_mode=None)
     attn_weights_first_layer = binarize_weights(
-        attn_weights_first_layer, threshold=0.5, keep_max_only=True).squeeze(2).squeeze(1)
+        attn_weights_first_layer, threshold=0.9, keep_max_only=True).squeeze(2).squeeze(1)
     attn_idxs = torch.nonzero(attn_weights_first_layer == 1, as_tuple=True)
 
     # Update slot mentions with a high confidence
     update_slot_mentions(slot_spans, attn_idxs, confidence=True)
 
-    batch_idxs_without_eos = torch.nonzero(
-        torch.argmax(logits[:, -1, :].detach(), axis=-1) != eos_token_id, as_tuple=True)
+    batch_idxs_without_eos = torch.nonzero(most_probable_next_tokens != eos_token_id, as_tuple=True)
     attn_weights_agg = attn_weights.clone()
     attn_weights_agg[batch_idxs_without_eos] = 0.0
 
@@ -41,8 +42,7 @@ def track_slot_mentions(logits, attn_weights, slot_spans, eos_token_id, special_
 
     remove_slot_mentions(slot_spans, attn_idxs)
 
-    batch_idxs_with_eos = torch.nonzero(
-        torch.argmax(logits[:, -1, :].detach(), axis=-1) == eos_token_id, as_tuple=True)
+    batch_idxs_with_eos = torch.nonzero(most_probable_next_tokens == eos_token_id, as_tuple=True)
     attn_weights_agg = attn_weights.clone()
     attn_weights_agg[batch_idxs_with_eos] = 0.0
 

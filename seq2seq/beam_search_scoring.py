@@ -9,7 +9,6 @@ class SemanticBeamSearchScorer(BeamSearchScorer):
     def __init__(
             self,
             batch_size: int,
-            max_length: int,
             num_beams: int,
             device: torch.device,
             length_penalty: Optional[float] = 1.0,
@@ -17,7 +16,6 @@ class SemanticBeamSearchScorer(BeamSearchScorer):
             num_beam_hyps_to_keep: Optional[int] = 1,
             num_beam_groups: Optional[int] = 1,
     ):
-        self.max_length = max_length
         self.num_beams = num_beams
         self.device = device
         self.length_penalty = length_penalty
@@ -30,7 +28,6 @@ class SemanticBeamSearchScorer(BeamSearchScorer):
         self._beam_hyps = [
             SemanticBeamHypotheses(
                 num_beams=self.num_beams,
-                max_length=self.max_length,
                 length_penalty=self.length_penalty,
                 early_stopping=self.do_early_stopping,
             )
@@ -132,6 +129,7 @@ class SemanticBeamSearchScorer(BeamSearchScorer):
             final_beam_scores: torch.FloatTensor,
             final_beam_tokens: torch.LongTensor,
             final_beam_indices: torch.LongTensor,
+            max_length: int,
             slot_mentions: list,
             pad_token_id: Optional[int] = None,
             eos_token_id: Optional[int] = None,
@@ -172,7 +170,7 @@ class SemanticBeamSearchScorer(BeamSearchScorer):
                 best_slot_mentions.append(best_hyp_tuple[2])
 
         # prepare for adding eos
-        sent_max_len = min(sent_lengths.max().item() + 1, self.max_length)
+        sent_max_len = min(sent_lengths.max().item() + 1, max_length)
         decoded: torch.LongTensor = input_ids.new(batch_size * self.num_beam_hyps_to_keep, sent_max_len)
         # shorter batches are padded if needed
         if sent_lengths.min().item() != sent_lengths.max().item():
@@ -182,7 +180,7 @@ class SemanticBeamSearchScorer(BeamSearchScorer):
         # fill with hypotheses and eos_token_id if the latter fits in
         for i, hypo in enumerate(best):
             decoded[i, : sent_lengths[i]] = hypo
-            if sent_lengths[i] < self.max_length:
+            if sent_lengths[i] < max_length:
                 decoded[i, sent_lengths[i]] = eos_token_id
 
         return UserDict({

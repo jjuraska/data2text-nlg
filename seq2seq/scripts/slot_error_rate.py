@@ -29,7 +29,7 @@ def calculate_slot_error_rate(data_dir, predictions_file, dataset_class, slot_le
 
     # Save the utterances along with their slot error indications to a CSV file
     df_data['has_err'] = error_flags
-    out_file_path = os.path.splitext(os.path.join(data_dir, predictions_file))[0] + ' [errors].csv'
+    out_file_path = os.path.splitext(os.path.join(data_dir, predictions_file))[0] + ' [errors (exact-match)].csv'
     df_data.to_csv(out_file_path, index=False, encoding='utf-8-sig')
 
     # Calculate the slot-level or utterance-level SER
