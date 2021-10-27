@@ -1,9 +1,7 @@
-model_name: "t5-small"
-pretrained: True
-checkpoint_epoch: 18
-checkpoint_step: 658
+model_name: "seq2seq/export/rest_e2e/from_scratch/t5-small_lr_2e-4_bs_64/epoch_21_step_658"
+pretrained: False
 convert_slot_names: True
-batch_size: 64
+batch_size: 48
 max_seq_length: 128
 do_sample: True
 top_p: [0.3, 0.5, 0.8]

@@ -1,9 +1,6 @@
-#model_name: "facebook/bart-base"
 model_name: "seq2seq/export/video_game/finetuned_sampled_0.2/bart-base_lr_1e-5_bs_20_wus_100_run1/epoch_8_step_52"
 pretrained: True
-#tokenizer_name: "bart-base-video_game"
-#checkpoint_epoch: 5
-#checkpoint_step: 256
+lowercase: False
 convert_slot_names: True
 batch_size: 40
 max_seq_length: 128

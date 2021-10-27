@@ -1,9 +1,7 @@
-model_name: "gpt2"
+model_name: "seq2seq/export/rest_e2e/finetuned/gpt2_lr_2e-5_bs_20_wus_500_run4/epoch_14_step_2104"
 pretrained: True
-checkpoint_epoch: 13
-checkpoint_step: 2104
 convert_slot_names: True
-batch_size: 20
+batch_size: 16
 max_seq_length: 128
 do_sample: True
 top_p: [0.3, 0.5, 0.8]

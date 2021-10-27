@@ -1,9 +1,5 @@
-#model_name: "t5-small"
-model_name: "seq2seq/export/video_game/finetuned_verbalized_slots/t5-small_lr_2e-4_bs_32_wus_100_run2/epoch_12_step_160"
+model_name: "seq2seq/export/video_game/finetuned_verbalized_slots/t5-small_lr_2e-4_bs_32_wus_100_run4/epoch_16_step_160"
 pretrained: True
-#tokenizer_name: "t5-video_game"
-#checkpoint_epoch: 10
-#checkpoint_step: 160
 lowercase: False
 convert_slot_names: False
 batch_size: 32
@@ -16,4 +12,5 @@ do_sample: False
 #length_penalty: [0.8, 0.9, 1.0, 1.5, 2.0, 3.0]
 length_penalty: 1.0
 #num_return_sequences: 1
+#semantic_decoding: True
 semantic_reranking: True

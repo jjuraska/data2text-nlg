@@ -1,8 +1,5 @@
-#model_name: "t5-small"
 model_name: "seq2seq/export/multiwoz/finetuned/t5-small_lr_2e-4_bs_32_wus_100/epoch_12_step_1720"
 pretrained: True
-#checkpoint_epoch: 12
-#checkpoint_step: 1720
 convert_slot_names: True
 batch_size: 48
 max_seq_length: 160
