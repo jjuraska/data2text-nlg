@@ -3,7 +3,7 @@ import sys
 from tokenizers import ByteLevelBPETokenizer, SentencePieceBPETokenizer
 from transformers import AutoConfig, AutoTokenizer
 
-from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, ViggoDataset
+from seq2seq.data_loader import E2EDataset, E2ECleanedDataset, MultiWOZDataset, ViggoDataset
 
 
 def train_tokenizer(datasets, pretrained_model_name, vocab_size=1000, lowercase=False, convert_slot_names=False):
@@ -47,13 +47,15 @@ def train_tokenizer(datasets, pretrained_model_name, vocab_size=1000, lowercase=
             dataset_class = E2EDataset
         elif dataset == 'rest_e2e_cleaned':
             dataset_class = E2ECleanedDataset
+        elif dataset == 'multiwoz':
+            dataset_class = MultiWOZDataset
         elif dataset == 'video_game':
             dataset_class = ViggoDataset
         else:
             print('Error: dataset "{}" not recognized'.format(dataset))
             sys.exit()
 
-        train_set = dataset_class(tokenizer_pretrained, 'train', lowercase=lowercase,
+        train_set = dataset_class(tokenizer_pretrained, partition='train', lowercase=lowercase,
                                   convert_slot_names=convert_slot_names,
                                   separate_source_and_target=config_pretrained.is_encoder_decoder)
 
@@ -93,4 +95,4 @@ def train_tokenizer(datasets, pretrained_model_name, vocab_size=1000, lowercase=
 
 
 if __name__ == '__main__':
-    train_tokenizer(['video_game'], 'facebook/bart-base', vocab_size=5000, lowercase=True, convert_slot_names=True)
+    train_tokenizer(['multiwoz'], 'facebook/bart-base', vocab_size=10000, lowercase=False, convert_slot_names=False)
