@@ -49,6 +49,7 @@ def batch_calculate_slot_error_rate(input_dir, checkpoint_name, dataset_class, e
         reranking_suffixes = ['']
         if was_reranking_used and decoding_suffix != '_no_beam_search':
             reranking_suffixes.append('_reranked')
+            # reranking_suffixes.append('_reranked_att')
 
         for reranking_suffix in reranking_suffixes:
             if decoding_suffix == '_beam_search':
@@ -100,7 +101,7 @@ def batch_utterance_stats(input_dir, export_vocab=False, verbose=False):
     files_processed = []
 
     for file_name in os.listdir(input_dir):
-        if file_name.endswith('.csv') and '[errors]' not in file_name:
+        if file_name.endswith('.csv') and '[errors' not in file_name:
             files_processed.append(file_name)
             if verbose:
                 print(f'Running with file "{file_name}"...')
@@ -125,20 +126,18 @@ def run_batch_calculate_bleu():
 
 
 def run_batch_calculate_slot_error_rate():
+    input_dir = os.path.join('seq2seq', 'predictions', 'rest_e2e', 'finetuned_verbalized_slots', 't5-base_lr_3e-5_bs_32_wus_100_run1')
+    checkpoint_name = 'epoch_17_step_1315'
+    dataset_class = E2EDataset
+
     # input_dir = os.path.join('seq2seq', 'predictions', 'multiwoz', 'finetuned_verbalized_slots', 'bart-base_lr_1e-5_bs_32_wus_500_run4')
     # checkpoint_name = 'epoch_18_step_1749'
     # dataset_class = MultiWOZDataset
 
-    input_dir = os.path.join('seq2seq', 'predictions', 'video_game', 'from_scratch_verbalized_slots', 'gpt2_lr_3e-5_bs_16_run2')
-    checkpoint_name = 'epoch_20_step_319'
-    dataset_class = ViggoDataset
-
-    if 'multiwoz' in dataset_class.name:
-        batch_calculate_slot_error_rate(
-            input_dir, checkpoint_name, dataset_class, exact_matching=True, slot_level=False, verbose=False)
-    else:
-        batch_calculate_slot_error_rate(
-            input_dir, checkpoint_name, dataset_class, exact_matching=False, slot_level=True, verbose=False)
+    # batch_calculate_slot_error_rate(
+    #     input_dir, checkpoint_name, dataset_class, exact_matching=True, slot_level=False, verbose=False)
+    batch_calculate_slot_error_rate(
+        input_dir, checkpoint_name, dataset_class, exact_matching=False, slot_level=True, verbose=False)
 
 
 def run_batch_find_slot_alignment():
@@ -165,6 +164,7 @@ def run_batch_utterance_stats():
     # input_dir = os.path.join('seq2seq', 'predictions_baselines', 'DataTuner', 'video_game')
     # input_dir = os.path.join('seq2seq', 'predictions', 'rest_e2e_cleaned', 'finetuned', 'gpt2_lr_2e-5_bs_20_wus_500_run1')
     input_dir = os.path.join('seq2seq', 'predictions', 'video_game', 'finetuned', 'gpt2_lr_2e-5_bs_16_wus_100_run4')
+    # input_dir = os.path.join('seq2seq', 'predictions', 'multiwoz', 'finetuned_verbalized_slots', 't5-small_lr_2e-4_bs_64_wus_200_run3')
 
     batch_utterance_stats(input_dir, export_vocab=False, verbose=False)
 

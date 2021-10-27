@@ -481,7 +481,7 @@ def main():
         # input_str = "request_explanation(esrb[E (for Everyone)], rating[good], genres[adventure, platformer, puzzle])"
         # input_str = "verify_attribute(name[Uncharted 4: A Thief's End], esrb[T (for Teen)], rating[excellent])"
         # input_str = "request_explanation(rating[poor], genres[vehicular combat], player_perspective[third person])"
-        input_str = "inform(name[Tom Clancy's The Division], esrb[M (for Mature)], rating[average], genres[role-playing, shooter, tactical], player_perspective[third person], has_multiplayer[yes], platforms[PlayStation, Xbox, PC], available_on_steam[yes])"
+        # input_str = "inform(name[Tom Clancy's The Division], esrb[M (for Mature)], rating[average], genres[role-playing, shooter, tactical], player_perspective[third person], has_multiplayer[yes], platforms[PlayStation, Xbox, PC], available_on_steam[yes])"
         # input_str = "give_opinion(name[Mirror's Edge Catalyst], rating[poor], available_on_steam[no])"
         # input_str = "recommend(name[Madden NFL 15], genres[simulation, sport])"
         # input_str = "inform(name[World of Warcraft], release_year[2004], developer[Blizzard Entertainment], genres[adventure, MMORPG])"
@@ -490,6 +490,7 @@ def main():
         # input_str = "suggest(name[The Sims], platforms[PC], available_on_steam[no])"
         # input_str = "request_attribute(developer[])"
         # input_str = "recommend(name[F1 2014], genres[driving/racing, simulation, sport], platforms[PC])"
+        input_str = "inform(name[Quantum Break], release_year[2016], rating[average], genres[adventure, shooter], player_perspective[third person])"
 
         generate_from_input(TestConfig(config), input_str, dataset_class, device=device)
 

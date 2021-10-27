@@ -327,10 +327,26 @@ if __name__ == '__main__':
 
     # ----
 
-    # score_slot_realizations(r'd:\Git\viggo\seq2seq\predictions_baselines\DataTuner\rest_e2e_cleaned',
-    #                         'systemFc.csv', E2ECleanedDataset, slot_level=True)
+    # score_slot_realizations(r'd:\Git\viggo\seq2seq\data\multiwoz',
+    #                         'valid.csv', MultiWOZDataset, slot_level=True)
     # score_slot_realizations(r'd:\Git\viggo\seq2seq\data\video_game',
     #                         'valid.csv', ViggoDataset, slot_level=True)
+    # score_slot_realizations(r'd:\Git\viggo\seq2seq\predictions_baselines\DataTuner\video_game',
+    #                         'systemFc.csv', ViggoDataset, slot_level=True)
+
+    # score_slot_realizations(r'/d/Git/data2text-nlg/seq2seq/predictions/video_game/finetuned_verbalized_slots/bart-base_lr_1e-5_bs_32_wus_100_run3/beam_search_20',
+    #                         f'epoch_18_step_160_beam_search_reranked_att_1.0.csv', ViggoDataset, slot_level=True)
+    # score_slot_realizations(r'/d/Git/data2text-nlg/seq2seq/predictions/rest_e2e/finetuned_verbalized_slots/bart-base_lr_1e-5_bs_32_wus_500_run3/beam_search_20',
+    #                         f'epoch_17_step_2629_beam_search_reranked_att_1.0.csv', E2EDataset, slot_level=True)
+    # score_slot_realizations(r'/d/Git/data2text-nlg/seq2seq/predictions/multiwoz/finetuned_verbalized_slots/bart-base_lr_1e-5_bs_32_wus_500_run4',
+    #                         'epoch_18_step_1749_beam_search_reranked_att_2.0.csv', MultiWOZDataset, slot_level=True)
+
+    # for thr in range(2, 5):
+    #     score_slot_realizations(r'/d/Git/data2text-nlg/seq2seq/predictions/video_game/finetuned_verbalized_slots/bart-large_lr_4e-6_bs_16_wus_500_run1/att_guidance_eos_03',
+    #                             f'epoch_13_step_319_beam_search_reranked_1.0_thr_{thr:02d}.csv', ViggoDataset, slot_level=True)
+    # for thr in range(2, 5):
+    #     score_slot_realizations(r'/d/Git/data2text-nlg/seq2seq/predictions/rest_e2e/finetuned_verbalized_slots/t5-base_lr_3e-5_bs_32_wus_100_run1/att_guidance_eos_03',
+    #                             f'epoch_17_step_1315_beam_search_reranked_1.0_thr_{thr:02d}.csv', E2EDataset, slot_level=True)
 
     # ----
 

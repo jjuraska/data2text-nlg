@@ -748,14 +748,16 @@ class ViggoDataset(MRToTextDataset):
         single_word_slot_repr = {
             'available_on_steam': 'Steam',
             'da': 'intent',
-            'esrb': 'content',
+            # 'esrb': 'content',
+            'esrb': 'ESRB',
             'exp_release_date': 'expected',
             'has_linux_release': 'Linux',
             'has_mac_release': 'Mac',
             'has_multiplayer': 'multiplayer',
             'player_perspective': 'perspective',
             'release_year': 'year',
-            'specifier': 'specify',
+            # 'specifier': 'specify',
+            'specifier': 'specifier',
         }
 
         return single_word_slot_repr.get(slot_name, slot_name)
