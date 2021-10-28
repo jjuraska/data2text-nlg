@@ -1,0 +1,16 @@
+model_name: "export/rest_e2e/finetuned_verbalized_slots/t5-base_lr_3e-5_bs_32_wus_100_run1/epoch_17_step_1315"
+pretrained: True
+lowercase: False
+convert_slot_names: False
+batch_size: 16
+max_seq_length: 128
+num_beams: 10
+beam_search_early_stopping: True
+do_sample: False
+#no_repeat_ngram_size: 3
+#repetition_penalty: 2.5
+#length_penalty: [0.8, 0.9, 1.0, 1.5, 2.0, 3.0]
+length_penalty: 1.0
+#num_return_sequences: 1
+#semantic_decoding: True
+semantic_reranking: True

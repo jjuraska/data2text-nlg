@@ -1,0 +1,14 @@
+model_name: "export/rest_e2e/finetuned/gpt2_lr_2e-5_bs_20_wus_500_run4/epoch_14_step_2104"
+pretrained: True
+convert_slot_names: True
+batch_size: 16
+max_seq_length: 128
+do_sample: True
+top_p: [0.3, 0.5, 0.8]
+top_k: 0
+#no_repeat_ngram_size: 3
+#repetition_penalty: 2.5
+#length_penalty: 1.0
+num_return_sequences: 10
+semantic_reranking: True
+use_token_type_ids: True

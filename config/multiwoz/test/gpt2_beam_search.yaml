@@ -1,0 +1,16 @@
+model_name: "export/multiwoz/from_scratch_w_pretrained_tokenizer_verbalized_slots/gpt2_lr_2e-5_bs_16_run1/epoch_23_step_3497"
+pretrained: True
+lowercase: False
+convert_slot_names: False
+batch_size: 8
+max_seq_length: 192
+num_beams: 10
+beam_search_early_stopping: True
+do_sample: False
+#no_repeat_ngram_size: 3
+#repetition_penalty: 2.5
+#length_penalty: [3.0, 5.0, 10.0]
+length_penalty: 1.0
+#num_return_sequences: 1
+semantic_reranking: True
+#use_token_type_ids: True

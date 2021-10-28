@@ -1,0 +1,12 @@
+model_name: "export/rest_e2e/finetuned/gpt2_lr_2e-5_bs_20_wus_500_run2/epoch_13_step_2104"
+pretrained: True
+convert_slot_names: True
+num_epochs: 15
+batch_size: 16
+max_seq_length: 128
+num_warmup_steps: 100
+lr: 2.0e-5
+max_grad_norm: 1.0
+eval_times_per_epoch: 1
+fp16: True
+#use_token_type_ids: True

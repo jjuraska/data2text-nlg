@@ -1,0 +1,13 @@
+model_name: "export/rest_e2e/from_scratch_w_pretrained_tokenizer/bart-base_lr_1e-5_bs_32/epoch_13_step_1315"
+pretrained: True
+convert_slot_names: True
+batch_size: 32
+max_seq_length: 128
+do_sample: True
+top_p: [0.3, 0.5, 0.8]
+top_k: 0
+#no_repeat_ngram_size: 3
+#repetition_penalty: 2.5
+#length_penalty: 1.0
+num_return_sequences: 10
+semantic_reranking: True
