@@ -1,0 +1,9 @@
+model_name: "export/video_game_10_percent/finetuned_verbalized_slots/bart-base_lr_1e-5_bs_8_wus_30_run3/epoch_6_step_64"
+pretrained: True
+lowercase: False
+convert_slot_names: False
+batch_size: 128
+max_seq_length: 128
+do_sample: False
+#no_repeat_ngram_size: 3
+#repetition_penalty: 2.5

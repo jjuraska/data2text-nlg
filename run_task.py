@@ -12,7 +12,8 @@ from transformers import AdamW, get_linear_schedule_with_warmup
 from data_loader import (
     E2EDataset, E2ECleanedDataset,
     MultiWOZDataset,
-    ViggoDataset, ViggoWithE2EDataset, Viggo20Dataset)
+    ViggoDataset, ViggoWithE2EDataset, Viggo20PercentDataset, Viggo10PercentDataset, Viggo5PercentDataset,
+    Viggo2PercentDataset, Viggo1PercentDataset)
 from decoding import generate_and_decode
 import eval_utils as eval_utils
 import model_utils as model_utils
@@ -421,7 +422,8 @@ def main():
     parser.add_argument('-c', '--config', required=True,
                         help='Training/test config name')
     parser.add_argument('-d', '--dataset', required=True, choices=[
-        'rest_e2e', 'rest_e2e_cleaned', 'multiwoz', 'video_game', 'video_game_with_rest_e2e', 'video_game_20'],
+        'rest_e2e', 'rest_e2e_cleaned', 'multiwoz', 'video_game', 'video_game_with_rest_e2e', 'video_game_20_percent',
+        'video_game_10_percent', 'video_game_5_percent', 'video_game_2_percent', 'video_game_1_percent'],
                         help='Dataset name')
     parser.add_argument('-t', '--task', required=True, choices=['train', 'test', 'generate'],
                         help='Task (train, test, or generate)')
@@ -439,8 +441,16 @@ def main():
     elif args.dataset == 'video_game_with_rest_e2e':
         dataset_class = ViggoWithE2EDataset
         args.dataset = 'video_game'
-    elif args.dataset == 'video_game_20':
-        dataset_class = Viggo20Dataset
+    elif args.dataset == 'video_game_20_percent':
+        dataset_class = Viggo20PercentDataset
+    elif args.dataset == 'video_game_10_percent':
+        dataset_class = Viggo10PercentDataset
+    elif args.dataset == 'video_game_5_percent':
+        dataset_class = Viggo5PercentDataset
+    elif args.dataset == 'video_game_2_percent':
+        dataset_class = Viggo2PercentDataset
+    elif args.dataset == 'video_game_1_percent':
+        dataset_class = Viggo1PercentDataset
     else:
         print('Error: dataset "{}" not recognized'.format(args.dataset))
         sys.exit()

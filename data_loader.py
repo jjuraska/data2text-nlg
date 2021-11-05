@@ -777,9 +777,9 @@ class ViggoWithE2EDataset(ViggoDataset):
         return dataset_path
 
 
-class Viggo20Dataset(ViggoDataset):
+class Viggo20PercentDataset(ViggoDataset):
     """A 20% sample of the ViGGO dataset."""
-    name = 'video_game_20'
+    name = 'video_game_20_percent'
 
     @staticmethod
     def get_data_file_path(partition):
@@ -787,6 +787,66 @@ class Viggo20Dataset(ViggoDataset):
         if partition == 'train':
             dataset_path = os.path.join(dataset_dir, 'train_sampled_0.2.csv')
         else:
-            dataset_path = super(Viggo20Dataset, Viggo20Dataset).get_data_file_path(partition)
+            dataset_path = super(Viggo20PercentDataset, Viggo20PercentDataset).get_data_file_path(partition)
+
+        return dataset_path
+
+
+class Viggo10PercentDataset(ViggoDataset):
+    """A 10% sample of the ViGGO dataset."""
+    name = 'video_game_10_percent'
+
+    @staticmethod
+    def get_data_file_path(partition):
+        dataset_dir = os.path.join('data', 'video_game')
+        if partition == 'train':
+            dataset_path = os.path.join(dataset_dir, 'train_sampled_0.1.csv')
+        else:
+            dataset_path = super(Viggo10PercentDataset, Viggo10PercentDataset).get_data_file_path(partition)
+
+        return dataset_path
+
+
+class Viggo5PercentDataset(ViggoDataset):
+    """A 5% sample of the ViGGO dataset."""
+    name = 'video_game_5_percent'
+
+    @staticmethod
+    def get_data_file_path(partition):
+        dataset_dir = os.path.join('data', 'video_game')
+        if partition == 'train':
+            dataset_path = os.path.join(dataset_dir, 'train_sampled_0.05.csv')
+        else:
+            dataset_path = super(Viggo5PercentDataset, Viggo5PercentDataset).get_data_file_path(partition)
+
+        return dataset_path
+
+
+class Viggo2PercentDataset(ViggoDataset):
+    """A 2% sample of the ViGGO dataset."""
+    name = 'video_game_2_percent'
+
+    @staticmethod
+    def get_data_file_path(partition):
+        dataset_dir = os.path.join('data', 'video_game')
+        if partition == 'train':
+            dataset_path = os.path.join(dataset_dir, 'train_sampled_0.02.csv')
+        else:
+            dataset_path = super(Viggo2PercentDataset, Viggo2PercentDataset).get_data_file_path(partition)
+
+        return dataset_path
+
+
+class Viggo1PercentDataset(ViggoDataset):
+    """A 1% sample of the ViGGO dataset."""
+    name = 'video_game_1_percent'
+
+    @staticmethod
+    def get_data_file_path(partition):
+        dataset_dir = os.path.join('data', 'video_game')
+        if partition == 'train':
+            dataset_path = os.path.join(dataset_dir, 'train_sampled_0.01.csv')
+        else:
+            dataset_path = super(Viggo1PercentDataset, Viggo1PercentDataset).get_data_file_path(partition)
 
         return dataset_path
