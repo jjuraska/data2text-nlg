@@ -34,27 +34,29 @@ def batch_calculate_slot_error_rate(input_dir, checkpoint_name, dataset_class, e
     ser_list = []
 
     decoding_suffixes = [
-        '_no_beam_search',
-        '_beam_search',
-        # '_nucleus_sampling',
+        # '_no_beam_search',
+        # '_beam_search',
+        '_nucleus_sampling',
+        # '_beam_1.0_nucleus_sampling',
     ]
     was_reranking_used = True
     if 'gpt2' in os.path.split(input_dir)[-1]:
         length_penalty_vals = [1.0, 1.5, 2.0, 3.0, 5.0, 10.0]
     else:
-        length_penalty_vals = [0.8, 0.9, 1.0, 1.5, 2.0, 3.0]
+        # length_penalty_vals = [0.8, 0.9, 1.0, 1.5, 2.0, 3.0]
+        length_penalty_vals = [1.0]
     p_vals = [0.3, 0.5, 0.8]
 
     for decoding_suffix in decoding_suffixes:
         reranking_suffixes = ['']
         if was_reranking_used and decoding_suffix != '_no_beam_search':
             reranking_suffixes.append('_reranked')
-            # reranking_suffixes.append('_reranked_att')
+            reranking_suffixes.append('_reranked_att')
 
         for reranking_suffix in reranking_suffixes:
             if decoding_suffix == '_beam_search':
                 value_suffixes = ['_' + str(val) for val in length_penalty_vals]
-            elif decoding_suffix == '_nucleus_sampling':
+            elif decoding_suffix in ['_nucleus_sampling', '_beam_1.0_nucleus_sampling']:
                 value_suffixes = ['_' + str(val) for val in p_vals]
             else:
                 value_suffixes = ['']
@@ -126,11 +128,13 @@ def run_batch_calculate_bleu():
 
 
 def run_batch_calculate_slot_error_rate():
-    input_dir = os.path.join('predictions', 'rest_e2e', 'finetuned_verbalized_slots', 't5-base_lr_3e-5_bs_32_wus_100_run1')
-    checkpoint_name = 'epoch_17_step_1315'
-    dataset_class = E2EDataset
+    input_dir = os.path.join('predictions', 'video_game', 'finetuned_verbalized_slots',
+                             't5-base_lr_3e-5_bs_16_wus_100_run3')
+    checkpoint_name = 'epoch_16_step_319'
+    dataset_class = ViggoDataset
 
-    # input_dir = os.path.join('predictions', 'multiwoz', 'finetuned_verbalized_slots', 'bart-base_lr_1e-5_bs_32_wus_500_run4')
+    # input_dir = os.path.join('predictions', 'multiwoz', 'finetuned_verbalized_slots',
+    #                          'bart-base_lr_1e-5_bs_32_wus_500_run4')
     # checkpoint_name = 'epoch_18_step_1749'
     # dataset_class = MultiWOZDataset
 
@@ -170,7 +174,7 @@ def run_batch_utterance_stats():
 
 
 if __name__ == '__main__':
-    run_batch_calculate_bleu()
-    # run_batch_calculate_slot_error_rate()
+    # run_batch_calculate_bleu()
+    run_batch_calculate_slot_error_rate()
     # run_batch_find_slot_alignment()
     # run_batch_utterance_stats()

@@ -20,6 +20,9 @@ import model_utils as model_utils
 from task_config import TestConfig, TrainingConfig
 
 
+torch.manual_seed(0)
+
+
 def train(config, dataset_class, device='cpu'):
     train_loss_sum = 0.0
     steps_since_last_eval = 0
@@ -288,22 +291,23 @@ def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cp
     predictions, slot_errors = generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec,
                                                    bool_slots=test_set.bool_slots, device=device)
 
-    if config.semantic_reranking:
-        if config.semantic_decoding:
-            # Rerank generated beams based on slot errors determined via attention tracking
-            predictions_reranked, slot_errors_reranked = eval_utils.rerank_beams_attention_based(
-                predictions, slot_errors
-            )
-            slot_errors_reranked = [slot_error_beam[0] for slot_error_beam in slot_errors_reranked]
-        else:
-            # Rerank generated beams based on semantic accuracy
+    if config.semantic_reranking or config.semantic_reranking_all:
+        if config.semantic_reranking_all or not config.semantic_decoding:
+            # Rerank generated beams based on semantic accuracy determined by the slot aligner
             predictions_reranked = eval_utils.rerank_beams(
                 predictions, test_set.get_mrs(convert_slot_names=True), test_set.name
             )
-            slot_errors_reranked = None
+            predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
+            eval_configurations.append((predictions_reranked, True, None))
 
-        predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
-        eval_configurations.append((predictions_reranked, True, slot_errors_reranked))
+        if config.semantic_decoding:
+            # Rerank generated beams based on semantic accuracy determined by attention tracking
+            predictions_reranked, slot_errors_reranked = eval_utils.rerank_beams_attention_based(
+                predictions, slot_errors
+            )
+            predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
+            slot_errors_reranked = [slot_error_beam[0] for slot_error_beam in slot_errors_reranked]
+            eval_configurations.append((predictions_reranked, True, slot_errors_reranked))
 
     # For the evaluation of non-reranked predictions select the top candidate from the generated pool
     predictions = [pred_beam[0] for pred_beam in predictions]
@@ -326,7 +330,7 @@ def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cp
 
 
 def batch_test(config, dataset_class, device='cpu'):
-    test_scores = {'not_reranked': [], 'reranked': []}
+    test_scores = {'not_reranked': [], 'reranked': [], 'reranked_att': []}
 
     # Load model and the corresponding tokenizer
     special_tokens = dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names)

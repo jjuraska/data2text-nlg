@@ -45,15 +45,16 @@ class TestConfig(TaskConfig):
         self.num_beams = config.get('num_beams', 1)
         self.early_stopping = config.get('beam_search_early_stopping', False)
         self.do_sample = config.get('do_sample', False)
+        self.temperature = config.get('temperature', 1.0)
         self.top_p = config.get('top_p', 1.0)
         self.top_k = config.get('top_k', 0)
-        self.temperature = config.get('temperature', 1.0)
         self.no_repeat_ngram_size = config.get('no_repeat_ngram_size', 0)
         self.repetition_penalty = config.get('repetition_penalty', 1.0)
         self.length_penalty = config.get('length_penalty', 1.0)
         self.num_return_sequences = config.get('num_return_sequences', self.num_beams)
         self.semantic_decoding = config.get('semantic_decoding', False)
         self.semantic_reranking = config.get('semantic_reranking', False)
+        self.semantic_reranking_all = config.get('semantic_reranking_all', False)   # For test purposes only (enables both reranking methods)
 
     def extract_epoch_and_step_from_model_path(self):
         epoch_and_step_str = os.path.split(self.model_name.rstrip(r'\/'))[-1]

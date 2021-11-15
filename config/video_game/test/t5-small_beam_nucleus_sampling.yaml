@@ -1,14 +1,17 @@
-model_name: "export/video_game/finetuned_verbalized_slots/t5-base_lr_3e-5_bs_16_wus_100_run1/epoch_18_step_319"
+model_name: "export/video_game/finetuned_verbalized_slots/t5-small_lr_2e-4_bs_32_wus_100_run3/epoch_11_step_160"
 pretrained: True
 lowercase: False
 convert_slot_names: False
-batch_size: 16
+batch_size: 32
 max_seq_length: 128
 num_beams: 10
 beam_search_early_stopping: True
-#length_penalty: [0.8, 0.9, 1.0, 1.5, 2.0, 3.0]
 length_penalty: 1.0
-do_sample: False
+do_sample: True
+temperature: 1.0
+top_p: [0.3, 0.5, 0.8]
+#top_p: 0.3
+top_k: 0
 #no_repeat_ngram_size: 3
 #repetition_penalty: 2.5
 #num_return_sequences: 1

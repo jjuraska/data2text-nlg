@@ -175,8 +175,8 @@ def execute_e2e_evaluation_script(config, test_set, eval_configurations):
         print('>> Generating a reference file for the "{}" test set.'.format(test_set.name))
         test_set.create_reference_file_for_testing()
 
-    for prediction_list, reranked, _ in eval_configurations:
-        file_name_root = compose_output_file_name(config, reranked=reranked)
+    for prediction_list, reranked, slot_errors in eval_configurations:
+        file_name_root = compose_output_file_name(config, reranked=reranked, attention_based=slot_errors is not None)
 
         # Save generated utterances along with their corresponding MRs to a CSV file
         file_name = f'{file_name_root}.csv'
@@ -193,7 +193,7 @@ def execute_e2e_evaluation_script(config, test_set, eval_configurations):
         # Run the metrics script provided by the E2E NLG Challenge
         print('Running E2E evaluation script...')
         script_output = os.popen(metrics_script + ' ' + reference_file + ' ' + predictions_file).read()
-        scores_key = 'reranked' if reranked else 'not_reranked'
+        scores_key = ('reranked_att' if slot_errors is not None else 'reranked') if reranked else 'not_reranked'
         scores[scores_key] = parse_scores_from_e2e_script_output(script_output)
 
         # Print the scores
@@ -213,7 +213,11 @@ def save_slot_errors(config, test_set, eval_configurations):
         os.makedirs(predictions_dir)
 
     for prediction_list, reranked, slot_errors in eval_configurations:
-        file_name_root = compose_output_file_name(config, reranked=reranked)
+        # Skip configurations without slot error indications (such as when using the slot aligner for reranking)
+        if slot_errors is None:
+            continue
+
+        file_name_root = compose_output_file_name(config, reranked=reranked, attention_based=True)
 
         # Save generated utterances along with their corresponding MRs and slot errors to a CSV file
         file_name = f'{file_name_root} [errors (attention-based)].csv'
@@ -257,7 +261,7 @@ def print_test_scores(scores_dict, output_dir=None):
     print(' ************************ ')
     print()
 
-    for key in ['not_reranked', 'reranked']:
+    for key in ['not_reranked', 'reranked', 'reranked_att']:
         if scores_dict.get(key):
             scores_str += f'---- {key} ----\n'
             scores_str += '\t'.join([metric for metric, val in scores_dict[key][0]]) + '\n'
@@ -289,25 +293,39 @@ def print_best_checkpoints(checkpoints):
         f_out.write(best_checkpoint_str)
 
 
-def compose_output_file_name(config, reranked=False):
-    if config.num_beams > 1:
-        inference_method_suffix = '_beam_search_'
-        if reranked:
-            inference_method_suffix += 'reranked_'
-        inference_method_suffix += str(config.length_penalty)
-    elif config.do_sample and config.top_p < 1.0:
-        inference_method_suffix = '_nucleus_sampling_'
-        if reranked:
-            inference_method_suffix += 'reranked_'
-        inference_method_suffix += str(config.top_p)
-    elif config.do_sample and config.top_k > 0:
-        inference_method_suffix = '_top_k_sampling_'
-        if reranked:
-            inference_method_suffix += 'reranked_'
-        inference_method_suffix += str(config.top_k)
-    else:
-        inference_method_suffix = '_no_beam_search'
+def compose_output_file_name(config, reranked=False, attention_based=False):
+    decoding_method_setting = None
 
-    file_name = 'epoch_{}_step_{}{}'.format(config.checkpoint_epoch, config.checkpoint_step, inference_method_suffix)
+    if config.num_beams > 1:
+        if config.do_sample:
+            decoding_method = 'beam_' + str(config.length_penalty)
+            if config.top_p < 1.0:
+                decoding_method += '_nucleus_sampling'
+                decoding_method_setting = str(config.top_p)
+            elif config.top_k > 0:
+                decoding_method += '_top_k_sampling'
+                decoding_method_setting = str(config.top_k)
+        else:
+            decoding_method = 'beam_search'
+            decoding_method_setting = str(config.length_penalty)
+    elif config.do_sample and config.top_p < 1.0:
+        decoding_method = 'nucleus_sampling'
+        decoding_method_setting = str(config.top_p)
+    elif config.do_sample and config.top_k > 0:
+        decoding_method = 'top_k_sampling'
+        decoding_method_setting = str(config.top_k)
+    else:
+        decoding_method = 'greedy_search'
+
+    # Compose the suffix based on the decoding method
+    suffix = decoding_method
+    if reranked:
+        suffix += '_reranked'
+        if attention_based:
+            suffix += '_att'
+    if decoding_method_setting:
+        suffix += '_' + decoding_method_setting
+
+    file_name = 'epoch_{}_step_{}_{}'.format(config.checkpoint_epoch, config.checkpoint_step, suffix)
 
     return file_name

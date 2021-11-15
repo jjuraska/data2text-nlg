@@ -12,5 +12,6 @@ do_sample: False
 #length_penalty: [0.8, 0.9, 1.0, 1.5, 2.0, 3.0]
 length_penalty: 1.0
 #num_return_sequences: 1
-#semantic_decoding: True
-semantic_reranking: True
+semantic_decoding: True
+#semantic_reranking: True
+semantic_reranking_all: True
