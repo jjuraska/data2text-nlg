@@ -21,7 +21,7 @@ def extract_utterances_from_file(input_file_path, lowercase=False):
             utterances = [line.strip() for line in f_in]
 
     if lowercase:
-        utterances = [utt.lower() for utt in utterances]
+        utterances = [utt.lower() if isinstance(utt, str) else '' for utt in utterances]
 
     return utterances
 
