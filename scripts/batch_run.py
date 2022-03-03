@@ -35,8 +35,9 @@ def batch_calculate_slot_error_rate(input_dir, checkpoint_name, dataset_class, e
 
     decoding_suffixes = [
         # '_no_beam_search',
-        # '_beam_search',
-        '_nucleus_sampling',
+        '_greedy_search',
+        '_beam_search',
+        # '_nucleus_sampling',
         # '_beam_1.0_nucleus_sampling',
     ]
     was_reranking_used = True
@@ -49,7 +50,7 @@ def batch_calculate_slot_error_rate(input_dir, checkpoint_name, dataset_class, e
 
     for decoding_suffix in decoding_suffixes:
         reranking_suffixes = ['']
-        if was_reranking_used and decoding_suffix != '_no_beam_search':
+        if was_reranking_used and decoding_suffix not in ['_greedy_search', '_no_beam_search']:
             reranking_suffixes.append('_reranked')
             reranking_suffixes.append('_reranked_att')
 

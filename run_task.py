@@ -20,7 +20,7 @@ import model_utils as model_utils
 from task_config import TestConfig, TrainingConfig
 
 
-torch.manual_seed(0)
+# torch.manual_seed(0)
 
 
 def train(config, dataset_class, device='cpu'):
