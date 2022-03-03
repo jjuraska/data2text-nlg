@@ -1,4 +1,4 @@
-model_name: "export/video_game_20_percent/finetuned_verbalized_slots/t5-base_lr_3e-5_bs_8_wus_60_run3/epoch_8_step_128"
+model_name: "export/video_game_20_percent/finetuned_verbalized_slots_balanced/t5-base_lr_3e-5_bs_8_wus_60_run6/epoch_7_step_128"
 pretrained: True
 lowercase: False
 convert_slot_names: False

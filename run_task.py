@@ -54,7 +54,13 @@ def train(config, dataset_class, device='cpu'):
                               separate_source_and_target=is_enc_dec,
                               prepare_token_types=prepare_token_types,
                               num_slot_permutations=config.num_slot_permutations)
-    train_data_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=0)
+
+    if config.balance_training_data:
+        sampling_weights = train_set.calculate_da_based_weights()
+        sampler = torch.utils.data.sampler.WeightedRandomSampler(sampling_weights, len(sampling_weights))
+        train_data_loader = DataLoader(train_set, batch_size=config.batch_size, sampler=sampler, num_workers=0)
+    else:
+        train_data_loader = DataLoader(train_set, batch_size=config.batch_size, shuffle=True, num_workers=0)
 
     valid_set = dataset_class(tokenizer,
                               partition='valid',

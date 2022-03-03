@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import Counter, defaultdict
 import os
 import pandas as pd
 import random
@@ -208,6 +208,21 @@ class MRToTextDataset(Dataset):
             return ' '.join(token_type_seq)
         else:
             return ''
+
+    def calculate_da_based_weights(self):
+        """Calculates MR weights inversely proportionate to their DA frequency in the dataset."""
+        mrs = self.get_mrs(lowercase=True)
+        da_list = [val for mr in mrs for slot, val in mr if slot in ['intent', 'da']]
+        da_distr = Counter(da_list)
+        weights = [len(mrs) / da_distr[da] for da in da_list]
+
+        assert len(weights) == len(mrs), 'Some MRs appear to be missing DA type indication'
+
+        print('>> DA distribution:')
+        print('\n'.join([f'{key}: {val}' for key, val in da_distr.items()]))
+        print()
+
+        return weights
 
     @staticmethod
     def get_data_file_path(partition):
