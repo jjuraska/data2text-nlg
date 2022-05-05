@@ -3,7 +3,7 @@ import os
 from data_loader import E2EDataset, E2ECleanedDataset, MultiWOZDataset, ViggoDataset
 from eval_utils import calculate_bleu
 from scripts.slot_error_rate import calculate_slot_error_rate
-from scripts.utterance_stats import utterance_stats
+from scripts.utterance_stats import get_utterance_stats
 from slot_aligner.data_analysis import align_slots, score_slot_realizations
 
 
@@ -100,16 +100,24 @@ def batch_find_slot_alignment(input_dir, file_names, dataset_class, serialize_po
         print('\n'.join(files_processed))
 
 
-def batch_utterance_stats(input_dir, export_vocab=False, verbose=False):
+def batch_utterance_stats(input_dir, dataset_class, export_delex=False, export_vocab=False, verbose=False):
     files_processed = []
 
     for file_name in os.listdir(input_dir):
-        if file_name.endswith('.csv') and '[errors' not in file_name:
+        if file_name.endswith('.csv') and '[' not in file_name:
+            file_path = os.path.join(input_dir, file_name)
             files_processed.append(file_name)
             if verbose:
                 print(f'Running with file "{file_name}"...')
 
-            utterance_stats(os.path.join(input_dir, file_name), export_vocab=export_vocab, verbose=verbose)
+            stats = get_utterance_stats(file_path, export_vocab=export_vocab, verbose=verbose)
+            stats_delex = get_utterance_stats(file_path, mr_file_path=file_path, dataset_class=dataset_class,
+                                              export_delex=export_delex, export_vocab=export_vocab, verbose=verbose)
+
+            # Print statement to interweave the results on lex and delex utterances
+            # stats_pairs = [f'{score}\t{score_delex}'
+            #                for score, score_delex in zip(stats.values(), stats_delex.values())]
+            # print('\t'.join([str(value) for value in stats_pairs]))
 
             if verbose:
                 print()
@@ -166,16 +174,23 @@ def run_batch_find_slot_alignment():
 
 
 def run_batch_utterance_stats():
-    # input_dir = os.path.join('predictions_baselines', 'DataTuner', 'video_game')
-    # input_dir = os.path.join('predictions', 'rest_e2e_cleaned', 'finetuned', 'gpt2_lr_2e-5_bs_20_wus_500_run1')
-    input_dir = os.path.join('predictions', 'video_game', 'finetuned', 'gpt2_lr_2e-5_bs_16_wus_100_run4')
-    # input_dir = os.path.join('predictions', 'multiwoz', 'finetuned_verbalized_slots', 't5-small_lr_2e-4_bs_64_wus_200_run3')
+    # input_dir = os.path.join('predictions_baselines', 'Slug2Slug', 'rest_e2e')
+    # dataset_class = E2EDataset
 
-    batch_utterance_stats(input_dir, export_vocab=False, verbose=False)
+    # input_dir = os.path.join('predictions', 'rest_e2e', 'finetuned_verbalized_slots', 't5-small_lr_2e-4_bs_64_wus_100_run1')
+    # dataset_class = E2EDataset
+
+    # input_dir = os.path.join('predictions', 'multiwoz', 'finetuned_verbalized_slots', 'bart-base_lr_1e-5_bs_32_wus_500_run4')
+    # dataset_class = MultiWOZDataset
+
+    input_dir = os.path.join('predictions', 'video_game', 'finetuned_verbalized_slots', 'bart-base_lr_1e-5_bs_32_wus_100_run3')
+    dataset_class = ViggoDataset
+
+    batch_utterance_stats(input_dir, dataset_class=dataset_class, export_delex=False, export_vocab=False, verbose=False)
 
 
 if __name__ == '__main__':
     # run_batch_calculate_bleu()
-    run_batch_calculate_slot_error_rate()
+    # run_batch_calculate_slot_error_rate()
     # run_batch_find_slot_alignment()
-    # run_batch_utterance_stats()
+    run_batch_utterance_stats()

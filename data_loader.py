@@ -424,6 +424,57 @@ class MRToTextDataset(Dataset):
     def preprocess_slot_values_in_mrs(cls, mrs):
         return mrs
 
+    @classmethod
+    def delexicalize_utterances(cls, mrs, utterances, lowercase=False):
+        """Replaces slot values (obtained from the MRs) with placeholders in the corresponding utterances.
+
+        Note that original slot names are used to check which slots should be delexicalized (dataset-specific), but slot
+        values are preprocessed (e.g., MultiWOZ has slot values in MRs partially tokenized, and hence they need to be
+        detokenized, such as "do n't" => "don't", in order to be correctly matched in the utterance).
+
+        Slot values are matched in the utterance as whole words only, e.g., the value "action" will be matched in
+        "full of action and adventure" or "action-packed game", but not in "reaction" or "actions".
+        """
+        delexicalized_utterances = []
+        mrs_as_lists = cls.preprocess_slot_values_in_mrs([cls.convert_mr_from_str_to_list(mr) for mr in mrs])
+
+        slots_to_delexicalize = cls.get_slots_to_delexicalize()
+        simple_slots = slots_to_delexicalize.get('simple', [])
+        list_slots = slots_to_delexicalize.get('list', [])
+
+        for mr, utt in zip(mrs_as_lists, utterances):
+            if lowercase:
+                utt = utt.lower()
+
+            for slot_name, slot_value in mr:
+                # Ignore dialogue acts, and slots with an empty value
+                if slot_name == 'da' or not slot_value:
+                    continue
+
+                if lowercase:
+                    slot_value = slot_value.lower()
+                placeholder = f'_|{slot_name}|_'
+
+                if slot_name in simple_slots:
+                    values_to_replace = [slot_value]
+                elif slot_name in list_slots:
+                    values_to_replace = [item.strip() for item in slot_value.split(',')]
+                else:
+                    values_to_replace = []
+
+                for value in values_to_replace:
+                    # Use regex with word boundary only when the slot value starts and ends with an alphanumeric
+                    # character, otherwise the regex fails to match the value because most of the other symbols are
+                    # considered a word boundary themselves)
+                    if re.match(r'\w', value[0]) and re.match(r'\w', value[-1]):
+                        utt = re.sub(r'\b{}\b'.format(re.escape(value)), placeholder, utt)
+                    else:
+                        utt = utt.replace(value, placeholder)
+
+            delexicalized_utterances.append(utt)
+
+        return delexicalized_utterances
+
     @staticmethod
     def lowercase_mrs(mrs):
         """Lowercases the given MRs."""
@@ -553,6 +604,11 @@ class MRToTextDataset(Dataset):
     def get_single_word_slot_representation(slot_name):
         raise NotImplementedError('method \'get_single_word_slot_representation\' must be defined by subclass')
 
+    @staticmethod
+    def get_slots_to_delexicalize():
+        """Returns a set of slot names (in their original form) for which delexicalization in utterances makes sense."""
+        raise NotImplementedError('method \'get_slots_to_delexicalize\' must be defined by subclass')
+
 
 class E2EDataset(MRToTextDataset):
     """An MR-to-text dataset in the restaurant domain (provided as part of the E2E NLG Challenge)."""
@@ -603,6 +659,12 @@ class E2EDataset(MRToTextDataset):
         }
 
         return single_word_slot_repr.get(slot_name, slot_name)
+
+    @staticmethod
+    def get_slots_to_delexicalize():
+        return {
+            'simple': {'area', 'eatType', 'food', 'name', 'near'}
+        }
 
 
 class E2ECleanedDataset(E2EDataset):
@@ -712,6 +774,15 @@ class MultiWOZDataset(MRToTextDataset):
 
         return value_detok
 
+    @staticmethod
+    def get_slots_to_delexicalize():
+        return {
+            'simple': {
+                'Addr', 'Area', 'Arrive', 'Car', 'Choice', 'Day', 'Depart', 'Department', 'Dest', 'Fee', 'Food', 'Id',
+                'Leave', 'Name', 'People', 'Phone', 'Post', 'Ref', 'Stay', 'Ticket', 'Time', 'Type'
+            }
+        }
+
 
 class ViggoDataset(MRToTextDataset):
     """An MR-to-text dataset in the video game domain."""
@@ -775,6 +846,13 @@ class ViggoDataset(MRToTextDataset):
         }
 
         return single_word_slot_repr.get(slot_name, slot_name)
+
+    @staticmethod
+    def get_slots_to_delexicalize():
+        return {
+            'simple': {'developer', 'esrb', 'exp_release_date', 'name', 'release_year', 'specifier'},
+            'list': {'genres', 'platforms', 'player_perspective'}
+        }
 
 
 class ViggoWithE2EDataset(ViggoDataset):
