@@ -9,11 +9,12 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AdamW, get_linear_schedule_with_warmup
 
-from data_loader import (
-    E2EDataset, E2ECleanedDataset,
-    MultiWOZDataset,
+from dataset_loaders.e2e import E2EDataset, E2ECleanedDataset
+from dataset_loaders.multiwoz import MultiWOZDataset
+from dataset_loaders.viggo import (
     ViggoDataset, ViggoWithE2EDataset, Viggo20PercentDataset, Viggo10PercentDataset, Viggo5PercentDataset,
-    Viggo2PercentDataset, Viggo1PercentDataset)
+    Viggo2PercentDataset, Viggo1PercentDataset
+)
 from decoding import generate_and_decode
 import eval_utils as eval_utils
 import model_utils as model_utils

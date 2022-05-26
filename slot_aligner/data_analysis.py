@@ -3,7 +3,9 @@ import json
 import os
 import pandas as pd
 
-from data_loader import E2EDataset, E2ECleanedDataset, MultiWOZDataset, ViggoDataset
+from dataset_loaders.e2e import E2EDataset, E2ECleanedDataset
+from dataset_loaders.multiwoz import MultiWOZDataset
+from dataset_loaders.viggo import ViggoDataset
 from slot_aligner.slot_alignment import count_errors, find_alignment
 
 

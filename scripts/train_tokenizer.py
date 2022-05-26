@@ -3,7 +3,9 @@ import sys
 from tokenizers import ByteLevelBPETokenizer, SentencePieceBPETokenizer
 from transformers import AutoConfig, AutoTokenizer
 
-from data_loader import E2EDataset, E2ECleanedDataset, MultiWOZDataset, ViggoDataset
+from dataset_loaders.e2e import E2EDataset, E2ECleanedDataset
+from dataset_loaders.multiwoz import MultiWOZDataset
+from dataset_loaders.viggo import ViggoDataset
 
 
 def train_tokenizer(datasets, pretrained_model_name, vocab_size=1000, lowercase=False, convert_slot_names=False):

@@ -1,7 +1,9 @@
 import os
 
-from data_loader import E2EDataset, E2ECleanedDataset, MultiWOZDataset, ViggoDataset
-from eval_utils import calculate_bleu
+from dataset_loaders.e2e import E2EDataset, E2ECleanedDataset
+from dataset_loaders.multiwoz import MultiWOZDataset
+from dataset_loaders.viggo import ViggoDataset
+from eval_utils import calculate_bleu, calculate_bertscore
 from scripts.slot_error_rate import calculate_slot_error_rate
 from scripts.utterance_stats import get_utterance_stats
 from slot_aligner.data_analysis import align_slots, score_slot_realizations

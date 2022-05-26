@@ -7,7 +7,9 @@ from nltk.util import bigrams
 import os
 import pandas as pd
 
-from data_loader import E2EDataset, E2ECleanedDataset, MultiWOZDataset, ViggoDataset
+from dataset_loaders.e2e import E2EDataset, E2ECleanedDataset
+from dataset_loaders.multiwoz import MultiWOZDataset
+from dataset_loaders.viggo import ViggoDataset
 
 
 def extract_utterances_from_file(input_file_path, lowercase=False):
