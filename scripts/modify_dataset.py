@@ -1,11 +1,9 @@
-from collections import Counter, OrderedDict
+from collections import Counter
 import json
 import os
 import pandas as pd
 import re
 import sys
-
-from data_loader import E2EDataset, E2ECleanedDataset, MultiWOZDataset, ViggoDataset
 
 
 def parse_da(mr, delimiters):
@@ -32,23 +30,23 @@ def sample_rows(df_data, fraction):
     return df_sampled
 
 
-def undersample_dataset(dataset, delimiters, fraction, trainset_only=False):
+def undersample_dataset(dataset_name, delimiters, fraction, trainset_only=False):
     if fraction <= 0.0 or fraction >= 1.0:
         print('Error: sample proportion must be greater than 0 and less than 1.')
         sys.exit()
 
     # Prepare the dataset file paths
-    dataset_dir = os.path.join('..', 'data', dataset)
-    if dataset == 'rest_e2e':
+    dataset_dir = os.path.join('..', 'data', dataset_name)
+    if dataset_name == 'rest_e2e':
         data_files = ['trainset.csv']
         if not trainset_only:
             data_files.extend(['devset.csv', 'testset.csv'])
-    elif dataset == 'video_game':
+    elif dataset_name == 'video_game':
         data_files = ['train.csv']
         if not trainset_only:
             data_files.extend(['valid.csv', 'test.csv'])
     else:
-        print(f'Error: dataset "{dataset}" not recognized')
+        print(f'Error: dataset "{dataset_name}" not recognized')
         sys.exit()
 
     for file in data_files:
@@ -162,25 +160,8 @@ def convert_multiwoz_dataset_to_csv():
         df_data.to_csv(out_file_path, index=False, encoding='utf-8-sig')
 
 
-def export_dataset_ontology(dataset_class):
-    ontology = dataset_class.get_ontology()
-
-    # Sort both slots and their value sets alphabetically
-    ontology = OrderedDict({slot: sorted(value_set) for slot, value_set in sorted(ontology.items(), key=lambda x: x[0])})
-
-    # Compose the output file path
-    out_dir = os.path.dirname(dataset_class.get_data_file_path('train'))
-    out_file_path = os.path.join(out_dir, 'ontology.json')
-
-    # Save to a JSON file
-    with open(out_file_path, 'w', encoding='utf-8') as f_out:
-        json.dump(ontology, f_out, indent=4, ensure_ascii=False)
-
-    print(f'>> Dataset ontology exported to "{out_file_path}"')
-
-
 if __name__ == '__main__':
-    # dataset = 'rest_e2e'
+    # dataset_name = 'rest_e2e'
     # delimiters = {
     #     'da_beg': None,
     #     'da_end': None,
@@ -189,7 +170,7 @@ if __name__ == '__main__':
     #     'val_end': ']'
     # }
 
-    # dataset = 'video_game'
+    # dataset_name = 'video_game'
     # delimiters = {
     #     'da_beg': '(',
     #     'da_end': ')',
@@ -198,8 +179,6 @@ if __name__ == '__main__':
     #     'val_end': ']'
     # }
     #
-    # undersample_dataset(dataset, delimiters, 0.5, trainset_only=True)
+    # undersample_dataset(dataset_name, delimiters, 0.5, trainset_only=True)
 
     convert_multiwoz_dataset_to_csv()
-
-    # export_dataset_ontology(MultiWOZDataset)

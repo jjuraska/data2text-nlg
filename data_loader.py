@@ -6,6 +6,8 @@ import re
 import regex
 from torch.utils.data import Dataset
 
+from ontology import DatasetOntologyBuilder
+
 
 COMMA_PLACEHOLDER = ' __comma__'
 
@@ -45,7 +47,8 @@ class MRToTextDataset(Dataset):
 
         self.load_data(input_str=input_str)
 
-        self.bool_slots = self.identify_boolean_slots()
+        ontology_builder = DatasetOntologyBuilder(self, load_from_file=True, preprocess_slot_names=True)
+        self.bool_slots = self.identify_boolean_slots(ontology_builder.ontology)
 
     def __len__(self):
         return len(self.mrs)
@@ -514,35 +517,13 @@ class MRToTextDataset(Dataset):
         return mrs, utterances
 
     @classmethod
-    def get_ontology(cls, preprocess_slot_names=False):
-        """Creates an ontology of the dataset, listing all possible values for each slot.
-
-        The ontology is created based on the training set only.
-        """
-        ontology = defaultdict(set)
-
-        train_set_path = cls.get_data_file_path('train')
-        df_data = pd.read_csv(train_set_path, header=0, encoding='utf8')
-
-        for mr_as_str in df_data[df_data.columns[0]]:
-            mr_as_list = cls.convert_mr_from_str_to_list(mr_as_str)
-            if preprocess_slot_names:
-                mr_as_list = cls.preprocess_slot_names_in_mr(mr_as_list)
-
-            for slot, value in mr_as_list:
-                ontology[slot].add(value)
-
-        return ontology
-
-    @classmethod
-    def identify_boolean_slots(cls, additional_bool_values=None):
+    def identify_boolean_slots(cls, ontology, additional_bool_values=None):
         """Extracts the set of all Boolean slots in the dataset's ontology, inferred from their possible values.
 
         To specify additional Boolean values, a nested list of strings can be passed as the `additional_bool_values`
         parameter. Note that slot values are lowercased before being matched with the specified Boolean values.
         """
         bool_slots = set()
-        ontology = cls.get_ontology(preprocess_slot_names=True)
 
         # Predefined possible Boolean and none-values
         bool_value_groups = [['yes', 'no'], ['true', 'false']]
