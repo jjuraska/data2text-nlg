@@ -131,9 +131,13 @@ dmypy.json
 # PyCharm
 .idea/
 
+# Model directories
+eval/BLEURT/models/
+model/
+
 # Output directories
 attention/
+data/*/pseudo_references*/
 export/
-model/
 predictions/
 predictions_baselines/
