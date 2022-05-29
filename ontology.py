@@ -16,7 +16,15 @@ class DatasetOntologyBuilder(object):
 
         if load_from_file:
             file_path = load_from_file if isinstance(load_from_file, str) else None
-            self._load(file_path=file_path)
+            try:
+                self._load(file_path=file_path)
+            except FileNotFoundError:
+                if file_path:
+                    print(f'>> Warning: File "{file_path}" not found, building a new ontology.')
+                else:
+                    print('>> Warning: Default ontology has not been created yet, building a new one now.')
+                self._build()
+                self.export(file_path=file_path)
         else:
             self._build()
 
@@ -55,8 +63,7 @@ class DatasetOntologyBuilder(object):
                 print('Warning: The ontology is expected to be in the JSON format, but the provided input file name\'s'
                       ' extension is \"{file_ext}\"')
         else:
-            data_dir = os.path.dirname(self._dataset_class.get_data_file_path('train'))
-            file_path = os.path.join(data_dir, 'ontology.json')
+            file_path = self.get_default_path()
 
         # Load from a JSON file
         with open(file_path, 'r', encoding='utf-8') as f_in:
@@ -83,12 +90,17 @@ class DatasetOntologyBuilder(object):
                 print('Warning: The ontology will be exported as a JSON file, but the provided output file name\'s'
                       ' extension is \"{file_ext}\"')
         else:
-            # Compose the output file path
-            out_dir = os.path.dirname(self._dataset_class.get_data_file_path('train'))
-            file_path = os.path.join(out_dir, 'ontology.json')
+            file_path = self.get_default_path()
 
         # Save to a JSON file
         with open(file_path, 'w', encoding='utf-8') as f_out:
             json.dump(ontology_sorted, f_out, indent=4, ensure_ascii=False)
 
         print(f'>> Dataset ontology exported to "{file_path}"')
+
+    def get_default_path(self) -> str:
+        """Returns a file path pointing to a JSON ontology file directly in the dataset folder."""
+        dataset_dir = os.path.dirname(self._dataset_class.get_data_file_path('train'))
+        file_name = 'ontology_preprocessed.json' if self._preprocess_slot_names else 'ontology.json'
+
+        return os.path.join(dataset_dir, file_name)
