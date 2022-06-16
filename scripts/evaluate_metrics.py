@@ -259,6 +259,58 @@ class PseudoReferenceMetricEvaluator(object):
             print('\t'.join([str(round(score, 4)) for score in scores]))
         print()
 
+    def calculate_bertscore_with_and_without_idf(self, num_runs: int = 1, shuffle_refs: Union[bool, str] = False,
+                                                 export_results: bool = False, **kwargs: Any) -> None:
+        results = []
+
+        # Initialize scorers for metrics that depend on a model or a package, so they don't get loaded in every run
+        bert_scorer = self.init_bert_scorer(model=kwargs.get('bertscore_model', None),
+                                            batch_size=kwargs.get('bertscore_batch_size', 64), idf=False)
+        bert_scorer_idf = self.init_bert_scorer(model=kwargs.get('bertscore_model', None),
+                                                batch_size=kwargs.get('bertscore_batch_size', 64), idf=True)
+
+        for run in tqdm(range(1, num_runs + 1), desc='Run'):
+            # Shuffle references, if desired
+            if shuffle_refs:
+                self.shuffle_references(within_da_only=(shuffle_refs == 'da'))
+
+            # Calculate segment-level scores
+            bertscore_results = self.calculate_bertscore(bert_scorer)
+            bertscore_results_idf = self.calculate_bertscore(bert_scorer_idf)
+
+            # Calculate system-level scores
+            avg_bertscore_scores = np.mean(list(bertscore_results.values()), axis=1).tolist()
+            avg_bertscore_scores_idf = np.mean(list(bertscore_results_idf.values()), axis=1).tolist()
+
+            if not results:
+                # Save the metric names as column names for the results table
+                metric_names = list(bertscore_results.keys()) + list(bertscore_results_idf.keys())
+                results.append(metric_names)
+
+            results.append(avg_bertscore_scores + avg_bertscore_scores_idf)
+
+            # Save segment-level scores to a CSV file
+            if export_results:
+                out_file_path = self.get_csv_export_path(suffix=f'_bertscore_only_run{run}')
+                df_out = pd.DataFrame({
+                    'prediction': self.predictions,
+                    'reference': self.references,
+                    **bertscore_results,
+                    **bertscore_results_idf
+                })
+                df_out.to_csv(out_file_path, index=False, encoding='utf-8-sig')
+
+            # Generate new references (i.e., newly perturbated pseudo-utterances)
+            if run < num_runs:
+                self.generate_new_references()
+
+        # Print system-level scores
+        print('\n==== System-level scores ====')
+        print('\t'.join(results[0]))
+        for scores in results[1:]:
+            print('\t'.join([str(round(score, 4)) for score in scores]))
+        print()
+
     def init_bert_scorer(self, model: Optional[str] = None, batch_size: int = 64,
                          idf: bool = False) -> bert_score.BERTScorer:
         # Default to the smallest model
@@ -384,3 +436,6 @@ if __name__ == '__main__':
 
     # evaluator.calculate_bertscore_and_bleurt(num_runs=5, shuffle_refs=False, export_results=True)
     # evaluator.calculate_bertscore_and_bleurt(num_runs=5, shuffle_refs=True, export_results=False)
+
+    # evaluator.calculate_bertscore_with_and_without_idf(num_runs=1, shuffle_refs=False, export_results=True, **metrics_config)
+    # evaluator.calculate_bertscore_with_and_without_idf(num_runs=5, shuffle_refs=True, export_results=False, **metrics_config)
