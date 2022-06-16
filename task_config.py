@@ -44,6 +44,8 @@ class TestConfig(TaskConfig):
             self.extract_epoch_and_step_from_model_path()
 
         self.num_beams = config.get('num_beams', 1)
+        self.num_beam_groups = config.get('num_beam_groups', 1)
+        self.diversity_penalty = config.get('diversity_penalty', 0.0)
         self.early_stopping = config.get('beam_search_early_stopping', False)
         self.do_sample = config.get('do_sample', False)
         self.temperature = config.get('temperature', 1.0)

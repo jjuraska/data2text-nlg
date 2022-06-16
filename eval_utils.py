@@ -299,6 +299,8 @@ def compose_output_file_name(config, reranked=False, attention_based=False):
     if config.num_beams > 1:
         if config.do_sample:
             decoding_method = 'beam_' + str(config.length_penalty)
+            if config.num_beam_groups > 1:
+                decoding_method = 'diverse_' + str(config.diversity_penalty) + '_' + decoding_method
             if config.top_p < 1.0:
                 decoding_method += '_nucleus_sampling'
                 decoding_method_setting = str(config.top_p)
@@ -307,6 +309,8 @@ def compose_output_file_name(config, reranked=False, attention_based=False):
                 decoding_method_setting = str(config.top_k)
         else:
             decoding_method = 'beam_search'
+            if config.num_beam_groups > 1:
+                decoding_method = 'diverse_' + str(config.diversity_penalty) + '_' + decoding_method
             decoding_method_setting = str(config.length_penalty)
     elif config.do_sample and config.top_p < 1.0:
         decoding_method = 'nucleus_sampling'

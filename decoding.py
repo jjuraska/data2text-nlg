@@ -119,6 +119,8 @@ def generate_and_decode(config, data_loader, tokenizer, model, is_enc_dec, is_va
                                          min_length=1,
                                          max_length=config.max_seq_length,
                                          num_beams=config.num_beams,
+                                         num_beam_groups=config.num_beam_groups,
+                                         diversity_penalty=config.diversity_penalty,
                                          early_stopping=config.early_stopping,
                                          no_repeat_ngram_size=config.no_repeat_ngram_size,
                                          do_sample=config.do_sample,

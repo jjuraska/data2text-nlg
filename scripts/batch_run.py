@@ -110,7 +110,7 @@ def run_batch_calculate_bleu():
 
 def run_batch_calculate_slot_error_rate():
     input_dir = os.path.join('predictions', 'video_game', 'finetuned_verbalized_slots',
-                             't5-small_lr_2e-4_bs_32_wus_100_run3')
+                             't5-small_lr_2e-4_bs_32_wus_100_run3', 'diverse_beam_search_10')
     dataset_class = ViggoDataset
 
     # input_dir = os.path.join('predictions', 'multiwoz', 'finetuned_verbalized_slots',
@@ -145,13 +145,16 @@ def run_batch_utterance_stats():
     # input_dir = os.path.join('predictions_baselines', 'Slug2Slug', 'rest_e2e')
     # dataset_class = E2EDataset
 
-    # input_dir = os.path.join('predictions', 'rest_e2e', 'finetuned_verbalized_slots', 't5-small_lr_2e-4_bs_64_wus_100_run1')
+    # input_dir = os.path.join('predictions', 'rest_e2e', 'finetuned_verbalized_slots',
+    #                          't5-small_lr_2e-4_bs_64_wus_100_run1')
     # dataset_class = E2EDataset
 
-    # input_dir = os.path.join('predictions', 'multiwoz', 'finetuned_verbalized_slots', 'bart-base_lr_1e-5_bs_32_wus_500_run4')
+    # input_dir = os.path.join('predictions', 'multiwoz', 'finetuned_verbalized_slots',
+    #                          'bart-base_lr_1e-5_bs_32_wus_500_run4')
     # dataset_class = MultiWOZDataset
 
-    input_dir = os.path.join('predictions', 'video_game', 'finetuned_verbalized_slots', 'bart-base_lr_1e-5_bs_32_wus_100_run3')
+    input_dir = os.path.join('predictions', 'video_game', 'finetuned_verbalized_slots',
+                             't5-small_lr_2e-4_bs_32_wus_100_run3', 'diverse_beam_search_10')
     dataset_class = ViggoDataset
 
     batch_utterance_stats(input_dir, dataset_class=dataset_class, export_delex=False, export_vocab=False, verbose=False)
