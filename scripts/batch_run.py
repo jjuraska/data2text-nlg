@@ -30,53 +30,23 @@ def batch_calculate_bleu(input_dir, dataset_class, verbose=False):
         print('\n'.join(files_processed))
 
 
-def batch_calculate_slot_error_rate(input_dir, checkpoint_name, dataset_class, exact_matching=False, slot_level=False,
-                                    verbose=False):
+def batch_calculate_slot_error_rate(input_dir, dataset_class, exact_matching=False, slot_level=False, verbose=False):
     files_processed = []
     ser_list = []
 
-    decoding_suffixes = [
-        # '_no_beam_search',
-        '_greedy_search',
-        '_beam_search',
-        # '_nucleus_sampling',
-        # '_beam_1.0_nucleus_sampling',
-    ]
-    was_reranking_used = True
-    if 'gpt2' in os.path.split(input_dir)[-1]:
-        length_penalty_vals = [1.0, 1.5, 2.0, 3.0, 5.0, 10.0]
-    else:
-        # length_penalty_vals = [0.8, 0.9, 1.0, 1.5, 2.0, 3.0]
-        length_penalty_vals = [1.0]
-    p_vals = [0.3, 0.5, 0.8]
+    for file_name in os.listdir(input_dir):
+        if file_name.endswith('.csv') and '[' not in file_name:
+            files_processed.append(file_name)
+            if verbose:
+                print(f'Running with file "{file_name}"...')
 
-    for decoding_suffix in decoding_suffixes:
-        reranking_suffixes = ['']
-        if was_reranking_used and decoding_suffix not in ['_greedy_search', '_no_beam_search']:
-            reranking_suffixes.append('_reranked')
-            reranking_suffixes.append('_reranked_att')
-
-        for reranking_suffix in reranking_suffixes:
-            if decoding_suffix == '_beam_search':
-                value_suffixes = ['_' + str(val) for val in length_penalty_vals]
-            elif decoding_suffix in ['_nucleus_sampling', '_beam_1.0_nucleus_sampling']:
-                value_suffixes = ['_' + str(val) for val in p_vals]
+            if exact_matching:
+                ser = calculate_slot_error_rate(input_dir, file_name, dataset_class, slot_level=slot_level,
+                                                verbose=verbose)
             else:
-                value_suffixes = ['']
-
-            for value_suffix in value_suffixes:
-                file_name = checkpoint_name + decoding_suffix + reranking_suffix + value_suffix + '.csv'
-                files_processed.append(file_name)
-                if verbose:
-                    print(f'Running with file "{file_name}"...')
-
-                if exact_matching:
-                    ser = calculate_slot_error_rate(input_dir, file_name, dataset_class, slot_level=slot_level,
-                                                    verbose=verbose)
-                else:
-                    ser = score_slot_realizations(input_dir, file_name, dataset_class, slot_level=slot_level,
-                                                  verbose=verbose)
-                ser_list.append(ser)
+                ser = score_slot_realizations(input_dir, file_name, dataset_class, slot_level=slot_level,
+                                              verbose=verbose)
+            ser_list.append(ser)
 
     if not verbose:
         # Print a summary of all files processed (in the same order)
@@ -140,19 +110,15 @@ def run_batch_calculate_bleu():
 
 def run_batch_calculate_slot_error_rate():
     input_dir = os.path.join('predictions', 'video_game', 'finetuned_verbalized_slots',
-                             't5-base_lr_3e-5_bs_16_wus_100_run3')
-    checkpoint_name = 'epoch_16_step_319'
+                             't5-small_lr_2e-4_bs_32_wus_100_run3')
     dataset_class = ViggoDataset
 
     # input_dir = os.path.join('predictions', 'multiwoz', 'finetuned_verbalized_slots',
     #                          'bart-base_lr_1e-5_bs_32_wus_500_run4')
-    # checkpoint_name = 'epoch_18_step_1749'
     # dataset_class = MultiWOZDataset
 
-    # batch_calculate_slot_error_rate(
-    #     input_dir, checkpoint_name, dataset_class, exact_matching=True, slot_level=False, verbose=False)
-    batch_calculate_slot_error_rate(
-        input_dir, checkpoint_name, dataset_class, exact_matching=False, slot_level=True, verbose=False)
+    # batch_calculate_slot_error_rate(input_dir, dataset_class, exact_matching=True, slot_level=False, verbose=False)
+    batch_calculate_slot_error_rate(input_dir, dataset_class, exact_matching=False, slot_level=True, verbose=False)
 
 
 def run_batch_find_slot_alignment():
