@@ -13,10 +13,11 @@ class TaskConfig(object):
         self.batch_size = config.get('batch_size', 1)
         self.max_seq_length = config.get('max_seq_length', 512)
         self.lowercase = config.get('lowercase', False)
-        self.convert_slot_names = config.get('convert_slot_names', False)
+        self.slot_name_conversion = config.get('slot_name_conversion', None)
         self.use_token_type_ids = config.get('use_token_type_ids', False)
-        # if self.use_token_type_ids and not self.convert_slot_names:
-        #     print('Error: the "use_token_type_ids" parameter can only be True when "convert_slot_names" is True.')
+        # if self.use_token_type_ids and self.slot_name_conversion != 'special_tokens':
+        #     print('Error: the "use_token_type_ids" parameter can only be True when "slot_name_conversion" is set '
+        #           'to "special_tokens".')
         #     sys.exit()
 
 

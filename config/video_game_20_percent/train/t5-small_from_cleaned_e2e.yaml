@@ -1,6 +1,6 @@
 model_name: "seq2seq/export/rest_e2e_cleaned/finetuned/t5-small_lr_2e-4_bs_64_wus_500/epoch_10_step_524"
 pretrained: True
-convert_slot_names: True
+slot_name_conversion: "special_tokens"
 num_epochs: 25
 batch_size: 48
 max_seq_length: 128

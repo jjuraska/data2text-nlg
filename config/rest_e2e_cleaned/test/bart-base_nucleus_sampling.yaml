@@ -2,7 +2,7 @@ model_name: "facebook/bart-base"
 pretrained: True
 checkpoint_epoch: 5
 checkpoint_step: 1048
-convert_slot_names: True
+slot_name_conversion: "special_tokens"
 batch_size: 32
 max_seq_length: 128
 do_sample: True

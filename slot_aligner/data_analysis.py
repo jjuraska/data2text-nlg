@@ -3,6 +3,7 @@ import json
 import os
 import pandas as pd
 
+from constants import SlotNameConversionMode
 from dataset_loaders.e2e import E2EDataset, E2ECleanedDataset
 from dataset_loaders.multiwoz import MultiWOZDataset
 from dataset_loaders.viggo import ViggoDataset
@@ -23,7 +24,8 @@ def align_slots(data_dir, filename, dataset_class, serialize_pos_info=False):
     # Load MRs and corresponding utterances
     df_data = pd.read_csv(os.path.join(data_dir, filename), header=0)
     mrs_raw = df_data.iloc[:, 0].to_list()
-    mrs_processed = dataset_class.preprocess_mrs(mrs_raw, as_lists=True, lowercase=False, convert_slot_names=True)
+    mrs_processed = dataset_class.preprocess_mrs(
+        mrs_raw, as_lists=True, lowercase=False, slot_name_conversion=SlotNameConversionMode.SPECIAL_TOKENS)
     utterances = df_data.iloc[:, 1].to_list()
 
     for mr_as_list, utt in zip(mrs_processed, utterances):
@@ -51,7 +53,8 @@ def score_slot_realizations(data_dir, predictions_file, dataset_class, slot_leve
     # Load MRs and corresponding utterances
     df_data = pd.read_csv(os.path.join(data_dir, predictions_file), header=0)
     mrs_raw = df_data.iloc[:, 0].to_list()
-    mrs_processed = dataset_class.preprocess_mrs(mrs_raw, as_lists=True, lowercase=False, convert_slot_names=True)
+    mrs_processed = dataset_class.preprocess_mrs(
+        mrs_raw, as_lists=True, lowercase=False, slot_name_conversion=SlotNameConversionMode.SPECIAL_TOKENS)
     utterances = df_data.iloc[:, 1].fillna('').to_list()
 
     for mr_as_list, utt in zip(mrs_processed, utterances):

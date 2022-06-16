@@ -1,6 +1,6 @@
 model_name: "gpt2"
 pretrained: True
-convert_slot_names: True
+slot_name_conversion: "special_tokens"
 num_epochs: 15
 batch_size: 16
 max_seq_length: 128

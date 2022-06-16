@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AdamW, get_linear_schedule_with_warmup
 
+from constants import SlotNameConversionMode
 from dataset_loaders.e2e import E2EDataset, E2ECleanedDataset
 from dataset_loaders.multiwoz import MultiWOZDataset
 from dataset_loaders.viggo import (
@@ -39,7 +40,7 @@ def train(config, dataset_class, device='cpu'):
     longest_target_seq = 0
 
     # Load model and the corresponding tokenizer
-    special_tokens = dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names)
+    special_tokens = dataset_class.get_special_tokens(slot_name_conversion=config.slot_name_conversion)
     model, tokenizer = model_utils.load_model_and_tokenizer(config, special_tokens=special_tokens)
     is_enc_dec = model.config.is_encoder_decoder
     model = model.to(device)
@@ -51,7 +52,7 @@ def train(config, dataset_class, device='cpu'):
     train_set = dataset_class(tokenizer,
                               partition='train',
                               lowercase=config.lowercase,
-                              convert_slot_names=config.convert_slot_names,
+                              slot_name_conversion=config.slot_name_conversion,
                               separate_source_and_target=is_enc_dec,
                               prepare_token_types=prepare_token_types,
                               num_slot_permutations=config.num_slot_permutations)
@@ -66,7 +67,7 @@ def train(config, dataset_class, device='cpu'):
     valid_set = dataset_class(tokenizer,
                               partition='valid',
                               lowercase=config.lowercase,
-                              convert_slot_names=config.convert_slot_names,
+                              slot_name_conversion=config.slot_name_conversion,
                               separate_source_and_target=is_enc_dec,
                               sort_by_length=True,
                               prepare_token_types=prepare_token_types)
@@ -75,7 +76,7 @@ def train(config, dataset_class, device='cpu'):
     valid_set_bleu = dataset_class(tokenizer,
                                    partition='valid',
                                    lowercase=config.lowercase,
-                                   convert_slot_names=config.convert_slot_names,
+                                   slot_name_conversion=config.slot_name_conversion,
                                    group_by_mr=group_by_mr,
                                    no_target=True,
                                    separate_source_and_target=is_enc_dec,
@@ -301,9 +302,7 @@ def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cp
     if config.semantic_reranking or config.semantic_reranking_all:
         if config.semantic_reranking_all or not config.semantic_decoding:
             # Rerank generated beams based on semantic accuracy determined by the slot aligner
-            predictions_reranked = eval_utils.rerank_beams(
-                predictions, test_set.get_mrs(convert_slot_names=True), test_set.name
-            )
+            predictions_reranked = eval_utils.rerank_beams(predictions, test_set.get_mrs(), test_set.name)
             predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
             eval_configurations.append((predictions_reranked, True, None))
 
@@ -340,7 +339,7 @@ def batch_test(config, dataset_class, device='cpu'):
     test_scores = {'not_reranked': [], 'reranked': [], 'reranked_att': []}
 
     # Load model and the corresponding tokenizer
-    special_tokens = dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names)
+    special_tokens = dataset_class.get_special_tokens(slot_name_conversion=config.slot_name_conversion)
     model, tokenizer = model_utils.load_model_and_tokenizer(config, special_tokens=special_tokens)
     is_enc_dec = model.config.is_encoder_decoder
     model = model.to(device)
@@ -355,7 +354,7 @@ def batch_test(config, dataset_class, device='cpu'):
     test_set = dataset_class(tokenizer,
                              partition='test',
                              lowercase=config.lowercase,
-                             convert_slot_names=config.convert_slot_names,
+                             slot_name_conversion=config.slot_name_conversion,
                              group_by_mr=group_by_mr,
                              no_target=True,
                              separate_source_and_target=is_enc_dec,
@@ -365,7 +364,7 @@ def batch_test(config, dataset_class, device='cpu'):
     test_set_ppl = dataset_class(tokenizer,
                                  partition='test',
                                  lowercase=config.lowercase,
-                                 convert_slot_names=config.convert_slot_names,
+                                 slot_name_conversion=config.slot_name_conversion,
                                  separate_source_and_target=is_enc_dec,
                                  prepare_token_types=prepare_token_types)
     test_data_loader_ppl = DataLoader(test_set_ppl, batch_size=config.batch_size, shuffle=False, num_workers=0)
@@ -402,7 +401,7 @@ def batch_test(config, dataset_class, device='cpu'):
 
 def generate_from_input(config, input_str, dataset_class, device='cpu'):
     # Load model and the corresponding tokenizer
-    special_tokens = dataset_class.get_special_tokens(convert_slot_names=config.convert_slot_names)
+    special_tokens = dataset_class.get_special_tokens(slot_name_conversion=config.slot_name_conversion)
     model, tokenizer = model_utils.load_model_and_tokenizer(config, special_tokens=special_tokens)
     is_enc_dec = model.config.is_encoder_decoder
     model = model.to(device)
@@ -511,7 +510,8 @@ def main():
         # input_str = "suggest(name[The Sims], platforms[PC], available_on_steam[no])"
         # input_str = "request_attribute(developer[])"
         # input_str = "recommend(name[F1 2014], genres[driving/racing, simulation, sport], platforms[PC])"
-        input_str = "inform(name[Quantum Break], release_year[2016], rating[average], genres[adventure, shooter], player_perspective[third person])"
+        # input_str = "inform(name[Quantum Break], release_year[2016], rating[average], genres[adventure, shooter], player_perspective[third person])"
+        input_str = "verify_attribute(name[Little Big Adventure], rating[average], has_multiplayer[no], platforms[PlayStation])"
 
         generate_from_input(TestConfig(config), input_str, dataset_class, device=device)
 

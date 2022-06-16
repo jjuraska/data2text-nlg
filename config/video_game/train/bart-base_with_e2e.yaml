@@ -1,6 +1,6 @@
 model_name: "facebook/bart-base"
 pretrained: True
-convert_slot_names: True
+slot_name_conversion: "special_tokens"
 num_epochs: 10
 batch_size: 20
 max_seq_length: 128

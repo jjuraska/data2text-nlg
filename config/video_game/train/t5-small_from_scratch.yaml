@@ -1,7 +1,7 @@
 model_name: "t5-small"
 pretrained: False
 #tokenizer_name: "t5-video_game"
-convert_slot_names: True
+slot_name_conversion: "special_tokens"
 num_epochs: 50
 batch_size: 48
 max_seq_length: 128

@@ -3,12 +3,13 @@ import sys
 from tokenizers import ByteLevelBPETokenizer, SentencePieceBPETokenizer
 from transformers import AutoConfig, AutoTokenizer
 
+from constants import SlotNameConversionMode
 from dataset_loaders.e2e import E2EDataset, E2ECleanedDataset
 from dataset_loaders.multiwoz import MultiWOZDataset
 from dataset_loaders.viggo import ViggoDataset
 
 
-def train_tokenizer(datasets, pretrained_model_name, vocab_size=1000, lowercase=False, convert_slot_names=False):
+def train_tokenizer(datasets, pretrained_model_name, vocab_size=1000, lowercase=False, slot_name_conversion=None):
     train_data = []
     data_file_paths = []
 
@@ -55,15 +56,16 @@ def train_tokenizer(datasets, pretrained_model_name, vocab_size=1000, lowercase=
             sys.exit()
 
         train_set = dataset_class(tokenizer_pretrained, partition='train', lowercase=lowercase,
-                                  convert_slot_names=convert_slot_names,
+                                  slot_name_conversion=slot_name_conversion,
                                   separate_source_and_target=config_pretrained.is_encoder_decoder)
 
-        mrs = [train_set.convert_mr_from_list_to_str(mr, add_separators=(not convert_slot_names))
-               for mr in train_set.get_mrs(lowercase=lowercase, convert_slot_names=convert_slot_names)]
+        add_separators = (slot_name_conversion == SlotNameConversionMode.VERBALIZE)
+        mrs = [train_set.convert_mr_from_list_to_str(mr, add_separators=add_separators)
+               for mr in train_set.get_mrs(lowercase=lowercase, slot_name_conversion=slot_name_conversion)]
         train_data.extend(mrs)
         train_data.extend(train_set.get_utterances(lowercase=lowercase))
 
-        special_tokens.extend(train_set.get_special_tokens(convert_slot_names=convert_slot_names))
+        special_tokens.extend(train_set.get_special_tokens(slot_name_conversion=slot_name_conversion))
 
         # Write the processed data to a simple text file
         data_file_path = os.path.join(tokenizer_data_dir, dataset + '.txt')
@@ -85,6 +87,7 @@ def train_tokenizer(datasets, pretrained_model_name, vocab_size=1000, lowercase=
     tokenizer.train(files=data_file_paths, vocab_size=vocab_size, show_progress=True, special_tokens=special_tokens)
 
     # Save tokenizer files to disk
+    tokenizer_dir = 'tokenizer'
     if '/' in pretrained_model_name:
         pretrained_model_name = pretrained_model_name.split('/')[-1]
     file_name = '{}-{}'.format(pretrained_model_name, '-'.join(datasets))
@@ -94,4 +97,5 @@ def train_tokenizer(datasets, pretrained_model_name, vocab_size=1000, lowercase=
 
 
 if __name__ == '__main__':
-    train_tokenizer(['multiwoz'], 'facebook/bart-base', vocab_size=10000, lowercase=False, convert_slot_names=False)
+    train_tokenizer(['multiwoz'], 'facebook/bart-base', vocab_size=10000, lowercase=False,
+                    slot_name_conversion=SlotNameConversionMode.VERBALIZE)

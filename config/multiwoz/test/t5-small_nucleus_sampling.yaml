@@ -1,6 +1,6 @@
 model_name: "export/multiwoz/finetuned/t5-small_lr_2e-4_bs_32_wus_100/epoch_12_step_1720"
 pretrained: True
-convert_slot_names: True
+slot_name_conversion: "special_tokens"
 batch_size: 48
 max_seq_length: 160
 do_sample: True

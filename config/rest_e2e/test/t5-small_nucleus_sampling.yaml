@@ -1,6 +1,6 @@
 model_name: "export/rest_e2e/from_scratch/t5-small_lr_2e-4_bs_64/epoch_21_step_658"
 pretrained: False
-convert_slot_names: True
+slot_name_conversion: "special_tokens"
 batch_size: 48
 max_seq_length: 128
 do_sample: True

@@ -1,6 +1,6 @@
 model_name: "export/rest_e2e/from_scratch_w_pretrained_tokenizer/bart-base_lr_1e-5_bs_32/epoch_13_step_1315"
 pretrained: True
-convert_slot_names: True
+slot_name_conversion: "special_tokens"
 batch_size: 32
 max_seq_length: 128
 do_sample: True

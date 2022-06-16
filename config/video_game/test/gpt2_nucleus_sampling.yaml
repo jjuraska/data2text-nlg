@@ -1,6 +1,6 @@
 model_name: "export/video_game/finetuned/gpt2_lr_2e-5_bs_16_wus_100_run4/epoch_9_step_319"
 pretrained: True
-convert_slot_names: True
+slot_name_conversion: "special_tokens"
 batch_size: 12
 max_seq_length: 160
 do_sample: True

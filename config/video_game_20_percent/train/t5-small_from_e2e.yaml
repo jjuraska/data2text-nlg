@@ -1,6 +1,6 @@
 model_name: "export/rest_e2e/finetuned/t5-small_lr_2e-4_bs_64_wus_500/epoch_18_step_658"
 pretrained: True
-convert_slot_names: True
+slot_name_conversion: "special_tokens"
 num_epochs: 25
 batch_size: 48
 max_seq_length: 128

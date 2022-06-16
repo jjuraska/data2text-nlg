@@ -1,7 +1,7 @@
 model_name: "export/multiwoz/finetuned_verbalized_slots/t5-small_lr_2e-4_bs_64_wus_200_run4/epoch_22_step_875"
 pretrained: True
 lowercase: False
-convert_slot_names: False
+slot_name_conversion: "verbalize"
 batch_size: 32
 max_seq_length: 160
 num_beams: 10

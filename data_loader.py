@@ -6,6 +6,7 @@ import re
 import regex
 from torch.utils.data import Dataset
 
+from constants import SlotNameConversionMode
 from ontology import DatasetOntologyBuilder
 
 
@@ -17,7 +18,7 @@ class MRToTextDataset(Dataset):
     name = 'mr_to_text'
     delimiters = {}
 
-    def __init__(self, tokenizer, input_str=None, partition='train', lowercase=False, convert_slot_names=False,
+    def __init__(self, tokenizer, input_str=None, partition='train', lowercase=False, slot_name_conversion=None,
                  group_by_mr=False, no_target=False, separate_source_and_target=False, sort_by_length=False,
                  prepare_token_types=False, num_slot_permutations=0):
         super().__init__()
@@ -31,7 +32,7 @@ class MRToTextDataset(Dataset):
 
         # Data preprocessing parameters
         self.convert_to_lowercase = lowercase
-        self.convert_slot_names = convert_slot_names
+        self.slot_name_conversion = slot_name_conversion
         self.group_by_mr = group_by_mr
         self.no_target = no_target
         self.separate_source_and_target = separate_source_and_target
@@ -102,7 +103,7 @@ class MRToTextDataset(Dataset):
 
         # Perform dataset-specific preprocessing of the MRs
         self.mrs_as_lists = self.get_mrs(lowercase=self.convert_to_lowercase,
-                                         convert_slot_names=self.convert_slot_names)
+                                         slot_name_conversion=self.slot_name_conversion)
 
         # Lowercase utterances if needed
         self.utterances = self.get_utterances(lowercase=self.convert_to_lowercase)
@@ -114,8 +115,8 @@ class MRToTextDataset(Dataset):
                 print()
 
         # Convert MRs back to strings
-        self.mrs = [self.convert_mr_from_list_to_str(mr, add_separators=(not self.convert_slot_names))
-                    for mr in self.mrs_as_lists]
+        add_separators = (self.slot_name_conversion == SlotNameConversionMode.VERBALIZE)
+        self.mrs = [self.convert_mr_from_list_to_str(mr, add_separators=add_separators) for mr in self.mrs_as_lists]
 
         # DEBUG
         # print('>> MRs:\n{}'.format('\n'.join(self.mrs[:50])))
@@ -135,7 +136,7 @@ class MRToTextDataset(Dataset):
         # df_mrs = pd.DataFrame({'mr_orig': self.mrs_raw, 'mr': self.mrs})
         # df_mrs.to_csv(os.path.splitext(dataset_path)[0] + '_mrs.csv', index=False, encoding='utf-8-sig')
 
-    def get_mrs(self, raw=False, lowercase=False, convert_slot_names=False):
+    def get_mrs(self, raw=False, lowercase=False, slot_name_conversion=None):
         if raw:
             mrs = self.mrs_raw
             if lowercase:
@@ -146,7 +147,7 @@ class MRToTextDataset(Dataset):
                 self.mrs_raw_as_lists = [self.convert_mr_from_str_to_list(mr) for mr in self.mrs_raw]
 
             mrs = self.preprocess_mrs_in_intermediate_format(
-                self.mrs_raw_as_lists, lowercase=lowercase, convert_slot_names=convert_slot_names)
+                self.mrs_raw_as_lists, lowercase=lowercase, slot_name_conversion=slot_name_conversion)
 
         return mrs
 
@@ -203,7 +204,7 @@ class MRToTextDataset(Dataset):
 
         Required when using slot name verbalization along with token type IDs in the GPT-2 model.
         """
-        if not self.convert_slot_names:
+        if not self.slot_name_conversion:
             token_type_seq = [self.get_single_word_slot_representation(slot[0]) for slot in self.mrs_raw_as_lists[idx]]
             if self.bos_token:
                 token_type_seq.append(self.bos_token)
@@ -282,13 +283,14 @@ class MRToTextDataset(Dataset):
         return slot_sep.join(['{0}{1}'.format(slot, val_sep + val if val else '') for slot, val in mr_as_list])
 
     @classmethod
-    def preprocess_mrs_in_intermediate_format(cls, mrs, lowercase=False, convert_slot_names=False):
+    def preprocess_mrs_in_intermediate_format(cls, mrs, lowercase=False, slot_name_conversion=None):
         """Performs a series of preprocessing actions on MRs in the intermediate list-of-tuples format.
 
         Depending on the as_lists parameter, it returns the MRs either in the intermediate format or as strings.
         """
         # Preprocess slot names
-        mrs = [cls.preprocess_slot_names_in_mr(mr, convert_slot_names=convert_slot_names) for mr in mrs]
+        if slot_name_conversion:
+            mrs = [cls.preprocess_slot_names_in_mr(mr, slot_name_conversion) for mr in mrs]
 
         # Preprocess slot values
         mrs = cls.preprocess_slot_values_in_mrs(mrs)
@@ -300,7 +302,7 @@ class MRToTextDataset(Dataset):
         return mrs
 
     @classmethod
-    def preprocess_mrs(cls, mrs, as_lists=False, lowercase=False, convert_slot_names=False):
+    def preprocess_mrs(cls, mrs, as_lists=False, lowercase=False, slot_name_conversion=None):
         """Performs dataset-specific preprocessing of the given MRs."""
 
         # Convert MRs to an intermediate format of lists of tuples
@@ -308,14 +310,14 @@ class MRToTextDataset(Dataset):
 
         # Perform dataset-specific preprocessing of the MRs, and convert them back to strings
         mrs_preprocessed = cls.preprocess_mrs_in_intermediate_format(
-            mrs_as_lists, lowercase=lowercase, convert_slot_names=convert_slot_names)
+            mrs_as_lists, lowercase=lowercase, slot_name_conversion=slot_name_conversion)
 
         if as_lists:
             return mrs_preprocessed
         else:
             # Convert MRs to strings
-            return [cls.convert_mr_from_list_to_str(mr, add_separators=(not convert_slot_names))
-                    for mr in mrs_preprocessed]
+            add_separators = (slot_name_conversion == SlotNameConversionMode.VERBALIZE)
+            return [cls.convert_mr_from_list_to_str(mr, add_separators=add_separators) for mr in mrs_preprocessed]
 
     @classmethod
     def preprocess_da_in_mr(cls, mr):
@@ -391,13 +393,13 @@ class MRToTextDataset(Dataset):
         return slots_and_values
 
     @classmethod
-    def preprocess_slot_names_in_mr(cls, mr_as_list, convert_slot_names=False):
+    def preprocess_slot_names_in_mr(cls, mr_as_list, slot_name_conversion):
         mr_processed = []
 
         for slot, value in mr_as_list:
-            if convert_slot_names:
+            if slot_name_conversion == SlotNameConversionMode.SPECIAL_TOKENS:
                 slot = cls.convert_slot_name_to_special_token(slot)
-            else:
+            elif slot_name_conversion == SlotNameConversionMode.VERBALIZE:
                 if slot == 'da':
                     if '-' in value:
                         domain_slot_name = 'topic'
@@ -408,6 +410,8 @@ class MRToTextDataset(Dataset):
                     value = cls.verbalize_da_name(value)
                 else:
                     slot = cls.verbalize_slot_name(slot)
+            else:
+                raise ValueError(f'Slot name conversion mode "{slot_name_conversion}" not recognized.')
 
             # Append a number to the slot name if a slot with the same name has already been encountered in the MR
             # slot_names = {slot_name for slot_name, value in mr_as_list}
@@ -549,10 +553,10 @@ class MRToTextDataset(Dataset):
         return bool_slots
 
     @classmethod
-    def get_special_tokens(cls, convert_slot_names=False):
+    def get_special_tokens(cls, slot_name_conversion=None):
         slot_tokens = set()
 
-        if convert_slot_names:
+        if slot_name_conversion == SlotNameConversionMode.SPECIAL_TOKENS:
             train_set_path = cls.get_data_file_path('train')
             df_data = pd.read_csv(train_set_path, header=0, encoding='utf8')
 

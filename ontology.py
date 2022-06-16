@@ -4,6 +4,8 @@ import os
 import pandas as pd
 from typing import Any, Dict, Union
 
+from constants import SlotNameConversionMode
+
 
 class DatasetOntologyBuilder(object):
     def __init__(self, dataset_class: Any, load_from_file: Union[bool, str] = False,
@@ -45,7 +47,8 @@ class DatasetOntologyBuilder(object):
         for mr_as_str in df_data[df_data.columns[0]]:
             mr_as_list = self._dataset_class.convert_mr_from_str_to_list(mr_as_str)
             if self._preprocess_slot_names:
-                mr_as_list = self._dataset_class.preprocess_slot_names_in_mr(mr_as_list)
+                mr_as_list = self._dataset_class.preprocess_slot_names_in_mr(
+                    mr_as_list, SlotNameConversionMode.VERBALIZE)
 
             for slot, value in mr_as_list:
                 if self._ignore_aux_slots and slot in self._aux_slots:

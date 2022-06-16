@@ -1,6 +1,6 @@
 model_name: "export/rest_e2e_cleaned/finetuned/gpt2_lr_2e-5_bs_20_wus_500_run1/epoch_8_step_1677"
 pretrained: True
-convert_slot_names: True
+slot_name_conversion: "special_tokens"
 batch_size: 20
 max_seq_length: 128
 do_sample: True

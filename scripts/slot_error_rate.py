@@ -16,13 +16,13 @@ def calculate_slot_error_rate(data_dir, predictions_file, dataset_class, slot_le
     # Load the input MRs and output utterances
     df_data = pd.read_csv(os.path.join(data_dir, predictions_file), header=0)
     mrs_raw = df_data.iloc[:, 0].to_list()
-    mrs_processed = dataset_class.preprocess_mrs(mrs_raw, as_lists=True, lowercase=False, convert_slot_names=True)
+    mrs_processed = dataset_class.preprocess_mrs(mrs_raw, as_lists=True, lowercase=False)
     predictions = df_data.iloc[:, 1].to_list()
 
     for mr_as_list, utt in zip(mrs_processed, predictions):
         # Ignore abstract slots and non-specific values
         mr_as_list = [(slot, value) for slot, value in mr_as_list
-                      if slot != '<|da|>' and value not in ['', '?', 'none']]
+                      if slot != 'da' and value not in ['', '?', 'none']]
 
         # Determine if the utterance has any errors (i.e., missing slot mentions)
         utt_lowercased = utt.lower()
@@ -50,9 +50,10 @@ def calculate_slot_error_rate(data_dir, predictions_file, dataset_class, slot_le
 
 
 def main():
-    # input_dir = os.path.join('..', 'predictions', 'multiwoz', 'finetuned_verbalized_slots', 'bart-base_lr_1e-5_bs_32_wus_500_run3')
+    # input_dir = os.path.join('predictions', 'multiwoz', 'finetuned_verbalized_slots',
+    #                          'bart-base_lr_1e-5_bs_32_wus_500_run3')
     # predictions_file = 'epoch_16_step_1749_beam_search_1.0.csv'
-    input_dir = os.path.join('..', 'data', 'multiwoz')
+    input_dir = os.path.join('data', 'multiwoz')
     predictions_file = 'test.csv'
     dataset_class = MultiWOZDataset
 

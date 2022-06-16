@@ -1,6 +1,6 @@
 model_name: "export/rest_e2e_cleaned/finetuned/bart-base_lr_1e-5_bs_32_wus_500_run2/epoch_5_step_1048"
 pretrained: True
-convert_slot_names: True
+slot_name_conversion: "special_tokens"
 num_epochs: 20
 batch_size: 20
 max_seq_length: 128

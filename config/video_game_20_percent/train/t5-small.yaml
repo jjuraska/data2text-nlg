@@ -1,7 +1,7 @@
 model_name: "t5-small"
 pretrained: True
 lowercase: False
-convert_slot_names: False
+slot_name_conversion: "verbalize"
 num_epochs: 20
 batch_size: 8
 eval_batch_size: 256

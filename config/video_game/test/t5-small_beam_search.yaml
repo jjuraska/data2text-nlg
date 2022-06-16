@@ -1,7 +1,7 @@
 model_name: "export/video_game/finetuned_verbalized_slots/t5-small_lr_2e-4_bs_32_wus_100_run4/epoch_16_step_160"
 pretrained: True
 lowercase: False
-convert_slot_names: False
+slot_name_conversion: "verbalize"
 batch_size: 32
 max_seq_length: 128
 num_beams: 10
