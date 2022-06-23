@@ -1,12 +1,37 @@
 import os
 
+from constants import BertScoreModelCheckpoint, BleurtModelPath
 from dataset_loaders.e2e import E2EDataset, E2ECleanedDataset
 from dataset_loaders.multiwoz import MultiWOZDataset
 from dataset_loaders.viggo import ViggoDataset
-from eval_utils import calculate_bleu, calculate_bertscore
+from eval_utils import calculate_bertscore, calculate_bleu, calculate_bleurt, init_bert_scorer, init_bleurt_scorer
 from scripts.slot_error_rate import calculate_slot_error_rate
 from scripts.utterance_stats import get_utterance_stats
 from slot_aligner.data_analysis import align_slots, score_slot_realizations
+
+
+def batch_calculate_bertscore(input_dir, dataset_class, verbose=False):
+    files_processed = []
+    bert_scorer = init_bert_scorer(model=BertScoreModelCheckpoint.DEBERTA_XLARGE_MNLI)
+
+    for file_name in os.listdir(input_dir):
+        if file_name.endswith('.txt') and '_utt_only' in file_name:
+        # if file_name.endswith('.csv') and '[' not in file_name:
+            files_processed.append(file_name)
+            if verbose:
+                print(f'Running with file "{file_name}"...')
+
+            calculate_bertscore(
+                os.path.join(input_dir, file_name), dataset_class, bert_scorer, mode='f1', verbose=verbose)
+
+            if verbose:
+                print()
+
+    if not verbose:
+        # Print a summary of all files processed (in the same order)
+        print()
+        print('>> Files processed:')
+        print('\n'.join(files_processed))
 
 
 def batch_calculate_bleu(input_dir, dataset_class, verbose=False):
@@ -19,6 +44,29 @@ def batch_calculate_bleu(input_dir, dataset_class, verbose=False):
                 print(f'Running with file "{file_name}"...')
 
             calculate_bleu(os.path.join(input_dir, file_name), dataset_class.name, verbose=verbose)
+
+            if verbose:
+                print()
+
+    if not verbose:
+        # Print a summary of all files processed (in the same order)
+        print()
+        print('>> Files processed:')
+        print('\n'.join(files_processed))
+
+
+def batch_calculate_bleurt(input_dir, dataset_class, verbose=False):
+    files_processed = []
+    bleurt_scorer = init_bleurt_scorer(model=BleurtModelPath.BLEURT_20_D12)
+
+    for file_name in os.listdir(input_dir):
+        if file_name.endswith('.txt') and '_utt_only' in file_name:
+        # if file_name.endswith('.csv') and '[' not in file_name:
+            files_processed.append(file_name)
+            if verbose:
+                print(f'Running with file "{file_name}"...')
+
+            calculate_bleurt(os.path.join(input_dir, file_name), dataset_class, bleurt_scorer, verbose=verbose)
 
             if verbose:
                 print()
@@ -101,11 +149,28 @@ def batch_utterance_stats(input_dir, dataset_class, export_delex=False, export_v
         print('\n'.join(files_processed))
 
 
+def run_batch_calculate_bertscore():
+    input_dir = os.path.join('predictions', 'video_game', 'finetuned_verbalized_slots',
+                             't5-small_lr_2e-4_bs_32_wus_100_run3')
+    dataset_class = ViggoDataset
+
+    batch_calculate_bertscore(input_dir, dataset_class, verbose=False)
+
+
 def run_batch_calculate_bleu():
-    input_dir = os.path.join('predictions', 'multiwoz', 'finetuned_verbalized_slots', 'bart-base_lr_1e-5_bs_32_wus_500_run4')
+    input_dir = os.path.join('predictions', 'multiwoz', 'finetuned_verbalized_slots',
+                             'bart-base_lr_1e-5_bs_32_wus_500_run4')
     dataset_class = MultiWOZDataset
 
     batch_calculate_bleu(input_dir, dataset_class, verbose=False)
+
+
+def run_batch_calculate_bleurt():
+    input_dir = os.path.join('predictions', 'video_game', 'finetuned_verbalized_slots',
+                             't5-small_lr_2e-4_bs_32_wus_100_run3')
+    dataset_class = ViggoDataset
+
+    batch_calculate_bleurt(input_dir, dataset_class, verbose=False)
 
 
 def run_batch_calculate_slot_error_rate():
@@ -161,7 +226,9 @@ def run_batch_utterance_stats():
 
 
 if __name__ == '__main__':
+    # run_batch_calculate_bertscore()
     # run_batch_calculate_bleu()
+    run_batch_calculate_bleurt()
     # run_batch_calculate_slot_error_rate()
     # run_batch_find_slot_alignment()
-    run_batch_utterance_stats()
+    # run_batch_utterance_stats()

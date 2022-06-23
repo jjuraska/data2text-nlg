@@ -1,12 +1,18 @@
+import bert_score
+from bleurt.score import LengthBatchingBleurtScorer
 from itertools import chain
 from nltk.tokenize import word_tokenize
+import numpy as np
 import os
 import pandas as pd
 import re
 # from rouge_score import rouge_scorer, scoring
 from sacrebleu import corpus_bleu
 from tqdm import tqdm
+from typing import Optional, Type
 
+from constants import BertScoreModelCheckpoint, BleurtModelPath
+from data_loader import MRToTextDataset
 from eval.RNNLG.GentScorer import GentScorer
 from slot_aligner.slot_alignment import count_errors
 
@@ -93,6 +99,116 @@ def calculate_bleu(predictions_file, dataset_name, verbose=False):
         print(f'>> BLEU (RNNLG):     {round(bleu_rnnlg, 4)}')
     else:
         print(f'{round(bleu_sacre / 100, 4)}\t{round(bleu_rnnlg, 4)}')
+
+
+def init_bert_scorer(model: Optional[str] = None, batch_size: int = 64) -> bert_score.BERTScorer:
+    # Default to the smallest model
+    if not model:
+        model = BertScoreModelCheckpoint.DEBERTA_LARGE_MNLI
+
+    return bert_score.BERTScorer(model_type=model, batch_size=batch_size, lang='en', rescale_with_baseline=False)
+
+
+def calculate_bertscore(predictions_file: str, dataset_class: Type[MRToTextDataset], scorer: bert_score.BERTScorer,
+                        mode: str = 'f1', verbose: bool = False) -> None:
+    # Load generated utterances from the provided file
+    if os.path.splitext(predictions_file)[-1] == '.csv':
+        df_predictions = pd.read_csv(predictions_file, header=0, encoding='utf-8')
+        _, predictions = dataset_class.read_data_from_dataframe(df_predictions, group_by_mr=True)
+        predictions = [pred_group[0] for pred_group in predictions]
+    else:
+        with open(predictions_file, 'r', encoding='utf-8') as f_pred:
+            predictions = [pred_line.strip() for pred_line in f_pred.readlines()]
+
+    # Load reference utterances of the test set
+    df_data = pd.read_csv(dataset_class.get_data_file_path('test'), header=0, encoding='utf-8')
+    _, references = dataset_class.read_data_from_dataframe(df_data, group_by_mr=True)
+    # references = dataset_class.lowercase_utterances(references)
+    # references = [reference_list[0] for reference_list in references]
+
+    assert len(predictions) == len(references), \
+        f'The number of predictions ({len(predictions)}) must equal the number of references ({len(references)}).'
+
+    P, R, F1 = scorer.score(predictions, references)
+    if mode == 'precision':
+        avg_score = np.mean(P.tolist())
+    elif mode == 'recall':
+        avg_score = np.mean(R.tolist())
+    elif mode == 'f1':
+        avg_score = np.mean(F1.tolist())
+    else:
+        raise ValueError(f'BERTScore mode "{mode}" not recognized (possible values: "precision", "recall", "f1").')
+
+    # DEBUG
+    # print([round(score, 4) for score in F1.tolist()])
+    # print()
+
+    # Print the BERTScore scores
+    if verbose:
+        print(f'>> BERTScore: {round(avg_score, 4)}')
+    else:
+        print(f'{round(avg_score, 4)}')
+
+
+def init_bleurt_scorer(model: Optional[str] = None) -> LengthBatchingBleurtScorer:
+    # Default to the smallest model
+    if not model:
+        model = BleurtModelPath.BLEURT_20_D3
+
+    return LengthBatchingBleurtScorer(model)
+
+
+def calculate_bleurt(predictions_file: str, dataset_class: Type[MRToTextDataset], scorer: LengthBatchingBleurtScorer,
+                     batch_size: Optional[int] = None, verbose: bool = False) -> None:
+    # Load generated utterances from the provided file
+    if os.path.splitext(predictions_file)[-1] == '.csv':
+        df_predictions = pd.read_csv(predictions_file, header=0, encoding='utf-8')
+        _, predictions = dataset_class.read_data_from_dataframe(df_predictions, group_by_mr=True)
+        predictions = [pred_group[0] for pred_group in predictions]
+    else:
+        with open(predictions_file, 'r', encoding='utf-8') as f_pred:
+            predictions = [pred_line.strip() for pred_line in f_pred.readlines()]
+
+    # Load reference utterances of the test set
+    df_data = pd.read_csv(dataset_class.get_data_file_path('test'), header=0, encoding='utf-8')
+    _, references = dataset_class.read_data_from_dataframe(df_data, group_by_mr=True)
+    # references = dataset_class.lowercase_utterances(references)
+    # references = [reference_list[0] for reference_list in references]
+
+    assert len(predictions) == len(references), \
+        f'The number of predictions ({len(predictions)}) must equal the number of references ({len(references)}).'
+
+    if isinstance(references[0], list):
+        # Multiply generated utterances depending on the number of corresponding references, and then flatten references
+        predictions_extended = list(chain.from_iterable(
+            [pred] * len(ref_list) for pred, ref_list in zip(predictions, references)))
+        references_flat = list(chain.from_iterable(references))
+    else:
+        predictions_extended = predictions
+        references_flat = references
+
+    bleurt_scores = scorer.score(candidates=predictions_extended, references=references_flat, batch_size=batch_size)
+
+    if isinstance(references[0], list):
+        # Extract the maximum score for each prediction in case of multiple references per input
+        df_scores = pd.DataFrame({
+            'prediction': predictions_extended,
+            'score': bleurt_scores
+        })
+        max_scores = df_scores.groupby(['prediction'], sort=False)['score'].max().reset_index()['score'].tolist()
+        avg_score = np.mean(max_scores)
+    else:
+        avg_score = np.mean(bleurt_scores)
+
+    # DEBUG
+    # print([round(score, 4) for score in max_scores])
+    # print()
+
+    # Print the BERTScore scores
+    if verbose:
+        print(f'>> BLEURT: {round(avg_score, 4)}')
+    else:
+        print(f'{round(avg_score, 4)}')
 
 
 def rerank_beams(beams, mrs, domain, keep_n=None, keep_least_errors_only=False):
