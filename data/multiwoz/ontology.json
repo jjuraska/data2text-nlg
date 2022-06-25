@@ -977,7 +977,7 @@
         "wollaston road"
     ],
     "Area": [
-        "?",
+        "",
         "CENTRE",
         "Cambridge",
         "Cambridge 's centre",
@@ -1414,6 +1414,7 @@
         "your desired location"
     ],
     "Arrive": [
+        "",
         "00:04",
         "01:07",
         "01:27",
@@ -1871,6 +1872,7 @@
         "7:07",
         "7:08",
         "7:15",
+        "7:15pm ( 19:15 )",
         "7:17",
         "7:27",
         "7:32",
@@ -1926,7 +1928,6 @@
         "9:55",
         "9:58",
         "9:59",
-        "?",
         "TR6833",
         "TR7505",
         "Tuesday",
@@ -2665,10 +2666,10 @@
         "wide variety"
     ],
     "Day": [
+        "",
         "1",
         "13:07",
         "2",
-        "?",
         "Cambridge",
         "Friday",
         "Monday",
@@ -2715,6 +2716,7 @@
         "wednesday"
     ],
     "Depart": [
+        "",
         "08:00",
         "09:09",
         "10:06",
@@ -2727,7 +2729,6 @@
         "4:00",
         "7:30",
         "8:11",
-        "?",
         "Abbey Pool",
         "Acorn",
         "Acorn Guest House",
@@ -2938,7 +2939,7 @@
         "your hotel"
     ],
     "Department": [
-        "?",
+        "",
         "acute medical assessment unit",
         "acute medicine for the elderly",
         "cambridge eye unit",
@@ -2980,10 +2981,10 @@
         "urology"
     ],
     "Dest": [
+        "",
         "13:51",
         "15:15",
         "21:40",
-        "?",
         "Acorn Guest House",
         "Alexander",
         "Ali Baba",
@@ -3485,8 +3486,8 @@
         "you would have to call about that"
     ],
     "Food": [
+        "",
         "2 chinese",
-        "?",
         "Afghan",
         "Afrian",
         "Africa",
@@ -5250,10 +5251,11 @@
         "train 4734"
     ],
     "Internet": [
-        "?",
+        "",
         "none"
     ],
     "Leave": [
+        "",
         "02:00",
         "02:15",
         "02:45",
@@ -5846,7 +5848,6 @@
         "9:54",
         "9:59",
         ": 29 of the hour from 05:29 to 23:29",
-        "?",
         "Beginning at 5:29 a.m.",
         "Cambridge",
         "First one departs at 12:06",
@@ -5979,6 +5980,7 @@
         "one minute after the hour every hour starting at 11:01",
         "quite late at night",
         "run every hour starting at 14:36",
+        "same time ( 22:11 )",
         "starting at 05:11",
         "starting at 05:21",
         "starting at 05:39",
@@ -6004,6 +6006,7 @@
         "within an hour of each other"
     ],
     "Name": [
+        "",
         "\" peking restaurant \"",
         "\" the good luck chinese food takeaway \"",
         "\" the place \"",
@@ -6011,7 +6014,6 @@
         "1 and b guest house",
         "12 at varsity restaurant",
         "53 - 57 lensfield road",
-        "?",
         "A & B Guest House",
         "A & B Guesthouse",
         "A & B guesthouse",
@@ -8455,10 +8457,11 @@
         "not sure on their hours"
     ],
     "Parking": [
-        "?",
+        "",
         "none"
     ],
     "People": [
+        "",
         "1",
         "15:15",
         "19",
@@ -8469,7 +8472,6 @@
         "6",
         "7",
         "8",
-        "?",
         "D2D4VN6F",
         "Eight",
         "Four",
@@ -10729,11 +10731,11 @@
         "trinity street"
     ],
     "Price": [
+        "",
         "2 pounds",
         "4 pounds",
         "5 pound entrance fee",
         "5 pounds",
-        "?",
         "Cheap",
         "Expensive",
         "Expensive but worth every penny",
@@ -16473,6 +16475,7 @@
         "xu1qlhvw"
     ],
     "Stars": [
+        "",
         "0",
         "0-star",
         "1",
@@ -16485,7 +16488,6 @@
         "4-star",
         "5",
         "5-star",
-        "?",
         "different star ratings",
         "does not have",
         "does not show",
@@ -16510,6 +16512,7 @@
         "zero"
     ],
     "Stay": [
+        "",
         "1",
         "1 night",
         "2",
@@ -16525,7 +16528,6 @@
         "5 nights",
         "6",
         "6 days 5 nights",
-        "?",
         "Five",
         "Huntingdon Marriott",
         "NNA3OC5W",
@@ -16963,6 +16965,7 @@
         "total of 58.8 GBP"
     ],
     "Time": [
+        "",
         "1 hour",
         "1 hour 10 minutes",
         "105 minute",
@@ -17120,7 +17123,6 @@
         "90 minutes",
         "9:00",
         "9:45",
-        "?",
         "a 105 minute ride",
         "a 17 minute train ride",
         "a 51 minute ride",
@@ -17149,12 +17151,12 @@
         "that time slot"
     ],
     "Type": [
+        "",
         "& colleges",
         "2 swimming pools",
         "3",
         "4",
         "4 pounds",
-        "?",
         "A boat",
         "Architecture",
         "Art",

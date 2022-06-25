@@ -3,6 +3,7 @@ import os
 from constants import BertScoreModelCheckpoint, BleurtModelPath
 from dataset_loaders.e2e import E2EDataset, E2ECleanedDataset
 from dataset_loaders.multiwoz import MultiWOZDataset
+from dataset_loaders.rnnlg import LaptopDataset, TVDataset
 from dataset_loaders.viggo import ViggoDataset
 from eval_utils import calculate_bertscore, calculate_bleu, calculate_bleurt, init_bert_scorer, init_bleurt_scorer
 from scripts.slot_error_rate import calculate_slot_error_rate
@@ -228,7 +229,7 @@ def run_batch_utterance_stats():
 if __name__ == '__main__':
     # run_batch_calculate_bertscore()
     # run_batch_calculate_bleu()
-    run_batch_calculate_bleurt()
-    # run_batch_calculate_slot_error_rate()
+    # run_batch_calculate_bleurt()
+    run_batch_calculate_slot_error_rate()
     # run_batch_find_slot_alignment()
     # run_batch_utterance_stats()

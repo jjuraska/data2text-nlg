@@ -335,7 +335,7 @@ class MRToTextDataset(Dataset):
                 re.escape(cls.delimiters['da_beg']), re.escape(cls.delimiters['da_end'])), mr)
         else:
             # Parse multiple DAs with their respective slots and values
-            match = regex.match(r'(\S+){0}(.*?){1}(?:{2}(\S+){0}(.*?){1})*'.format(
+            match = regex.match(r'(\S+){0}(.*?){1}(?:{2}(\S+){0}(.*?){1})*$'.format(
                 re.escape(cls.delimiters['da_beg']), re.escape(cls.delimiters['da_end']),
                 re.escape(cls.delimiters['da_sep'])), mr)
 
@@ -370,7 +370,7 @@ class MRToTextDataset(Dataset):
         slots_and_values = []
 
         # Parse slots and their values
-        match = regex.match(r'(.+?){0}(.*?){1}(?:{2}(.+?){0}(.*?){1})*'.format(
+        match = regex.match(r'(.+?)(?:{0}(.*?){1})?(?:{2}(.+?)(?:{0}(.*?){1})?)*$'.format(
             re.escape(cls.delimiters['val_beg']), re.escape(cls.delimiters['val_end']),
             re.escape(cls.delimiters['slot_sep'])), mr)
 
@@ -383,9 +383,9 @@ class MRToTextDataset(Dataset):
                 break
 
             for j in range(len(match.captures(i))):
-                # Save the slot/value pair
+                # Save the slot/value pair (note: value may be absent)
                 slot = match.captures(i)[j].strip()
-                value = match.captures(i + 1)[j].strip()
+                value = match.captures(i + 1)[j].strip() if j < len(match.captures(i + 1)) else ''
                 if value == '?':
                     value = ''
                 slots_and_values.append((slot, value))

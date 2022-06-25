@@ -31,11 +31,11 @@ customerrating_mapping = {
 }
 
 
-def dontcare_realization(text, slot, soft_match=False):
+def dontcare_realization(text, slot, all_slots, soft_match=False):
     text = re.sub('\'', '', text.lower())
     text_tok = word_tokenize(text)
 
-    for slot_stem in get_slot_mention_alternatives(slot):
+    for slot_stem in get_slot_mention_alternatives(slot, all_slots):
         slot_stem_plural = get_plural(slot_stem)
 
         if slot_stem in text_tok or slot_stem_plural in text_tok or slot in text_tok:
@@ -208,7 +208,14 @@ def _match_keywords_in_text(keywords, text, ignore_dupes=False):
         raise TypeError('The "keywords" argument must be of one of the following types: str, list, tuple')
 
     for word in keywords:
-        pattern = re.compile(fr'\b{re.escape(word)}\b')
+        # Use regex with word boundary only when the slot value starts and ends with an alphanumeric
+        # character, otherwise the regex fails to match the value because most of the other symbols are
+        # considered a word boundary themselves
+        if re.match(r'\w', word[0]) and re.match(r'\w', word[-1]):
+            pattern = re.compile(fr'\b{re.escape(word)}\b')
+        else:
+            pattern = re.compile(f'{re.escape(word)}')
+
         start_pos = end_pos if fixed_word_order else 0
         match = pattern.search(text, start_pos)
         if match:
@@ -233,7 +240,7 @@ def find_slot_realization(text, text_tok, slot, value, domain, mr, ignore_dupes=
 
     # Universal slot values
     if value == 'dontcare':
-        if dontcare_realization(text, slot, soft_match=True):
+        if dontcare_realization(text, slot, all_slots, soft_match=True):
             # TODO: get the actual position
             pos = 0
             for slot_stem in get_slot_mention_alternatives(slot, all_slots):

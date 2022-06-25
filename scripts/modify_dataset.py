@@ -160,6 +160,28 @@ def convert_multiwoz_dataset_to_csv():
         df_data.to_csv(out_file_path, index=False, encoding='utf-8-sig')
 
 
+def convert_rnnlg_dataset_to_csv(dataset_domain_name):
+    dataset_dir = os.path.join('data', dataset_domain_name)
+
+    for file_name in ['train.json', 'valid.json', 'test.json']:
+        data_file = os.path.join(dataset_dir, file_name)
+        with open(data_file, 'r', encoding='utf-8') as f_data:
+            # Remove the comment at the beginning of the file
+            for i in range(5):
+                f_data.readline()
+
+            # Read the rest of the file in JSON format into a DataFrame
+            df_data = pd.read_json(f_data, encoding='utf-8')
+
+        # Set the column names
+        df_data.columns = ['mr', 'ref', 'baseline']
+
+        # Compose the output file path and save to a CSV file (with UTF-8-BOM encoding)
+        out_file_name = os.path.splitext(file_name)[0] + '.csv'
+        out_file_path = os.path.join(dataset_dir, out_file_name)
+        df_data.to_csv(out_file_path, index=False, encoding='utf-8-sig')
+
+
 if __name__ == '__main__':
     # dataset_name = 'rest_e2e'
     # delimiters = {
@@ -181,4 +203,8 @@ if __name__ == '__main__':
     #
     # undersample_dataset(dataset_name, delimiters, 0.5, trainset_only=True)
 
-    convert_multiwoz_dataset_to_csv()
+    # convert_multiwoz_dataset_to_csv()
+
+    # rnnlg_domain = 'laptop_rnnlg'
+    rnnlg_domain = 'tv_rnnlg'
+    convert_rnnlg_dataset_to_csv(rnnlg_domain)
