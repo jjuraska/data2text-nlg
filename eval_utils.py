@@ -1,5 +1,7 @@
 import bert_score
 from bleurt.score import LengthBatchingBleurtScorer
+from datasets import load_metric
+from datasets.metric import Metric
 from itertools import chain
 from nltk.tokenize import word_tokenize
 import numpy as np
@@ -9,9 +11,9 @@ import re
 # from rouge_score import rouge_scorer, scoring
 from sacrebleu import corpus_bleu
 from tqdm import tqdm
-from typing import Optional, Type
+from typing import List, Optional, Type
 
-from constants import BertScoreModelCheckpoint, BleurtModelPath
+from constants import BertScoreModelCheckpoint, BleurtModelPath, PerplexityModelId
 from data_loader import MRToTextDataset
 from eval.RNNLG.GentScorer import GentScorer
 from slot_aligner.slot_alignment import count_errors
@@ -101,6 +103,29 @@ def calculate_bleu(predictions_file, dataset_name, verbose=False):
         print(f'{round(bleu_sacre / 100, 4)}\t{round(bleu_rnnlg, 4)}')
 
 
+def load_predictions_from_file(predictions_file: str, dataset_class: Type[MRToTextDataset]) -> List[str]:
+    # Load generated utterances from the provided file
+    if os.path.splitext(predictions_file)[-1] == '.csv':
+        df_predictions = pd.read_csv(predictions_file, header=0, encoding='utf-8')
+        _, predictions = dataset_class.read_data_from_dataframe(df_predictions, group_by_mr=True)
+        predictions = [pred_group[0] for pred_group in predictions]
+    else:
+        with open(predictions_file, 'r', encoding='utf-8') as f_pred:
+            predictions = [pred_line.strip() for pred_line in f_pred.readlines()]
+
+    return predictions
+
+
+def load_references_from_dataset(dataset_class: Type[MRToTextDataset], partition: str = 'test') -> List[List[str]]:
+    # Load reference utterances of the test set
+    df_data = pd.read_csv(dataset_class.get_data_file_path(partition), header=0, encoding='utf-8')
+    _, references = dataset_class.read_data_from_dataframe(df_data, group_by_mr=True)
+    # references = dataset_class.lowercase_utterances(references)
+    # references = [reference_list[0] for reference_list in references]
+
+    return references
+
+
 def init_bert_scorer(model: Optional[str] = None, batch_size: int = 64) -> bert_score.BERTScorer:
     # Default to the smallest model
     if not model:
@@ -111,20 +136,8 @@ def init_bert_scorer(model: Optional[str] = None, batch_size: int = 64) -> bert_
 
 def calculate_bertscore(predictions_file: str, dataset_class: Type[MRToTextDataset], scorer: bert_score.BERTScorer,
                         mode: str = 'f1', verbose: bool = False) -> None:
-    # Load generated utterances from the provided file
-    if os.path.splitext(predictions_file)[-1] == '.csv':
-        df_predictions = pd.read_csv(predictions_file, header=0, encoding='utf-8')
-        _, predictions = dataset_class.read_data_from_dataframe(df_predictions, group_by_mr=True)
-        predictions = [pred_group[0] for pred_group in predictions]
-    else:
-        with open(predictions_file, 'r', encoding='utf-8') as f_pred:
-            predictions = [pred_line.strip() for pred_line in f_pred.readlines()]
-
-    # Load reference utterances of the test set
-    df_data = pd.read_csv(dataset_class.get_data_file_path('test'), header=0, encoding='utf-8')
-    _, references = dataset_class.read_data_from_dataframe(df_data, group_by_mr=True)
-    # references = dataset_class.lowercase_utterances(references)
-    # references = [reference_list[0] for reference_list in references]
+    predictions = load_predictions_from_file(predictions_file, dataset_class)
+    references = load_references_from_dataset(dataset_class)
 
     assert len(predictions) == len(references), \
         f'The number of predictions ({len(predictions)}) must equal the number of references ({len(references)}).'
@@ -160,20 +173,8 @@ def init_bleurt_scorer(model: Optional[str] = None) -> LengthBatchingBleurtScore
 
 def calculate_bleurt(predictions_file: str, dataset_class: Type[MRToTextDataset], scorer: LengthBatchingBleurtScorer,
                      batch_size: Optional[int] = None, verbose: bool = False) -> None:
-    # Load generated utterances from the provided file
-    if os.path.splitext(predictions_file)[-1] == '.csv':
-        df_predictions = pd.read_csv(predictions_file, header=0, encoding='utf-8')
-        _, predictions = dataset_class.read_data_from_dataframe(df_predictions, group_by_mr=True)
-        predictions = [pred_group[0] for pred_group in predictions]
-    else:
-        with open(predictions_file, 'r', encoding='utf-8') as f_pred:
-            predictions = [pred_line.strip() for pred_line in f_pred.readlines()]
-
-    # Load reference utterances of the test set
-    df_data = pd.read_csv(dataset_class.get_data_file_path('test'), header=0, encoding='utf-8')
-    _, references = dataset_class.read_data_from_dataframe(df_data, group_by_mr=True)
-    # references = dataset_class.lowercase_utterances(references)
-    # references = [reference_list[0] for reference_list in references]
+    predictions = load_predictions_from_file(predictions_file, dataset_class)
+    references = load_references_from_dataset(dataset_class)
 
     assert len(predictions) == len(references), \
         f'The number of predictions ({len(predictions)}) must equal the number of references ({len(references)}).'
@@ -204,9 +205,31 @@ def calculate_bleurt(predictions_file: str, dataset_class: Type[MRToTextDataset]
     # print([round(score, 4) for score in max_scores])
     # print()
 
-    # Print the BERTScore scores
+    # Print the BLEURT scores
     if verbose:
         print(f'>> BLEURT: {round(avg_score, 4)}')
+    else:
+        print(f'{round(avg_score, 4)}')
+
+
+def init_ppl_scorer(model: Optional[str] = None) -> Metric:
+    # Default to the smallest GPT-2 variant
+    if not model:
+        model = PerplexityModelId.GPT2
+
+    return load_metric(os.path.join('metrics', 'perplexity'), model)
+
+
+def calculate_ppl(predictions_file: str, dataset_class: Type[MRToTextDataset], metric: Metric, batch_size: int = 16,
+                  verbose: bool = False) -> None:
+    predictions = load_predictions_from_file(predictions_file, dataset_class)
+
+    ppl_scores = metric.compute(input_texts=predictions, batch_size=batch_size)
+    avg_score = np.mean(ppl_scores)
+
+    # Print the perplexity scores
+    if verbose:
+        print(f'>> PPL: {round(avg_score, 4)}')
     else:
         print(f'{round(avg_score, 4)}')
 
