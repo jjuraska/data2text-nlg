@@ -103,6 +103,9 @@ class Perplexity(datasets.Metric):
         self.model = AutoModelForCausalLM.from_pretrained(model_id)
         self.model = self.model.to(self.device)
 
+        # Override the model's maximum output length
+        self.model.config.max_length = 128
+
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
 
     def _compute(self, input_texts, batch_size: int = 16, add_start_token: bool = True):
@@ -151,6 +154,12 @@ class Perplexity(datasets.Metric):
         ppls = []
         loss_fct = CrossEntropyLoss(reduction="none")
 
+        # NOTE: For experiments only.
+        print_token_ppls = False
+        token_probs = []
+        token_ppls = []
+        tokens = []
+
         for start_index in range(0, len(encoded_texts), batch_size):
             end_index = min(start_index + batch_size, len(encoded_texts))
             encoded_batch = encoded_texts[start_index:end_index]
@@ -172,11 +181,30 @@ class Perplexity(datasets.Metric):
             shift_labels = labels[..., 1:].contiguous()
             shift_attention_mask_batch = attn_mask[..., 1:].contiguous()
 
-            perplexity_batch = torch.exp2(
-                (loss_fct(shift_logits.transpose(1, 2), shift_labels) * shift_attention_mask_batch).sum(1)
-                / shift_attention_mask_batch.sum(1)
-            )
+            token_probs_batch = loss_fct(shift_logits.transpose(1, 2), shift_labels) * shift_attention_mask_batch
+            perplexity_batch = torch.exp(token_probs_batch.sum(1) / shift_attention_mask_batch.sum(1))
+
+            if print_token_ppls:
+                # NOTE: For experiments only.
+                for encoded_input in encoded_batch:
+                    tokens.append([self.tokenizer.decode(input_id, skip_special_tokens=True)
+                                   for input_id in encoded_input[1:]])
+                token_probs += torch.exp(-token_probs_batch).tolist()
+                token_ppls += torch.exp(token_probs_batch).tolist()
 
             ppls += perplexity_batch.tolist()
+
+        if print_token_ppls:
+            # NOTE: For experiments only.
+            for i in range(len(token_ppls)):
+                try:
+                    end_idx = token_ppls[i].index(1.0)
+                except ValueError:
+                    end_idx = len(token_ppls[i])
+
+                print('\t'.join(tokens[i][:end_idx]))
+                print('\t'.join(f'{round(prob, 4):.4f}' for prob in token_probs[i][:end_idx]))
+                print('\t'.join(f'{round(ppl, 2):.4f}' for ppl in token_ppls[i][:end_idx]))
+                print()
 
         return ppls
