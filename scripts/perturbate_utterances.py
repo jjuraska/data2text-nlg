@@ -94,7 +94,7 @@ class PseudoUtteranceGenerator(object):
         return pseudo_utterances
 
     def generate_mrs(self, exclude_da: bool = False, lowercase: bool = False, perturbation: Optional[str] = None,
-                     perturbation_n: int = 1) -> List[str]:
+                     perturbation_n: int = 1, return_as_lists: bool = False) -> List[str]:
         mrs_pert = []
 
         if exclude_da:
@@ -106,11 +106,14 @@ class PseudoUtteranceGenerator(object):
         if perturbation:
             mrs = self.perturbate_mrs(mrs, perturbation, num_slots_per_mr=perturbation_n)
 
-        for mr, da in zip(mrs, das):
-            mr_pert = self._reconstruct_mr(mr, da)
-            mrs_pert.append(mr_pert.lower() if lowercase else mr_pert)
+        if return_as_lists:
+            return mrs
+        else:
+            for mr, da in zip(mrs, das):
+                mr_pert = self._reconstruct_mr(mr, da)
+                mrs_pert.append(mr_pert.lower() if lowercase else mr_pert)
 
-        return mrs_pert
+            return mrs_pert
 
     def _identify_da_slot_in_mr(self, mr_as_list: Sequence[Tuple[str, str]]) -> Optional[str]:
         for slot_name, slot_value in mr_as_list:

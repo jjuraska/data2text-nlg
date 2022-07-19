@@ -1,8 +1,8 @@
 import bert_score
 from bleurt.score import LengthBatchingBleurtScorer
+from collections import defaultdict
 from datasets import load_metric
 from datasets.metric import Metric
-from collections import defaultdict
 import numpy as np
 import os
 import pandas as pd
@@ -17,6 +17,7 @@ from dataset_loaders.e2e import E2EDataset, E2ECleanedDataset
 from dataset_loaders.multiwoz import MultiWOZDataset
 from dataset_loaders.viggo import ViggoDataset
 from scripts.perturbate_utterances import PerturbationMode, PseudoUtteranceGenerator, SlotNameMode
+from slot_aligner.slot_alignment import count_errors
 
 
 class BleurtModelPath(object):
@@ -48,8 +49,11 @@ class PseudoReferenceMetricEvaluator(object):
 
         self.generator = PseudoUtteranceGenerator(self.dataset_class, partition=partition, file_path=file_path)
         self.predictions = [utt.lower() for utt in self.generator.utterances] if lowercase else self.generator.utterances
-        self.references = None
-        self.generate_new_references()
+
+        # Generate initial pseudo-references without any perturbations for BERTScore's IDF initialization
+        self.references = self.generator.generate_pseudo_utterances(
+            separator=self.separator, include_slot_names=self.include_slot_names,
+            bool_slot_name_mode=self.bool_slot_name_mode, lowercase=self.lowercase)
 
     @staticmethod
     def get_dataset_class(dataset_name: str) -> Type[MRToTextDataset]:
@@ -64,16 +68,17 @@ class PseudoReferenceMetricEvaluator(object):
         else:
             raise ValueError(f'Dataset "{dataset_name}" not recognized')
 
-    def generate_new_references(self) -> None:
-        self.references = self.generator.generate_pseudo_utterances(
-            separator=self.separator, include_slot_names=self.include_slot_names,
-            bool_slot_name_mode=self.bool_slot_name_mode, lowercase=self.lowercase, perturbation=self.perturbation,
-            perturbation_n=self.perturbation_n)
-
-        # NOTE: For experiments only
-        # self.references = self.generator.generate_mrs(
-        #     exclude_da=False, lowercase=self.lowercase, perturbation=self.perturbation,
-        #     perturbation_n=self.perturbation_n)
+    def generate_new_references(self, use_mrs: bool = False) -> None:
+        if use_mrs:
+            # NOTE: For experiments only.
+            self.references = self.generator.generate_mrs(
+                exclude_da=False, lowercase=self.lowercase, perturbation=self.perturbation,
+                perturbation_n=self.perturbation_n, return_as_lists=True)
+        else:
+            self.references = self.generator.generate_pseudo_utterances(
+                separator=self.separator, include_slot_names=self.include_slot_names,
+                bool_slot_name_mode=self.bool_slot_name_mode, lowercase=self.lowercase, perturbation=self.perturbation,
+                perturbation_n=self.perturbation_n)
 
     def shuffle_references(self, within_da_only: bool = False) -> None:
         if within_da_only:
@@ -148,6 +153,9 @@ class PseudoReferenceMetricEvaluator(object):
         bleurt_scorer = self.init_bleurt_scorer(model=kwargs.get('bleurt_model', None))
 
         for run in tqdm(range(1, num_runs + 1), desc='Run'):
+            # Generate new references (i.e., newly perturbated pseudo-utterances)
+            self.generate_new_references()
+
             # Shuffle references, if desired
             if shuffle_refs:
                 self.shuffle_references(within_da_only=(shuffle_refs == 'da'))
@@ -186,10 +194,6 @@ class PseudoReferenceMetricEvaluator(object):
                 })
                 df_out.to_csv(out_file_path, index=False, encoding='utf-8-sig')
 
-            # Generate new references (i.e., newly perturbated pseudo-utterances)
-            if run < num_runs:
-                self.generate_new_references()
-
         # Print system-level scores
         print('\n==== System-level scores ====')
         print('\t'.join(results[0]))
@@ -209,6 +213,9 @@ class PseudoReferenceMetricEvaluator(object):
         bleurt_scorer3 = self.init_bleurt_scorer(model=BleurtModelPath.BLEURT_20_D3)
 
         for run in tqdm(range(1, num_runs + 1), desc='Run'):
+            # Generate new references (i.e., newly perturbated pseudo-utterances)
+            self.generate_new_references()
+
             # Shuffle references, if desired
             if shuffle_refs:
                 self.shuffle_references(within_da_only=(shuffle_refs == 'da'))
@@ -247,10 +254,6 @@ class PseudoReferenceMetricEvaluator(object):
                     **bleurt_results3
                 })
                 df_out.to_csv(out_file_path, index=False, encoding='utf-8-sig')
-
-            # Generate new references (i.e., newly perturbated pseudo-utterances)
-            if run < num_runs:
-                self.generate_new_references()
 
         # Print system-level scores
         print('\n==== System-level scores ====')
@@ -309,6 +312,45 @@ class PseudoReferenceMetricEvaluator(object):
         print('\t'.join(results[0]))
         for scores in results[1:]:
             print('\t'.join([str(round(score, 4)) for score in scores]))
+        print()
+
+    def calculate_slot_error_rate(self, num_runs: int = 1, shuffle_refs: Union[bool, str] = False,
+                                  export_results: bool = False) -> None:
+        results = []
+
+        for run in tqdm(range(1, num_runs + 1), desc='Run'):
+            # Generate new MRs (note: overrides the pseudo-reference generation)
+            self.generate_new_references(use_mrs=True)
+
+            # Shuffle MRs, if desired
+            if shuffle_refs:
+                self.shuffle_references(within_da_only=(shuffle_refs == 'da'))
+
+            # Calculate segment- and system-level scores
+            ser_results = self.calculate_ser()
+
+            if not results:
+                # Save the metric names as column names for the results table
+                metric_names = ['SER (corpus)']
+                results.append(metric_names)
+
+            results.append([ser_results['SER (corpus)']])
+
+            # Save segment-level scores to a CSV file
+            if export_results:
+                out_file_path = self.get_csv_export_path(suffix=f'_ser_only_run{run}')
+                df_out = pd.DataFrame({
+                    'mr': self.references,
+                    'prediction': self.predictions,
+                    'SER': ser_results['SER']
+                })
+                df_out.to_csv(out_file_path, index=False, encoding='utf-8-sig')
+
+        # Print system-level scores
+        print('\n==== System-level scores ====')
+        print('\t'.join(results[0]))
+        for scores in results[1:]:
+            print('\t'.join([f'{round(100 * score, 2)}%' for score in scores]))
         print()
 
     def init_bert_scorer(self, model: Optional[str] = None, batch_size: int = 64,
@@ -409,6 +451,20 @@ class PseudoReferenceMetricEvaluator(object):
             'ROUGE-L (F1)': [round(score.fmeasure, 4) for score in rouge_scores['rougeL']]
         }
 
+    def calculate_ser(self) -> Dict[str, List[float]]:
+        error_counts = []
+        total_content_slots = 0
+
+        for mr, utt in zip(self.references, self.predictions):
+            num_errors, _, _, num_content_slots = count_errors(utt, mr, self.dataset_class.name)
+            error_counts.append(num_errors)
+            total_content_slots += num_content_slots
+
+        return {
+            'SER': error_counts,
+            'SER (corpus)': sum(error_counts) / total_content_slots
+        }
+
 
 if __name__ == '__main__':
     pseudo_ref_config = {
@@ -416,13 +472,13 @@ if __name__ == '__main__':
         'include_slot_names': False,
         'bool_slot_name_mode': SlotNameMode.SINGLE_WORD,
         'lowercase': False,
-        # 'perturbation': PerturbationMode.DUPLICATE,
+        # 'perturbation': PerturbationMode.DELETE,
         # 'perturbation_n': 1,
     }
     metrics_config = {
         'bertscore_model': BertScoreModelCheckpoint.DEBERTA_LARGE_MNLI,
         'bertscore_batch_size': 64,
-        'bertscore_idf': True,
+        'bertscore_idf': False,
         'bleurt_model': BleurtModelPath.BLEURT_20_D12,
         'bleurt_batch_size': 64,
         'rouge_use_stemmer': False,
@@ -437,5 +493,8 @@ if __name__ == '__main__':
     # evaluator.calculate_bertscore_and_bleurt(num_runs=5, shuffle_refs=False, export_results=True)
     # evaluator.calculate_bertscore_and_bleurt(num_runs=5, shuffle_refs=True, export_results=False)
 
-    # evaluator.calculate_bertscore_with_and_without_idf(num_runs=1, shuffle_refs=False, export_results=True, **metrics_config)
+    # evaluator.calculate_bertscore_with_and_without_idf(num_runs=5, shuffle_refs=False, export_results=True, **metrics_config)
     # evaluator.calculate_bertscore_with_and_without_idf(num_runs=5, shuffle_refs=True, export_results=False, **metrics_config)
+
+    # evaluator.calculate_slot_error_rate(num_runs=5, shuffle_refs=False, export_results=True)
+    # evaluator.calculate_slot_error_rate(num_runs=5, shuffle_refs=True, export_results=False)
