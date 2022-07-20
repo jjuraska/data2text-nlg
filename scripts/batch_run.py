@@ -98,7 +98,7 @@ def batch_calculate_ppl(input_dir, dataset_class, verbose=False):
             if verbose:
                 print(f'Running with file "{file_name}"...')
 
-            calculate_ppl(os.path.join(input_dir, file_name), dataset_class, ppl_scorer, batch_size=64, verbose=verbose)
+            calculate_ppl(os.path.join(input_dir, file_name), dataset_class, ppl_scorer, batch_size=32, verbose=verbose)
 
             if verbose:
                 print()
