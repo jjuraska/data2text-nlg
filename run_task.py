@@ -302,7 +302,9 @@ def test(config, test_set, data_loader, tokenizer, model, is_enc_dec, device='cp
     if config.semantic_reranking or config.semantic_reranking_all:
         if config.semantic_reranking_all or not config.semantic_decoding:
             # Rerank generated beams based on semantic accuracy determined by the slot aligner
-            predictions_reranked = eval_utils.rerank_beams(predictions, test_set.get_mrs(), test_set.name)
+            predictions_reranked = eval_utils.rerank_beams(
+                predictions, test_set.get_mrs(slot_name_conversion=SlotNameConversionMode.SPECIAL_TOKENS),
+                test_set.name)
             predictions_reranked = [pred_beam[0] for pred_beam in predictions_reranked]
             eval_configurations.append((predictions_reranked, True, None))
 
