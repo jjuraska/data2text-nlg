@@ -137,7 +137,7 @@ model/
 
 # Output directories
 attention/
-data/*/pseudo_references*/
 export/
+metric_evaluation/
 predictions/
 predictions_baselines/
