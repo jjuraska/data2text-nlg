@@ -1,0 +1,19 @@
+model_name: "export/rest_e2e/finetuned_verbalized_slots/t5-small_lr_2e-4_bs_64_wus_100_run2/epoch_17_step_658"
+pretrained: True
+lowercase: False
+slot_name_conversion: "verbalize"
+batch_size: 32
+max_seq_length: 128
+num_beams: 20
+num_beam_groups: 20
+diversity_penalty: 5.0
+beam_search_early_stopping: True
+#length_penalty: [0.8, 0.9, 1.0, 1.5, 2.0, 3.0]
+length_penalty: 1.0
+do_sample: False
+#no_repeat_ngram_size: 3
+#repetition_penalty: 2.5
+#num_return_sequences: 1
+#semantic_decoding: True
+semantic_reranking: True
+#semantic_reranking_all: True

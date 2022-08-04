@@ -1,13 +1,17 @@
-model_name: "export/rest_e2e/from_scratch/t5-small_lr_2e-4_bs_64/epoch_21_step_658"
-pretrained: False
-slot_name_conversion: "special_tokens"
-batch_size: 48
+model_name: "export/rest_e2e/finetuned_verbalized_slots/t5-small_lr_2e-4_bs_64_wus_100_run2/epoch_17_step_658"
+pretrained: True
+lowercase: False
+slot_name_conversion: "verbalize"
+batch_size: 64
 max_seq_length: 128
 do_sample: True
+#temperature: 1.0
 top_p: [0.3, 0.5, 0.8]
+#top_p: 0.3
 top_k: 0
 #no_repeat_ngram_size: 3
 #repetition_penalty: 2.5
-#length_penalty: 1.0
 num_return_sequences: 10
-semantic_reranking: True
+semantic_decoding: True
+#semantic_reranking: True
+semantic_reranking_all: True
