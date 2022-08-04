@@ -206,8 +206,8 @@ class PseudoReferenceMetricEvaluator(object):
         results = []
 
         # Initialize scorers for metrics that depend on a model or a package, so they don't get loaded in every run
-        bert_scorer1 = self.init_bert_scorer(model=BertScoreModelCheckpoint.DEBERTA_XLARGE_MNLI, batch_size=64, idf=True)
-        bert_scorer2 = self.init_bert_scorer(model=BertScoreModelCheckpoint.DEBERTA_LARGE_MNLI, batch_size=64, idf=True)
+        bert_scorer1 = self.init_bert_scorer(model=BertScoreModelCheckpoint.DEBERTA_XLARGE_MNLI, batch_size=64, idf=False)
+        bert_scorer2 = self.init_bert_scorer(model=BertScoreModelCheckpoint.DEBERTA_LARGE_MNLI, batch_size=64, idf=False)
         bleurt_scorer1 = self.init_bleurt_scorer(model=BleurtModelPath.BLEURT_20_D12)
         bleurt_scorer2 = self.init_bleurt_scorer(model=BleurtModelPath.BLEURT_20_D6)
         bleurt_scorer3 = self.init_bleurt_scorer(model=BleurtModelPath.BLEURT_20_D3)
@@ -273,6 +273,9 @@ class PseudoReferenceMetricEvaluator(object):
                                                 batch_size=kwargs.get('bertscore_batch_size', 64), idf=True)
 
         for run in tqdm(range(1, num_runs + 1), desc='Run'):
+            # Generate new references (i.e., newly perturbated pseudo-utterances)
+            self.generate_new_references()
+
             # Shuffle references, if desired
             if shuffle_refs:
                 self.shuffle_references(within_da_only=(shuffle_refs == 'da'))
@@ -302,10 +305,6 @@ class PseudoReferenceMetricEvaluator(object):
                     **bertscore_results_idf
                 })
                 df_out.to_csv(out_file_path, index=False, encoding='utf-8-sig')
-
-            # Generate new references (i.e., newly perturbated pseudo-utterances)
-            if run < num_runs:
-                self.generate_new_references()
 
         # Print system-level scores
         print('\n==== System-level scores ====')
